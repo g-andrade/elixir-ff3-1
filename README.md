@@ -18,6 +18,8 @@ I wrote this for the kicks - it is not a serious project.
     assert "6520935496" == FPE.FF3_1.decrypt!(ctx, tweak, "4716569208")
 ```
 
+![Alt text](cool.png?raw=true "Optional Title")
+
 ## Installation
 
 If [available in Hex](https://hex.pm/docs/publish), the package can be installed
