@@ -152,21 +152,21 @@ defmodule FPE.FF3_1 do
     vS_ciph_etc = ciph(vS_revb_K, vS_revb_P)
     vS = FFX.revb(vS_ciph_etc)
 
-    ## iv. Let y = NUM(S)
+    ## 4.iv. Let y = NUM(S)
     y = FFX.num(vS)
 
-    ## v. Let c = (NUM_radix(REV(A)) + y) mod (radix**m)
+    ## 4.v. Let c = (NUM_radix(REV(A)) + y) mod (radix**m)
     c_rev_A = FFX.rev(vA)
     c_num_radix_rev_A_plus_y = FFX.num_radix(radix, c_rev_A) + y
     c = rem(c_num_radix_rev_A_plus_y, Integer.pow(radix, m))
 
-    ## vi. Let C = REV(STR_m_radix(c))
+    ## 4.vi. Let C = REV(STR_m_radix(c))
     vC = FFX.rev(FFX.str_m_radix(m, radix, c))
 
-    ## vii. Let A = B
+    ## 4.vii. Let A = B
     vA = vB
 
-    ## viii. let B = C
+    ## 4.viii. let B = C
     vB = vC
 
     do_encrypt_rounds!(
@@ -183,32 +183,32 @@ defmodule FPE.FF3_1 do
   end
 
   defp do_decrypt_rounds!(i, k, radix, m, other_m, vA, vB, vW, other_vW) when i >= 0 do
-    # ii. Let P = W ⊕ [i]⁴ || [NUM_radix(REV(A))]¹²
+    ## 4.ii. Let P = W ⊕ [i]⁴ || [NUM_radix(REV(A))]¹²
     vP_W_xor_i = :crypto.exor(vW, <<i::unsigned-size(4)-unit(8)>>)
     vP_num_radix_rev_A = FFX.num_radix(radix, FFX.rev(vA))
     vP = <<vP_W_xor_i::bytes, vP_num_radix_rev_A::unsigned-size(12)-unit(8)>>
 
-    ## iii. Let S = REVB(CIPH_REVB(K)(REVB(P)))
+    ## 4.iii. Let S = REVB(CIPH_REVB(K)(REVB(P)))
     vS_revb_P = FFX.revb(vP)
     vS_revb_K = FFX.revb(k)
     vS_ciph_etc = ciph(vS_revb_K, vS_revb_P)
     vS = FFX.revb(vS_ciph_etc)
 
-    ## iv. Let y = NUM(S)
+    ## 4.iv. Let y = NUM(S)
     y = FFX.num(vS)
 
-    ## v. Let c = (NUM_radix(REV(B)) + y) mod (radix**m)
+    ## 4.v. Let c = (NUM_radix(REV(B)) - y) mod (radix**m)
     c_rev_B = FFX.rev(vB)
     c_num_radix_rev_B_minus_y = FFX.num_radix(radix, c_rev_B) - y
     c = Integer.mod(c_num_radix_rev_B_minus_y, Integer.pow(radix, m))
 
-    ## vi. Let C = REV(STR_m_radix(c))
+    ## 4.vi. Let C = REV(STR_m_radix(c))
     vC = FFX.rev(FFX.str_m_radix(m, radix, c))
 
-    ## vii. Let B = A
+    ## 4.vii. Let B = A
     vB = vA
 
-    ## viii. Let A = C
+    ## 4.viii. Let A = C
     vA = vC
 
     do_decrypt_rounds!(
