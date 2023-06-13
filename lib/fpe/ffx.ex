@@ -52,12 +52,13 @@ defmodule FPE.FFX do
       :builtin ->
         Integer.to_string(x, radix)
         |> String.downcase
+        |> String.pad_leading(m, "0")
       :builtin_upper ->
         Integer.to_string(x, radix)
+        |> String.pad_leading(m, "0")
       custom_codec ->
-        CustomCodec.to_string(custom_codec, x)
+        CustomCodec.to_padded_string(custom_codec, m, x)
     end
-    |> String.pad_leading(m, "0")
   end
 
   @doc false

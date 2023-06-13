@@ -4,8 +4,8 @@ defprotocol FPE.FFX.CustomCodec do
   @spec to_integer(t, String.t) :: non_neg_integer
   def to_integer(codec, string)
 
-  @spec to_string(t, non_neg_integer) :: String.t
-  def to_string(codec, int)
+  @spec to_padded_string(t, pos_integer, non_neg_integer) :: String.t
+  def to_padded_string(codec, m, int)
 end
 
 defmodule FPE.FFX.MultibyteCodec do
@@ -37,11 +37,13 @@ defmodule FPE.FFX.MultibyteCodec do
       to_integer_recur(string, symbol_to_amount, radix, _acc0 = 0)
     end
 
-    @spec to_string(MultibyteCodec.t, non_neg_integer) :: String.t
-    def to_string(codec, int) when is_integer(int) and int >= 0 do
+    @spec to_padded_string(MultibyteCodec.t, pos_integer, non_neg_integer) :: String.t
+    def to_padded_string(codec, m, int) when is_integer(int) and int >= 0 do
       amount_to_symbol = codec.amount_to_symbol
       radix = tuple_size(amount_to_symbol)
-      to_string_recur(int, amount_to_symbol, radix, _acc0 = [])
+      zero_symbol = elem(amount_to_symbol, 0)
+      to_padded_string_recur(int, amount_to_symbol, radix, _acc0 = [])
+      |> String.pad_leading(m, zero_symbol)
     end
 
     defp to_integer_recur(string, symbol_to_amount, radix, acc) do
@@ -62,7 +64,7 @@ defmodule FPE.FFX.MultibyteCodec do
       end
     end
 
-    defp to_string_recur(int, amount_to_symbol, radix, acc) do
+    defp to_padded_string_recur(int, amount_to_symbol, radix, acc) do
       remainder = rem(int, radix)
       symbol = elem(amount_to_symbol, remainder)
       acc = [symbol | acc]
@@ -71,7 +73,7 @@ defmodule FPE.FFX.MultibyteCodec do
         0 ->
           List.to_string(acc)
         int ->
-          to_string_recur(int, amount_to_symbol, radix, acc)
+          to_padded_string_recur(int, amount_to_symbol, radix, acc)
       end
     end
   end
