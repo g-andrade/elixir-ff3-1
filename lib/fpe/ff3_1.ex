@@ -8,34 +8,44 @@ defmodule FPE.FF3_1 do
 
   ## Types
 
-  @type radix :: 2..0xFFFF # 5.2, FF3-1 requirements
-  @type tweak :: <<_::56>> # 5.2, Algorithm 9: FF3.Encrypt(K, T, X)
+  # 5.2, FF3-1 requirements
+  @min_radix 2
+  @max_radix 0xFFFF
+  @type radix :: 2..0xFFFF
+  @type alphabet :: <<_::16, _::_*8>> | :builtin | :builtin_upper
+
+  # 5.2, Algorithm 9: FF3.Encrypt(K, T, X)
+  @type tweak :: <<_::56>>
 
   Record.defrecordp(:ctx, [
-    :k, :radix, :minlen, :maxlen
+    :k, :radix, :codec, :minlen, :maxlen
   ])
 
   @opaque ctx :: record(:ctx,
     k: FFX.key,
-    radix: radix
+    radix: radix,
+    codec: FFX.codec,
+    minlen: pos_integer,
+    maxlen: pos_integer
   )
 
   ## API
 
   defguardp is_valid_key(k) when is_binary(k) and bit_size(k) in [128, 192, 256]
-  defguardp is_valid_radix(radix) when is_integer(radix) and radix in 2..0xFFFF
 
-  @spec new(k, radix) :: {:ok, ctx} | {:error, term}
+  @spec new(k, radix | alphabet) :: {:ok, ctx} | {:error, term}
   when k: FFX.key, radix: radix
-  def new(k, _radix) when not is_valid_key(k), do: {:error, {:invalid_key, k}}
-  def new(_k, radix) when not is_valid_radix(radix), do: {:error, {:invalid_radix, radix}}
-  def new(k, radix) do
-    with {:ok, minlen} <- calculate_minlen(radix),
+  def new(k, _radix_or_alphabet) when not is_valid_key(k), do: {:error, {:invalid_key, k}}
+  # def new(_k, radix) when not is_valid_radix(radix), do: {:error, {:invalid_radix, radix}}
+  def new(k, radix_or_alphabet) do
+    with {:ok, radix, codec} <- validate_radix_or_alphabet(radix_or_alphabet),
+         {:ok, minlen} <- calculate_minlen(radix),
          {:ok, maxlen} <- calculate_maxlen(minlen, radix)
     do
       {:ok, ctx(
         k: k,
         radix: radix,
+        codec: codec,
         minlen: minlen,
         maxlen: maxlen
       )}
@@ -58,6 +68,59 @@ defmodule FPE.FF3_1 do
   end
 
   ## Internal Functions
+
+  defp validate_radix_or_alphabet(radix) when is_integer(radix) do
+    cond do
+      radix < @min_radix ->
+        {:error, {:invalid_radix, radix, :less_than_minimum, @min_radix}}
+      radix > String.length(FFX.largest_builtin_alphabet()) ->
+        {:error, {:invalid_radix, radix, :you_need_to_provide_the_alphabet}}
+      true ->
+        {:ok, radix, _codec = :builtin}
+    end
+  end
+
+  defp validate_radix_or_alphabet(alphabet) when is_binary(alphabet) do
+    largest_builtin = FFX.largest_builtin_alphabet()
+    use_builtin = largest_builtin
+                  |> String.starts_with?(alphabet)
+
+    use_builtin_upper = !use_builtin && largest_builtin
+                        |> String.upcase()
+                        |> String.starts_with?(alphabet)
+
+    cond do
+      use_builtin ->
+        # optimization
+        radix = String.length(alphabet)
+        {:ok, radix, _codec = :builtin}
+      use_builtin_upper ->
+        radix = String.length(alphabet)
+        {:ok, radix, _codec = :builtin_upper}
+      true ->
+        validate_custom_alphabet(alphabet)
+    end
+  end
+
+  defp validate_radix_or_alphabet(neither), do: {:error, {:neither_radix_nor_alphabet, neither}}
+
+  defp validate_custom_alphabet(alphabet) do
+    ordered_graphemes = String.graphemes(alphabet)
+    unique_graphemes = Enum.uniq(ordered_graphemes)
+    nr_of_symbols = length(ordered_graphemes)
+    nr_of_unique_symbols = length(unique_graphemes)
+
+    cond do
+      nr_of_symbols > @max_radix ->
+        {:error, {:alphabet_exceeds_max_radix, @max_radix}}
+      nr_of_symbols == nr_of_unique_symbols ->
+        codec = FFX.MultibyteCodec.new(ordered_graphemes)
+        {:ok, _radix = nr_of_symbols, codec}
+      nr_of_symbols > nr_of_unique_symbols ->
+        repeated_symbols = ordered_graphemes -- unique_graphemes
+        {:error, {:alphabet_has_repeated_symbols, repeated_symbols}}
+    end
+  end
 
   defp calculate_minlen(radix) do
     # 5.2, FF3-1 requirements: radix ** minlen >= 1_000_000
@@ -87,14 +150,14 @@ defmodule FPE.FF3_1 do
     with :ok <- validate_enc_or_dec_input(ctx, vX),
          :ok <- validate_tweak(t)
     do
-        ctx(k: k, radix: radix) = ctx
+        ctx(k: k, radix: radix, codec: codec) = ctx
         {even_m, odd_m, vA, vB, even_vW, odd_vW} = setup_encrypt_or_decrypt_vars!(t, vX)
 
         case enc do
           true ->
-            do_encrypt_rounds!(_i = 0, k, radix, even_m, odd_m, vA, vB, even_vW, odd_vW)
+            do_encrypt_rounds!(_i = 0, k, radix, codec, even_m, odd_m, vA, vB, even_vW, odd_vW)
           false ->
-            do_decrypt_rounds!(_i = 7, k, radix, odd_m, even_m, vA, vB, odd_vW, even_vW)
+            do_decrypt_rounds!(_i = 7, k, radix, codec, odd_m, even_m, vA, vB, odd_vW, even_vW)
         end
     else
       {whats_wrong, details_msg} ->
@@ -105,7 +168,7 @@ defmodule FPE.FF3_1 do
   defp validate_enc_or_dec_input(ctx, vX) do
     ctx(minlen: minlen, maxlen: maxlen) = ctx
     # TODO validate alphabet
-    case byte_size(vX) do
+    case String.length(vX) do
       valid_size when valid_size in minlen..maxlen ->
         :ok
       _invalid_size ->
@@ -118,14 +181,14 @@ defmodule FPE.FF3_1 do
   defp validate_tweak(_), do: {:tweak, "not a 56 bits -long bitstring"}
 
   defp setup_encrypt_or_decrypt_vars!(t, vX) do
-    n = byte_size(vX)
+    n = String.length(vX)
 
     # 1. Let u = ceil(n/2); v = n - u
     u = div(n, 2) + (n &&& 1)
     v = n - u
 
     # 2. Let A = X[1..u]; B = X[u + 1..n]
-    <<vA::bytes-size(u), vB::bytes>> = vX
+    {vA, vB} = String.split_at(vX, u)
 
     # 3. Let T_L = T[0..27] || O⁴ and T_R = T[32..55] || T[28..31] || O⁴
     <<t_left::bits-size(28), t_middle::bits-size(4), t_right::bits-size(24)>> = t
@@ -140,10 +203,10 @@ defmodule FPE.FF3_1 do
     {even_m, odd_m, vA, vB, even_vW, odd_vW}
   end
 
-  defp do_encrypt_rounds!(i, k, radix, m, other_m, vA, vB, vW, other_vW) when i < 8 do
+  defp do_encrypt_rounds!(i, k, radix, codec, m, other_m, vA, vB, vW, other_vW) when i < 8 do
     # 4.ii. Let P = W ⊕ [i]⁴ || [NUM_radix(REV(B))]¹²
     vP_W_xor_i = :crypto.exor(vW, <<i::unsigned-size(4)-unit(8)>>)
-    vP_num_radix_rev_B = FFX.num_radix(radix, FFX.rev(vB))
+    vP_num_radix_rev_B = FFX.num_radix(codec, radix, FFX.rev(vB))
     vP = <<vP_W_xor_i::bytes, vP_num_radix_rev_B::unsigned-size(12)-unit(8)>>
 
     ## 4.iii. Let S = REVB(CIPH_REVB(K)(REVB(P)))
@@ -157,11 +220,11 @@ defmodule FPE.FF3_1 do
 
     ## 4.v. Let c = (NUM_radix(REV(A)) + y) mod (radix**m)
     c_rev_A = FFX.rev(vA)
-    c_num_radix_rev_A_plus_y = FFX.num_radix(radix, c_rev_A) + y
+    c_num_radix_rev_A_plus_y = FFX.num_radix(codec, radix, c_rev_A) + y
     c = rem(c_num_radix_rev_A_plus_y, Integer.pow(radix, m))
 
     ## 4.vi. Let C = REV(STR_m_radix(c))
-    vC = FFX.rev(FFX.str_m_radix(m, radix, c))
+    vC = FFX.rev(FFX.str_m_radix(codec, m, radix, c))
 
     ## 4.vii. Let A = B
     vA = vB
@@ -170,22 +233,22 @@ defmodule FPE.FF3_1 do
     vB = vC
 
     do_encrypt_rounds!(
-      i + 1, k, radix,
+      i + 1, k, radix, codec,
       _m = other_m, _other_m = m, # swap odd with even
       vA, vB,
       _vW = other_vW, _other_vW = vW # swap odd with even
     )
   end
 
-  defp do_encrypt_rounds!(8 = _i, _k, _radix, _m, _other_m, vA, vB, _vW, _other_vW) do
+  defp do_encrypt_rounds!(8 = _i, _k, _radix, _codec, _m, _other_m, vA, vB, _vW, _other_vW) do
     ## 5. Return A || B
     <<vA::bytes, vB::bytes>>
   end
 
-  defp do_decrypt_rounds!(i, k, radix, m, other_m, vA, vB, vW, other_vW) when i >= 0 do
+  defp do_decrypt_rounds!(i, k, radix, codec, m, other_m, vA, vB, vW, other_vW) when i >= 0 do
     ## 4.ii. Let P = W ⊕ [i]⁴ || [NUM_radix(REV(A))]¹²
     vP_W_xor_i = :crypto.exor(vW, <<i::unsigned-size(4)-unit(8)>>)
-    vP_num_radix_rev_A = FFX.num_radix(radix, FFX.rev(vA))
+    vP_num_radix_rev_A = FFX.num_radix(codec, radix, FFX.rev(vA))
     vP = <<vP_W_xor_i::bytes, vP_num_radix_rev_A::unsigned-size(12)-unit(8)>>
 
     ## 4.iii. Let S = REVB(CIPH_REVB(K)(REVB(P)))
@@ -199,11 +262,11 @@ defmodule FPE.FF3_1 do
 
     ## 4.v. Let c = (NUM_radix(REV(B)) - y) mod (radix**m)
     c_rev_B = FFX.rev(vB)
-    c_num_radix_rev_B_minus_y = FFX.num_radix(radix, c_rev_B) - y
+    c_num_radix_rev_B_minus_y = FFX.num_radix(codec, radix, c_rev_B) - y
     c = Integer.mod(c_num_radix_rev_B_minus_y, Integer.pow(radix, m))
 
     ## 4.vi. Let C = REV(STR_m_radix(c))
-    vC = FFX.rev(FFX.str_m_radix(m, radix, c))
+    vC = FFX.rev(FFX.str_m_radix(codec, m, radix, c))
 
     ## 4.vii. Let B = A
     vB = vA
@@ -212,14 +275,14 @@ defmodule FPE.FF3_1 do
     vA = vC
 
     do_decrypt_rounds!(
-      i - 1, k, radix,
+      i - 1, k, radix, codec,
       _m = other_m, _other_m = m,  # swap odd with even
       vA, vB,
       _vW = other_vW, _other_vW = vW # swap odd with even
     )
   end
 
-  defp do_decrypt_rounds!(-1 = _i, _k, _radix, _m, _other_m, vA, vB, _vW, _other_vW) do
+  defp do_decrypt_rounds!(-1 = _i, _k, _radix, _codec, _m, _other_m, vA, vB, _vW, _other_vW) do
     ## 5. Return A || B
     <<vA::bytes, vB::bytes>>
   end

@@ -741,27 +741,61 @@ defmodule FpeTest do
     )
   end
 
-  #  test "ubiq-go TestFF3_1UTF8" do
-  # 	var alphabet string = "abcdefghijklmnopqrstuvwxyzこんにちは世界"
-  #
-  # 	check_test_vector(
-  # 		<<
-  # 			0x2b, 0x7e, 0x15, 0x16, 0x28, 0xae, 0xd2, 0xa6,
-  # 			0xab, 0xf7, 0x15, 0x88, 0x09, 0xcf, 0x4f, 0x3c,
-  # 			0xef, 0x43, 0x59, 0xd8, 0xd5, 0x80, 0xaa, 0x4f,
-  # 			0x7f, 0x03, 0x6d, 0x6f, 0x04, 0xfc, 0x6a, 0x94,
-  # 		>>,
-  # 		<<
-  # 			0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-  # 		>>,
-  # 		"こんにちは世界", "lscveにr",
-  # 		len([]rune(alphabet)), alphabet)
-  #  end
+  test "ubiq-go TestFF3_1UTF8" do
+    check_test_vector(
+      <<
+        0x2B,
+        0x7E,
+        0x15,
+        0x16,
+        0x28,
+        0xAE,
+        0xD2,
+        0xA6,
+        0xAB,
+        0xF7,
+        0x15,
+        0x88,
+        0x09,
+        0xCF,
+        0x4F,
+        0x3C,
+        0xEF,
+        0x43,
+        0x59,
+        0xD8,
+        0xD5,
+        0x80,
+        0xAA,
+        0x4F,
+        0x7F,
+        0x03,
+        0x6D,
+        0x6F,
+        0x04,
+        0xFC,
+        0x6A,
+        0x94
+      >>,
+      <<
+        0x00,
+        0x00,
+        0x00,
+        0x00,
+        0x00,
+        0x00,
+        0x00
+      >>,
+      "こんにちは世界",
+      "lscveにr",
+      "abcdefghijklmnopqrstuvwxyzこんにちは世界"
+    )
+  end
 
   ## Helpers
 
-  defp check_test_vector(key, tweak, plaintext, ciphertext, radix) do
-    {:ok, ctx} = FPE.FF3_1.new(key, radix)
+  defp check_test_vector(key, tweak, plaintext, ciphertext, radix_or_alphabet) do
+    {:ok, ctx} = FPE.FF3_1.new(key, radix_or_alphabet)
     assert FPE.FF3_1.encrypt!(ctx, tweak, plaintext) == ciphertext
     assert FPE.FF3_1.decrypt!(ctx, tweak, ciphertext) == plaintext
   end
