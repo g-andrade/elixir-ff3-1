@@ -81,17 +81,19 @@ defmodule FPE.FF3_1 do
   end
 
   defp validate_radix_or_alphabet(alphabet) when is_binary(alphabet) do
+    # If alphabet is a prefix of the builtin, this allows us
+    # to use the faster integer conversion functions bundled with ERTS.
     largest_builtin = FFX.largest_builtin_alphabet()
     use_builtin = largest_builtin
                   |> String.starts_with?(alphabet)
 
-    use_builtin_upper = !use_builtin && largest_builtin
+    use_builtin_upper = !use_builtin
+                        && largest_builtin
                         |> String.upcase()
                         |> String.starts_with?(alphabet)
 
     cond do
       use_builtin ->
-        # optimization
         radix = String.length(alphabet)
         {:ok, radix, _codec = :builtin}
       use_builtin_upper ->
