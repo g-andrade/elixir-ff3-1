@@ -33,6 +33,7 @@ defmodule FPE.FFX do
   when m: pos_integer, radix: radix, x: non_neg_integer, vX: numerical_string
   def str_m_radix(m, radix, x) when m > 0 and x >= 0 do
     Integer.to_string(x, radix)
+    |> String.downcase
     |> String.pad_leading(m, "0")
   end
 
