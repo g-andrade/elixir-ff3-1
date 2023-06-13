@@ -121,11 +121,20 @@ defmodule FPE.FF3_1 do
       nr_of_symbols > @max_radix ->
         {:error, {:alphabet_exceeds_max_radix, @max_radix}}
       nr_of_symbols == nr_of_unique_symbols ->
-        codec = FFX.MultibyteCodec.new(ordered_graphemes)
+        codec = new_custom_codec(ordered_graphemes)
         {:ok, _radix = nr_of_symbols, codec}
       nr_of_symbols > nr_of_unique_symbols ->
         repeated_symbols = ordered_graphemes -- unique_graphemes
         {:error, {:alphabet_has_repeated_symbols, repeated_symbols}}
+    end
+  end
+
+  defp new_custom_codec(ordered_graphemes) do
+    case ordered_graphemes |> Enum.any?(&(byte_size(&1) > 1)) do
+      true ->
+        FFX.MultibyteCodec.new(ordered_graphemes)
+      false ->
+        FFX.UnibyteCodec.new(ordered_graphemes)
     end
   end
 
