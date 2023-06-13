@@ -104,6 +104,11 @@ defmodule FPE.FF3_1 do
     end
   end
 
+  defp validate_radix_or_alphabet(alphabet) when alphabet in [:builtin, :builtin_upper] do
+    radix = FFX.largest_builtin_alphabet() |> String.length()
+    {:ok, radix, alphabet}
+  end
+
   defp validate_radix_or_alphabet(neither), do: {:error, {:neither_radix_nor_alphabet, neither}}
 
   defp validate_custom_alphabet(alphabet) do
