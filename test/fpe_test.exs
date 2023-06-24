@@ -803,6 +803,17 @@ defmodule FpeTest do
     )
   end
 
+  test "multibyte custom alphabet " do
+    check_test_vector(
+      <<63, 89, 255, 222, 188, 211, 44, 18, 129, 227, 228, 6, 210, 23, 145, 98, 144, 216, 104, 61,
+        203, 144, 121, 251>>,
+      <<10, 154, 124, 214, 232, 247, 151>>,
+      "🙌🙌🙌🙌🙌🙌🙌🙌",
+      "🙌🏿🙌🏼🙌🏿🙌🏾🙌🙌🏼🙌🏾🙌🏽",
+      "🙌🙌🏻🙌🏼🙌🏽🙌🏾🙌🏿"
+    )
+  end
+
   ## Helpers
 
   defp check_test_vector(key, tweak, plaintext, ciphertext, radix_or_alphabet) do
