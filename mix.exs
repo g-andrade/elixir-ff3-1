@@ -16,7 +16,8 @@ defmodule Fpe.MixProject do
     [
       extra_applications: [
         :crypto,
-        :logger # TODO review
+        # TODO review
+        :logger
       ]
     ]
   end

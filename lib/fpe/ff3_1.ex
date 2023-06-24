@@ -18,37 +18,42 @@ defmodule FPE.FF3_1 do
   @type tweak :: <<_::56>>
 
   Record.defrecordp(:ctx, [
-    :k, :radix, :codec, :minlen, :maxlen
+    :k,
+    :radix,
+    :codec,
+    :minlen,
+    :maxlen
   ])
 
-  @opaque ctx :: record(:ctx,
-    k: FFX.key,
-    radix: radix,
-    codec: FFX.codec,
-    minlen: pos_integer,
-    maxlen: pos_integer
-  )
+  @opaque ctx ::
+            record(:ctx,
+              k: FFX.key(),
+              radix: radix,
+              codec: FFX.codec(),
+              minlen: pos_integer,
+              maxlen: pos_integer
+            )
 
   ## API
 
   defguardp is_valid_key(k) when is_binary(k) and bit_size(k) in [128, 192, 256]
 
   @spec new(k, radix | alphabet) :: {:ok, ctx} | {:error, term}
-  when k: FFX.key, radix: radix
+        when k: FFX.key(), radix: radix
   def new(k, _radix_or_alphabet) when not is_valid_key(k), do: {:error, {:invalid_key, k}}
   # def new(_k, radix) when not is_valid_radix(radix), do: {:error, {:invalid_radix, radix}}
   def new(k, radix_or_alphabet) do
     with {:ok, radix, codec} <- validate_radix_or_alphabet(radix_or_alphabet),
          {:ok, minlen} <- calculate_minlen(radix),
-         {:ok, maxlen} <- calculate_maxlen(minlen, radix)
-    do
-      {:ok, ctx(
-        k: k,
-        radix: radix,
-        codec: codec,
-        minlen: minlen,
-        maxlen: maxlen
-      )}
+         {:ok, maxlen} <- calculate_maxlen(minlen, radix) do
+      {:ok,
+       ctx(
+         k: k,
+         radix: radix,
+         codec: codec,
+         minlen: minlen,
+         maxlen: maxlen
+       )}
     else
       {:error, _} = error ->
         error
@@ -56,13 +61,13 @@ defmodule FPE.FF3_1 do
   end
 
   @spec encrypt!(ctx, t, vX) :: vY
-  when ctx: ctx, t: tweak, vX: String.t, vY: String.t
+        when ctx: ctx, t: tweak, vX: String.t(), vY: String.t()
   def encrypt!(ctx, t, vX) do
     do_encrypt_or_decrypt!(ctx, t, vX, _enc = true)
   end
 
   @spec decrypt!(ctx, t, vX) :: vY
-  when ctx: ctx, t: tweak, vX: String.t, vY: String.t
+        when ctx: ctx, t: tweak, vX: String.t(), vY: String.t()
   def decrypt!(ctx, t, vX) do
     do_encrypt_or_decrypt!(ctx, t, vX, _enc = false)
   end
@@ -73,8 +78,10 @@ defmodule FPE.FF3_1 do
     cond do
       radix < @min_radix ->
         {:error, {:invalid_radix, radix, :less_than_minimum, @min_radix}}
+
       radix > String.length(FFX.largest_builtin_alphabet()) ->
         {:error, {:invalid_radix, radix, :you_need_to_provide_the_alphabet}}
+
       true ->
         {:ok, radix, _codec = :builtin}
     end
@@ -84,21 +91,26 @@ defmodule FPE.FF3_1 do
     # If alphabet is a prefix of the builtin, this allows us
     # to use the faster integer conversion functions bundled with ERTS.
     largest_builtin = FFX.largest_builtin_alphabet()
-    use_builtin = largest_builtin
-                  |> String.starts_with?(alphabet)
 
-    use_builtin_upper = !use_builtin
-                        && largest_builtin
-                        |> String.upcase()
-                        |> String.starts_with?(alphabet)
+    use_builtin =
+      largest_builtin
+      |> String.starts_with?(alphabet)
+
+    use_builtin_upper =
+      !use_builtin &&
+        largest_builtin
+        |> String.upcase()
+        |> String.starts_with?(alphabet)
 
     cond do
       use_builtin ->
         radix = String.length(alphabet)
         {:ok, radix, _codec = :builtin}
+
       use_builtin_upper ->
         radix = String.length(alphabet)
         {:ok, radix, _codec = :builtin_upper}
+
       true ->
         validate_custom_alphabet(alphabet)
     end
@@ -120,9 +132,11 @@ defmodule FPE.FF3_1 do
     cond do
       nr_of_symbols > @max_radix ->
         {:error, {:alphabet_exceeds_max_radix, @max_radix}}
+
       nr_of_symbols == nr_of_unique_symbols ->
         codec = new_custom_codec(ordered_graphemes)
         {:ok, _radix = nr_of_symbols, codec}
+
       nr_of_symbols > nr_of_unique_symbols ->
         repeated_symbols = ordered_graphemes -- unique_graphemes
         {:error, {:alphabet_has_repeated_symbols, repeated_symbols}}
@@ -133,6 +147,7 @@ defmodule FPE.FF3_1 do
     case ordered_graphemes |> Enum.any?(&(byte_size(&1) > 1)) do
       true ->
         FFX.MultibyteCodec.new(ordered_graphemes)
+
       false ->
         FFX.UnibyteCodec.new(ordered_graphemes)
     end
@@ -141,10 +156,12 @@ defmodule FPE.FF3_1 do
   defp calculate_minlen(radix) do
     # 5.2, FF3-1 requirements: radix ** minlen >= 1_000_000
     min_domain_size = 1_000_000
+
     case ceil(:math.log2(min_domain_size) / :math.log2(radix)) do
       minlen when minlen >= 2 ->
         # 5.2, FF3-1 requirements: 2 <= minlen <= [...]
         {:ok, minlen}
+
       minlen ->
         {:error, {:minlen_too_low, minlen}}
     end
@@ -157,6 +174,7 @@ defmodule FPE.FF3_1 do
       maxlen when maxlen >= minlen ->
         # 5.2, FF3-1 requirements: 2 <= minlen <= maxlen <= [...]
         {:ok, maxlen}
+
       maxlen ->
         {:error, {:maxlen_less_when_minlen, %{max: maxlen, min: minlen}}}
     end
@@ -164,20 +182,20 @@ defmodule FPE.FF3_1 do
 
   defp do_encrypt_or_decrypt!(ctx, t, vX, enc) do
     with :ok <- validate_enc_or_dec_input(ctx, vX),
-         :ok <- validate_tweak(t)
-    do
-        ctx(k: k, radix: radix, codec: codec) = ctx
-        {even_m, odd_m, vA, vB, even_vW, odd_vW} = setup_encrypt_or_decrypt_vars!(t, vX)
+         :ok <- validate_tweak(t) do
+      ctx(k: k, radix: radix, codec: codec) = ctx
+      {even_m, odd_m, vA, vB, even_vW, odd_vW} = setup_encrypt_or_decrypt_vars!(t, vX)
 
-        case enc do
-          true ->
-            do_encrypt_rounds!(_i = 0, k, radix, codec, even_m, odd_m, vA, vB, even_vW, odd_vW)
-          false ->
-            do_decrypt_rounds!(_i = 7, k, radix, codec, odd_m, even_m, vA, vB, odd_vW, even_vW)
-        end
+      case enc do
+        true ->
+          do_encrypt_rounds!(_i = 0, k, radix, codec, even_m, odd_m, vA, vB, even_vW, odd_vW)
+
+        false ->
+          do_decrypt_rounds!(_i = 7, k, radix, codec, odd_m, even_m, vA, vB, odd_vW, even_vW)
+      end
     else
       {whats_wrong, details_msg} ->
-        raise ArgumentError, message: "Invalid #{whats_wrong}: #{inspect t}: #{details_msg}"
+        raise ArgumentError, message: "Invalid #{whats_wrong}: #{inspect(t)}: #{details_msg}"
     end
   end
 
@@ -187,6 +205,7 @@ defmodule FPE.FF3_1 do
     case String.length(vX) do
       valid_size when valid_size in minlen..maxlen ->
         :ok
+
       _invalid_size ->
         {:input, "invalid size (not between #{minlen} and #{maxlen} symbols long"}
     end
@@ -214,7 +233,7 @@ defmodule FPE.FF3_1 do
     # 4.i. If i is even, let m = u and W = T_R, else let m = v and W = T_L
     even_m = u
     odd_m = v
-    even_vW= vT_R
+    even_vW = vT_R
     odd_vW = vT_L
     {even_m, odd_m, vA, vB, even_vW, odd_vW}
   end
@@ -249,10 +268,18 @@ defmodule FPE.FF3_1 do
     vB = vC
 
     do_encrypt_rounds!(
-      i + 1, k, radix, codec,
-      _m = other_m, _other_m = m, # swap odd with even
-      vA, vB,
-      _vW = other_vW, _other_vW = vW # swap odd with even
+      i + 1,
+      k,
+      radix,
+      codec,
+      # swap odd with even
+      _m = other_m,
+      _other_m = m,
+      vA,
+      vB,
+      # swap odd with even
+      _vW = other_vW,
+      _other_vW = vW
     )
   end
 
@@ -291,10 +318,18 @@ defmodule FPE.FF3_1 do
     vA = vC
 
     do_decrypt_rounds!(
-      i - 1, k, radix, codec,
-      _m = other_m, _other_m = m,  # swap odd with even
-      vA, vB,
-      _vW = other_vW, _other_vW = vW # swap odd with even
+      i - 1,
+      k,
+      radix,
+      codec,
+      # swap odd with even
+      _m = other_m,
+      _other_m = m,
+      vA,
+      vB,
+      # swap odd with even
+      _vW = other_vW,
+      _other_vW = vW
     )
   end
 
