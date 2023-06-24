@@ -10,7 +10,8 @@ defmodule Fpe.MixProject do
       deps: deps(),
       test_coverage: [
         summary: [
-          threshold: 0 # FIXME
+          # FIXME
+          threshold: 0
         ]
       ]
     ]
