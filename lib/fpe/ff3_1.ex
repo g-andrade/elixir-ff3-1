@@ -12,7 +12,7 @@ defmodule FPE.FF3_1 do
   @min_radix 2
   @max_radix 0xFFFF
   @type radix :: 2..0xFFFF
-  @type alphabet :: <<_::16, _::_*8>> | :builtin | :builtin_upper
+  @type alphabet :: <<_::16, _::_*8>>
 
   # 5.2, Algorithm 9: FF3.Encrypt(K, T, X)
   @type tweak :: <<_::56>>
@@ -29,7 +29,7 @@ defmodule FPE.FF3_1 do
             record(:ctx,
               k: FFX.key(),
               radix: radix,
-              codec: FFX.codec(),
+              codec: term,
               minlen: pos_integer,
               maxlen: pos_integer
             )
@@ -41,7 +41,6 @@ defmodule FPE.FF3_1 do
   @spec new(k, radix | alphabet) :: {:ok, ctx} | {:error, term}
         when k: FFX.key(), radix: radix
   def new(k, _radix_or_alphabet) when not is_valid_key(k), do: {:error, {:invalid_key, k}}
-  # def new(_k, radix) when not is_valid_radix(radix), do: {:error, {:invalid_radix, radix}}
   def new(k, radix_or_alphabet) do
     with {:ok, radix, codec} <- validate_radix_or_alphabet(radix_or_alphabet),
          {:ok, minlen} <- calculate_minlen(radix),
@@ -74,56 +73,31 @@ defmodule FPE.FF3_1 do
 
   ## Internal Functions
 
-  defp validate_radix_or_alphabet(radix) when is_integer(radix) do
-    cond do
-      radix < @min_radix ->
+  defp validate_radix_or_alphabet(radix_or_alphabet) do
+    alias FPE.FFX.Codec
+
+    case (
+      [Codec.Builtin, Codec.BuiltinLower]
+      |> Enum.find_value(&(&1.maybe_new(radix_or_alphabet)))
+    ) do
+      {radix, codec} ->
+        {:ok, radix, codec}
+      nil ->
+        validate_custom_alphabet(radix_or_alphabet)
+    end
+  end
+
+  defp validate_custom_alphabet(radix) when is_integer(radix)  do
+    case radix < @min_radix do
+      true ->
         {:error, {:invalid_radix, radix, :less_than_minimum, @min_radix}}
-
-      radix > String.length(FFX.largest_builtin_alphabet()) ->
+      false ->
+        # largest than builtin
         {:error, {:invalid_radix, radix, :you_need_to_provide_the_alphabet}}
-
-      true ->
-        {:ok, radix, _codec = :builtin}
     end
   end
 
-  defp validate_radix_or_alphabet(alphabet) when is_binary(alphabet) do
-    # If alphabet is a prefix of the builtin, this allows us
-    # to use the faster integer conversion functions bundled with ERTS.
-    largest_builtin = FFX.largest_builtin_alphabet()
-
-    use_builtin =
-      largest_builtin
-      |> String.starts_with?(alphabet)
-
-    use_builtin_upper =
-      !use_builtin &&
-        largest_builtin
-        |> String.upcase()
-        |> String.starts_with?(alphabet)
-
-    cond do
-      use_builtin ->
-        radix = String.length(alphabet)
-        {:ok, radix, _codec = :builtin}
-
-      use_builtin_upper ->
-        radix = String.length(alphabet)
-        {:ok, radix, _codec = :builtin_upper}
-
-      true ->
-        validate_custom_alphabet(alphabet)
-    end
-  end
-
-  defp validate_radix_or_alphabet(alphabet) when alphabet in [:builtin, :builtin_upper] do
-    radix = FFX.largest_builtin_alphabet() |> String.length()
-    {:ok, radix, alphabet}
-  end
-
-  defp validate_radix_or_alphabet(neither), do: {:error, {:neither_radix_nor_alphabet, neither}}
-
-  defp validate_custom_alphabet(alphabet) do
+  defp validate_custom_alphabet(alphabet) when is_binary(alphabet) do
     ordered_graphemes = String.graphemes(alphabet)
     unique_graphemes = Enum.uniq(ordered_graphemes)
     nr_of_symbols = length(ordered_graphemes)
@@ -144,12 +118,14 @@ defmodule FPE.FF3_1 do
   end
 
   defp new_custom_codec(ordered_graphemes) do
+    alias FPE.FFX.Codec
+
     case ordered_graphemes |> Enum.any?(&(byte_size(&1) > 1)) do
       true ->
-        FFX.MultibyteCodec.new(ordered_graphemes)
+        Codec.CustomMultibyte.new(ordered_graphemes)
 
       false ->
-        FFX.UnibyteCodec.new(ordered_graphemes)
+        Codec.CustomUnibyte.new(ordered_graphemes)
     end
   end
 
@@ -239,9 +215,11 @@ defmodule FPE.FF3_1 do
   end
 
   defp do_encrypt_rounds!(i, k, radix, codec, m, other_m, vA, vB, vW, other_vW) when i < 8 do
+    alias FPE.FFX.Codec
+
     # 4.ii. Let P = W ⊕ [i]⁴ || [NUM_radix(REV(B))]¹²
     vP_W_xor_i = :crypto.exor(vW, <<i::unsigned-size(4)-unit(8)>>)
-    vP_num_radix_rev_B = FFX.num_radix(codec, radix, FFX.rev(vB))
+    vP_num_radix_rev_B = Codec.num_radix(codec, FFX.rev(vB))
     vP = <<vP_W_xor_i::bytes, vP_num_radix_rev_B::unsigned-size(12)-unit(8)>>
 
     ## 4.iii. Let S = REVB(CIPH_REVB(K)(REVB(P)))
@@ -255,11 +233,11 @@ defmodule FPE.FF3_1 do
 
     ## 4.v. Let c = (NUM_radix(REV(A)) + y) mod (radix**m)
     c_rev_A = FFX.rev(vA)
-    c_num_radix_rev_A_plus_y = FFX.num_radix(codec, radix, c_rev_A) + y
+    c_num_radix_rev_A_plus_y = Codec.num_radix(codec, c_rev_A) + y
     c = rem(c_num_radix_rev_A_plus_y, Integer.pow(radix, m))
 
     ## 4.vi. Let C = REV(STR_m_radix(c))
-    vC = FFX.rev(FFX.str_m_radix(codec, m, radix, c))
+    vC = FFX.rev(Codec.str_m_radix(codec, m, c))
 
     ## 4.vii. Let A = B
     vA = vB
@@ -289,9 +267,11 @@ defmodule FPE.FF3_1 do
   end
 
   defp do_decrypt_rounds!(i, k, radix, codec, m, other_m, vA, vB, vW, other_vW) when i >= 0 do
+    alias FPE.FFX.Codec
+
     ## 4.ii. Let P = W ⊕ [i]⁴ || [NUM_radix(REV(A))]¹²
     vP_W_xor_i = :crypto.exor(vW, <<i::unsigned-size(4)-unit(8)>>)
-    vP_num_radix_rev_A = FFX.num_radix(codec, radix, FFX.rev(vA))
+    vP_num_radix_rev_A = Codec.num_radix(codec, FFX.rev(vA))
     vP = <<vP_W_xor_i::bytes, vP_num_radix_rev_A::unsigned-size(12)-unit(8)>>
 
     ## 4.iii. Let S = REVB(CIPH_REVB(K)(REVB(P)))
@@ -305,11 +285,11 @@ defmodule FPE.FF3_1 do
 
     ## 4.v. Let c = (NUM_radix(REV(B)) - y) mod (radix**m)
     c_rev_B = FFX.rev(vB)
-    c_num_radix_rev_B_minus_y = FFX.num_radix(codec, radix, c_rev_B) - y
+    c_num_radix_rev_B_minus_y = Codec.num_radix(codec, c_rev_B) - y
     c = Integer.mod(c_num_radix_rev_B_minus_y, Integer.pow(radix, m))
 
     ## 4.vi. Let C = REV(STR_m_radix(c))
-    vC = FFX.rev(FFX.str_m_radix(codec, m, radix, c))
+    vC = FFX.rev(Codec.str_m_radix(codec, m, c))
 
     ## 4.vii. Let B = A
     vB = vA

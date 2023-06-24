@@ -453,8 +453,8 @@ defmodule FpeTest do
         0x71,
         0x72
       >>,
-      "89012123456789abcde",
-      "dwb01mx9aa2lmi3hrfm",
+      "89012123456789ABCDE",
+      "DWB01MX9AA2LMI3HRFM",
       36
     )
   end
@@ -582,8 +582,8 @@ defmodule FpeTest do
         0x71,
         0x72
       >>,
-      "89012123456789abcde",
-      "o3a1og390b5uduvwyw5",
+      "89012123456789ABCDE",
+      "O3A1OG390B5UDUVWYW5",
       36
     )
   end
@@ -735,8 +735,8 @@ defmodule FpeTest do
         0x71,
         0x72
       >>,
-      "89012123456789abcde",
-      "0sxaooj0jjj5qqfomh8",
+      "89012123456789ABCDE",
+      "0SXAOOJ0JJJ5QQFOMH8",
       36
     )
   end
