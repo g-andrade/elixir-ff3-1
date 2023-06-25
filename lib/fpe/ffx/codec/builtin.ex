@@ -1,5 +1,6 @@
 defmodule FPE.FFX.Codec.Builtin do
   @moduledoc false
+  @derive [FPE.FFX.Reversible]
 
   ## Types
 

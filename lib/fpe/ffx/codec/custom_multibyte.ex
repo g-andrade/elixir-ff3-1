@@ -66,4 +66,8 @@ defmodule FPE.FFX.Codec.CustomMultibyte do
       end
     end
   end
+
+  defimpl FPE.FFX.Reversible, for: __MODULE__ do
+    def rev(_codec, vX), do: String.reverse(vX)
+  end
 end

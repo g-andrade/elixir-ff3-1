@@ -227,10 +227,11 @@ defmodule FPE.FF3_1 do
 
   defp do_encrypt_rounds!(i, k, radix, codec, m, other_m, vA, vB, vW, other_vW) when i < 8 do
     alias FPE.FFX.Codec
+    alias FPE.FFX.Reversible
 
     # 4.ii. Let P = W ⊕ [i]⁴ || [NUM_radix(REV(B))]¹²
     vP_W_xor_i = :crypto.exor(vW, <<i::unsigned-size(4)-unit(8)>>)
-    vP_num_radix_rev_B = Codec.num_radix(codec, FFX.rev(vB))
+    vP_num_radix_rev_B = Codec.num_radix(codec, Reversible.rev(codec, vB))
     vP = <<vP_W_xor_i::bytes, vP_num_radix_rev_B::unsigned-size(12)-unit(8)>>
 
     ## 4.iii. Let S = REVB(CIPH_REVB(K)(REVB(P)))
@@ -243,12 +244,12 @@ defmodule FPE.FF3_1 do
     y = FFX.num(vS)
 
     ## 4.v. Let c = (NUM_radix(REV(A)) + y) mod (radix**m)
-    c_rev_A = FFX.rev(vA)
+    c_rev_A = Reversible.rev(codec, vA)
     c_num_radix_rev_A_plus_y = Codec.num_radix(codec, c_rev_A) + y
     c = rem(c_num_radix_rev_A_plus_y, Integer.pow(radix, m))
 
     ## 4.vi. Let C = REV(STR_m_radix(c))
-    vC = FFX.rev(Codec.str_m_radix(codec, m, c))
+    vC = Reversible.rev(codec, Codec.str_m_radix(codec, m, c))
 
     ## 4.vii. Let A = B
     vA = vB
@@ -279,10 +280,11 @@ defmodule FPE.FF3_1 do
 
   defp do_decrypt_rounds!(i, k, radix, codec, m, other_m, vA, vB, vW, other_vW) when i >= 0 do
     alias FPE.FFX.Codec
+    alias FPE.FFX.Reversible
 
     ## 4.ii. Let P = W ⊕ [i]⁴ || [NUM_radix(REV(A))]¹²
     vP_W_xor_i = :crypto.exor(vW, <<i::unsigned-size(4)-unit(8)>>)
-    vP_num_radix_rev_A = Codec.num_radix(codec, FFX.rev(vA))
+    vP_num_radix_rev_A = Codec.num_radix(codec, Reversible.rev(codec, vA))
     vP = <<vP_W_xor_i::bytes, vP_num_radix_rev_A::unsigned-size(12)-unit(8)>>
 
     ## 4.iii. Let S = REVB(CIPH_REVB(K)(REVB(P)))
@@ -295,12 +297,12 @@ defmodule FPE.FF3_1 do
     y = FFX.num(vS)
 
     ## 4.v. Let c = (NUM_radix(REV(B)) - y) mod (radix**m)
-    c_rev_B = FFX.rev(vB)
+    c_rev_B = Reversible.rev(codec, vB)
     c_num_radix_rev_B_minus_y = Codec.num_radix(codec, c_rev_B) - y
     c = Integer.mod(c_num_radix_rev_B_minus_y, Integer.pow(radix, m))
 
     ## 4.vi. Let C = REV(STR_m_radix(c))
-    vC = FFX.rev(Codec.str_m_radix(codec, m, c))
+    vC = Reversible.rev(codec, Codec.str_m_radix(codec, m, c))
 
     ## 4.vii. Let B = A
     vB = vA

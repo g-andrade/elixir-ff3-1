@@ -1,5 +1,6 @@
 defmodule FPE.FFX.Codec.CustomUnibyte do
   @moduledoc false
+  @derive [FPE.FFX.Reversible]
 
   @enforce_keys [:symbol_to_amount, :amount_to_symbol]
   defstruct [:symbol_to_amount, :amount_to_symbol]
