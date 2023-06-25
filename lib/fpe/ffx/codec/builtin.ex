@@ -37,14 +37,10 @@ defmodule FPE.FFX.Codec.Builtin do
   end
 
   defimpl FPE.FFX.Codec, for: __MODULE__ do
-    alias FPE.FFX.Codec.Builtin
-
-    @spec num_radix(Builtin.t(), String.t()) :: non_neg_integer
     def num_radix(codec, string) do
       :erlang.binary_to_integer(string, codec.radix)
     end
 
-    @spec str_m_radix(Builtin.t(), pos_integer, non_neg_integer) :: String.t()
     def str_m_radix(codec, m, int) when int >= 0 do
       :erlang.integer_to_binary(int, codec.radix)
       |> String.pad_leading(m, "0")

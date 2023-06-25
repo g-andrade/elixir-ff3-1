@@ -20,16 +20,12 @@ defmodule FPE.FFX.Codec.CustomUnibyte do
   end
 
   defimpl FPE.FFX.Codec, for: __MODULE__ do
-    alias FPE.FFX.Codec.CustomUnibyte
-
-    @spec num_radix(CustomUnibyte.t(), String.t()) :: non_neg_integer
     def num_radix(codec, string) when byte_size(string) > 0 do
       symbol_to_amount = codec.symbol_to_amount
       radix = map_size(symbol_to_amount)
       num_radix_recur(string, symbol_to_amount, radix, _acc0 = 0)
     end
 
-    @spec str_m_radix(CustomUnibyte.t(), pos_integer, non_neg_integer) :: String.t()
     def str_m_radix(codec, m, int) when is_integer(int) and int >= 0 do
       amount_to_symbol = codec.amount_to_symbol
       radix = tuple_size(amount_to_symbol)

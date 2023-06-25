@@ -6,8 +6,7 @@ defmodule FPE.FFX do
   @type key :: <<_::128>> | <<_::192>> | <<_::256>>
   @type radix :: pos_integer
   @type numerical_string :: <<_::8, _::_*8>>
-  @type byte_string :: <<_::8, _::_*1>>
-  @type block_string :: <<_::128>>
+  @type byte_string :: <<_::8, _::_*8>>
 
   ## Internal API
 
@@ -37,5 +36,20 @@ defmodule FPE.FFX do
     size = byte_size(vX)
     <<integer::big-integer-size(size)-unit(8)>> = vX
     <<integer::little-integer-size(size)-unit(8)>>
+  end
+
+  defprotocol Codec do
+    @moduledoc false
+    alias FPE.FFX
+
+    # 4.5, Algorithm 1: NUM_radix(X) -> x
+    @spec num_radix(t, vX) :: x
+          when vX: FFX.numerical_string, x: non_neg_integer
+    def num_radix(codec, vX)
+
+    # 4.5, Algorithm 3: STR_m_radix(X) -> x
+    @spec str_m_radix(t, m, x) :: vX
+          when m: pos_integer, x: non_neg_integer, vX: FFX.numerical_string
+    def str_m_radix(codec, m, int)
   end
 end
