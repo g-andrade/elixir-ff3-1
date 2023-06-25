@@ -13,9 +13,9 @@ I wrote this for the kicks - it is not a serious project.
     >>
     tweak = <<0xCF, 0x29, 0xDA, 0x1E, 0x18, 0xD9, 0x70>>
 
-    {:ok, ctx} = FPE.FF3_1.new(key, 10)
-    assert "4716569208" == FPE.FF3_1.encrypt!(ctx, tweak, "6520935496")
-    assert "6520935496" == FPE.FF3_1.decrypt!(ctx, tweak, "4716569208")
+    {:ok, context} = FPE.FF3_1.new(key, 10)
+    assert "4716569208" == FPE.FF3_1.encrypt!(context, tweak, "6520935496")
+    assert "6520935496" == FPE.FF3_1.decrypt!(context, tweak, "4716569208")
 ```
 
 ![Alt text](cool.png?raw=true "Optional Title")

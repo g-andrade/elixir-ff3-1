@@ -916,8 +916,8 @@ defmodule FpeTest do
   ## Helpers
 
   defp check_test_vector(key, tweak, plaintext, ciphertext, radix_or_alphabet) do
-    {:ok, ctx} = FPE.FF3_1.new(key, radix_or_alphabet)
-    assert FPE.FF3_1.encrypt!(ctx, tweak, plaintext) == ciphertext
-    assert FPE.FF3_1.decrypt!(ctx, tweak, ciphertext) == plaintext
+    {:ok, context} = FPE.FF3_1.new(key, radix_or_alphabet)
+    assert FPE.FF3_1.encrypt!(context, tweak, plaintext) == ciphertext
+    assert FPE.FF3_1.decrypt!(context, tweak, ciphertext) == plaintext
   end
 end

@@ -17,7 +17,7 @@ defmodule FPE.FF3_1 do
   # 5.2, Algorithm 9: FF3.Encrypt(K, T, X)
   @type tweak :: <<_::56>>
 
-  Record.defrecordp(:ctx, [
+  Record.defrecordp(:fpe_ff3_1_context, [
     :k,
     :radix,
     :codec,
@@ -25,8 +25,8 @@ defmodule FPE.FF3_1 do
     :maxlen
   ])
 
-  @opaque ctx ::
-            record(:ctx,
+  @opaque context ::
+            record(:fpe_ff3_1_context,
               k: FFX.key(),
               radix: radix,
               codec: term,
@@ -36,7 +36,7 @@ defmodule FPE.FF3_1 do
 
   ## API
 
-  @spec new(key, radix | alphabet) :: {:ok, ctx} | {:error, term}
+  @spec new(key, radix | alphabet) :: {:ok, context} | {:error, term}
         when key: FFX.key()
   def new(key, radix_or_alphabet) do
     with :ok <- validate_key(key),
@@ -44,7 +44,7 @@ defmodule FPE.FF3_1 do
          {:ok, minlen} <- calculate_minlen(radix),
          {:ok, maxlen} <- calculate_maxlen(minlen, radix) do
       {:ok,
-       ctx(
+       fpe_ff3_1_context(
          k: key,
          radix: radix,
          codec: codec,
@@ -57,16 +57,16 @@ defmodule FPE.FF3_1 do
     end
   end
 
-  @spec encrypt!(ctx, t, vX) :: vY
-        when ctx: ctx, t: tweak, vX: String.t(), vY: String.t()
-  def encrypt!(ctx, t, vX) do
-    do_encrypt_or_decrypt!(ctx, t, vX, _enc = true)
+  @spec encrypt!(context, t, vX) :: vY
+        when t: tweak, vX: String.t(), vY: String.t()
+  def encrypt!(context, t, vX) do
+    do_encrypt_or_decrypt!(context, t, vX, _enc = true)
   end
 
-  @spec decrypt!(ctx, t, vX) :: vY
-        when ctx: ctx, t: tweak, vX: String.t(), vY: String.t()
-  def decrypt!(ctx, t, vX) do
-    do_encrypt_or_decrypt!(ctx, t, vX, _enc = false)
+  @spec decrypt!(context, t, vX) :: vY
+        when t: tweak, vX: String.t(), vY: String.t()
+  def decrypt!(context, t, vX) do
+    do_encrypt_or_decrypt!(context, t, vX, _enc = false)
   end
 
   ## Internal Functions
@@ -167,10 +167,10 @@ defmodule FPE.FF3_1 do
     end
   end
 
-  defp do_encrypt_or_decrypt!(ctx, t, vX, enc) do
-    with :ok <- validate_enc_or_dec_input(ctx, vX),
+  defp do_encrypt_or_decrypt!(context, t, vX, enc) do
+    with :ok <- validate_enc_or_dec_input(context, vX),
          :ok <- validate_tweak(t) do
-      ctx(k: k, radix: radix, codec: codec) = ctx
+      fpe_ff3_1_context(k: k, radix: radix, codec: codec) = context
       {even_m, odd_m, vA, vB, even_vW, odd_vW} = setup_encrypt_or_decrypt_vars!(t, vX)
 
       case enc do
@@ -186,8 +186,8 @@ defmodule FPE.FF3_1 do
     end
   end
 
-  defp validate_enc_or_dec_input(ctx, vX) do
-    ctx(minlen: minlen, maxlen: maxlen) = ctx
+  defp validate_enc_or_dec_input(context, vX) do
+    fpe_ff3_1_context(minlen: minlen, maxlen: maxlen) = context
     # TODO validate alphabet
     case String.length(vX) do
       valid_size when valid_size in minlen..maxlen ->
