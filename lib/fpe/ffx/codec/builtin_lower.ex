@@ -18,6 +18,7 @@ defmodule FPE.FFX.Codec.BuiltinLower do
     case radix in 11..36 do
       true ->
         {radix, %__MODULE__{radix: radix}}
+
       false ->
         nil
     end
@@ -25,9 +26,11 @@ defmodule FPE.FFX.Codec.BuiltinLower do
 
   def maybe_new(alphabet) do
     radix = byte_size(alphabet)
+
     case String.starts_with?(@largest, alphabet) and radix >= 11 do
       true ->
         {radix, %__MODULE__{radix: byte_size(alphabet)}}
+
       false ->
         nil
     end

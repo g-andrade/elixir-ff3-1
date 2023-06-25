@@ -9,4 +9,3 @@ defprotocol FPE.FFX.Codec do
   @spec str_m_radix(t, pos_integer, non_neg_integer) :: String.t()
   def str_m_radix(codec, m, int)
 end
-

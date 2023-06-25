@@ -69,4 +69,3 @@ defmodule FPE.FFX.Codec.CustomUnibyte do
     end
   end
 end
-

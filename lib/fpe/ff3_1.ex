@@ -41,6 +41,7 @@ defmodule FPE.FF3_1 do
   @spec new(k, radix | alphabet) :: {:ok, ctx} | {:error, term}
         when k: FFX.key(), radix: radix
   def new(k, _radix_or_alphabet) when not is_valid_key(k), do: {:error, {:invalid_key, k}}
+
   def new(k, radix_or_alphabet) do
     with {:ok, radix, codec} <- validate_radix_or_alphabet(radix_or_alphabet),
          {:ok, minlen} <- calculate_minlen(radix),
@@ -76,21 +77,21 @@ defmodule FPE.FF3_1 do
   defp validate_radix_or_alphabet(radix_or_alphabet) do
     alias FPE.FFX.Codec
 
-    case (
-      [Codec.Builtin, Codec.BuiltinLower]
-      |> Enum.find_value(&(&1.maybe_new(radix_or_alphabet)))
-    ) do
+    case [Codec.Builtin, Codec.BuiltinLower]
+         |> Enum.find_value(& &1.maybe_new(radix_or_alphabet)) do
       {radix, codec} ->
         {:ok, radix, codec}
+
       nil ->
         validate_custom_alphabet(radix_or_alphabet)
     end
   end
 
-  defp validate_custom_alphabet(radix) when is_integer(radix)  do
+  defp validate_custom_alphabet(radix) when is_integer(radix) do
     case radix < @min_radix do
       true ->
         {:error, {:invalid_radix, radix, :less_than_minimum, @min_radix}}
+
       false ->
         # largest than builtin
         {:error, {:invalid_radix, radix, :you_need_to_provide_the_alphabet}}

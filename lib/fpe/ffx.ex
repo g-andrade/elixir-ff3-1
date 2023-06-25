@@ -25,7 +25,8 @@ defmodule FPE.FFX do
         when vX: numerical_string, vY: numerical_string
   def rev(vX) do
     # 4.5, Algorithm 4: REV(X) -> Y
-    String.reverse(vX) # TODO optimize for builtin and unibyte alphabets
+    # TODO optimize for builtin and unibyte alphabets
+    String.reverse(vX)
   end
 
   @doc false

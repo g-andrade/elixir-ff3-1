@@ -18,6 +18,7 @@ defmodule FPE.FFX.Codec.Builtin do
     case radix in 2..36 do
       true ->
         {radix, %__MODULE__{radix: radix}}
+
       false ->
         nil
     end
@@ -29,6 +30,7 @@ defmodule FPE.FFX.Codec.Builtin do
     case @largest |> String.starts_with?(alphabet) do
       true ->
         {radix, %__MODULE__{radix: radix}}
+
       false ->
         nil
     end
@@ -42,7 +44,7 @@ defmodule FPE.FFX.Codec.Builtin do
       :erlang.binary_to_integer(string, codec.radix)
     end
 
-    @spec str_m_radix(Builtin.t(), pos_integer, non_neg_integer) :: String.t
+    @spec str_m_radix(Builtin.t(), pos_integer, non_neg_integer) :: String.t()
     def str_m_radix(codec, m, int) when int >= 0 do
       :erlang.integer_to_binary(int, codec.radix)
       |> String.pad_leading(m, "0")
