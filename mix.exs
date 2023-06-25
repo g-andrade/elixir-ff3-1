@@ -1,4 +1,4 @@
-defmodule Fpe.MixProject do
+defmodule FPE.MixProject do
   use Mix.Project
 
   def project do

@@ -17,7 +17,7 @@ defmodule FPE.FF3_1 do
   # 5.2, Algorithm 9: FF3.Encrypt(K, T, X)
   @type tweak :: <<_::56>>
 
-  Record.defrecordp(:fpe_ff3_1_context, [
+  Record.defrecordp(:fpe_ff3_1_ctx, [
     :k,
     :radix,
     :codec,
@@ -25,8 +25,8 @@ defmodule FPE.FF3_1 do
     :maxlen
   ])
 
-  @opaque context ::
-            record(:fpe_ff3_1_context,
+  @opaque ctx ::
+            record(:fpe_ff3_1_ctx,
               k: FFX.key(),
               radix: radix,
               codec: term,
@@ -36,16 +36,16 @@ defmodule FPE.FF3_1 do
 
   ## API
 
-  @spec new(key, radix | alphabet) :: {:ok, context} | {:error, term}
-        when key: FFX.key()
-  def new(key, radix_or_alphabet) do
-    with :ok <- validate_key(key),
+  @spec new_ctx(k, radix | alphabet) :: {:ok, ctx} | {:error, term}
+        when k: FFX.key()
+  def new_ctx(k, radix_or_alphabet) do
+    with :ok <- validate_key(k),
          {:ok, radix, codec} <- validate_radix_or_alphabet(radix_or_alphabet),
          {:ok, minlen} <- calculate_minlen(radix),
          {:ok, maxlen} <- calculate_maxlen(minlen, radix) do
       {:ok,
-       fpe_ff3_1_context(
-         k: key,
+       fpe_ff3_1_ctx(
+         k: k,
          radix: radix,
          codec: codec,
          minlen: minlen,
@@ -57,23 +57,29 @@ defmodule FPE.FF3_1 do
     end
   end
 
-  @spec encrypt!(context, t, vX) :: vY
+  @spec encrypt!(ctx, t, vX) :: vY
         when t: tweak, vX: String.t(), vY: String.t()
-  def encrypt!(context, t, vX) do
-    do_encrypt_or_decrypt!(context, t, vX, _enc = true)
+  def encrypt!(ctx, t, vX) do
+    do_encrypt_or_decrypt!(ctx, t, vX, _enc = true)
   end
 
-  @spec decrypt!(context, t, vX) :: vY
+  @spec decrypt!(ctx, t, vX) :: vY
         when t: tweak, vX: String.t(), vY: String.t()
-  def decrypt!(context, t, vX) do
-    do_encrypt_or_decrypt!(context, t, vX, _enc = false)
+  def decrypt!(ctx, t, vX) do
+    do_encrypt_or_decrypt!(ctx, t, vX, _enc = false)
   end
+
+  @spec get_codec!(ctx) :: term
+  def get_codec!(fpe_ff3_1_ctx(codec: codec)), do: codec
+
+  @spec get_min_and_maxlens!(ctx) :: {pos_integer, pos_integer}
+  def get_min_and_maxlens!(fpe_ff3_1_ctx(minlen: minlen, maxlen: maxlen)), do: {minlen, maxlen}
 
   ## Internal Functions
 
-  defp validate_key(key) do
-    case key do
-      key when byte_size(key) in [16, 24, 32] ->
+  defp validate_key(k) do
+    case k do
+      k when byte_size(k) in [16, 24, 32] ->
         :ok
 
       <<invalid_size::bytes>> ->
@@ -167,10 +173,10 @@ defmodule FPE.FF3_1 do
     end
   end
 
-  defp do_encrypt_or_decrypt!(context, t, vX, enc) do
-    with :ok <- validate_enc_or_dec_input(context, vX),
+  defp do_encrypt_or_decrypt!(ctx, t, vX, enc) do
+    with :ok <- validate_enc_or_dec_input(ctx, vX),
          :ok <- validate_tweak(t) do
-      fpe_ff3_1_context(k: k, radix: radix, codec: codec) = context
+      fpe_ff3_1_ctx(k: k, radix: radix, codec: codec) = ctx
       {even_m, odd_m, vA, vB, even_vW, odd_vW} = setup_encrypt_or_decrypt_vars!(t, vX)
 
       case enc do
@@ -181,26 +187,35 @@ defmodule FPE.FF3_1 do
           do_decrypt_rounds!(_i = 7, k, radix, codec, odd_m, even_m, vA, vB, odd_vW, even_vW)
       end
     else
-      {whats_wrong, details_msg} ->
-        raise ArgumentError, message: "Invalid #{whats_wrong}: #{inspect(t)}: #{details_msg}"
+      {:error, message} ->
+        raise ArgumentError, message: message
     end
   end
 
-  defp validate_enc_or_dec_input(context, vX) do
-    fpe_ff3_1_context(minlen: minlen, maxlen: maxlen) = context
-    # TODO validate alphabet
+  defp validate_enc_or_dec_input(ctx, vX) do
+    fpe_ff3_1_ctx(minlen: minlen, maxlen: maxlen) = ctx
+
     case String.length(vX) do
       valid_size when valid_size in minlen..maxlen ->
         :ok
 
       _invalid_size ->
-        {:input, "invalid size (not between #{minlen} and #{maxlen} symbols long"}
+        {:error, "Invalid input not between #{minlen} and #{maxlen} symbols long: #{inspect(vX)}"}
     end
   end
 
-  defp validate_tweak(<<_::bits-size(56)>>), do: :ok
-  defp validate_tweak(<<_::bits>>), do: {:tweak, "invalid size (not 56 bits long)"}
-  defp validate_tweak(_), do: {:tweak, "not a 56 bits -long bitstring"}
+  defp validate_tweak(tweak) do
+    case tweak do
+      valid_size when bit_size(valid_size) == 56 ->
+        :ok
+
+      invalid_size when is_bitstring(invalid_size) ->
+        {:error, "Invalid tweak not 56 bits long: #{inspect(invalid_size)}"}
+
+      not_a_bitstring ->
+        {:error, "Invalid tweak not a bitstring #{inspect(not_a_bitstring)}"}
+    end
+  end
 
   defp setup_encrypt_or_decrypt_vars!(t, vX) do
     n = String.length(vX)

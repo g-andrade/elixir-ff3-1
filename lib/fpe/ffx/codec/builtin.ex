@@ -46,5 +46,15 @@ defmodule FPE.FFX.Codec.Builtin do
       :erlang.integer_to_binary(int, codec.radix)
       |> String.pad_leading(m, "0")
     end
+
+    def strip_leading_zeroes(codec, string) do
+      case string do
+        <<?0, rest::bytes>> when byte_size(rest) != 0 ->
+          strip_leading_zeroes(codec, rest)
+
+        stripped ->
+          stripped
+      end
+    end
   end
 end

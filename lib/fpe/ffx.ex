@@ -40,8 +40,12 @@ defmodule FPE.FFX do
 
     # 4.5, Algorithm 3: STR_m_radix(X) -> x
     @spec str_m_radix(t, m, x) :: vX
-          when m: pos_integer, x: non_neg_integer, vX: FFX.numerical_string()
+          when m: non_neg_integer, x: non_neg_integer, vX: FFX.numerical_string()
     def str_m_radix(codec, m, int)
+
+    @spec strip_leading_zeroes(t, vX) :: vY
+          when vX: FFX.numerical_string(), vY: FFX.numerical_string()
+    def strip_leading_zeroes(codec, vX)
   end
 
   defprotocol Reversible do
