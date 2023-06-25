@@ -36,19 +36,16 @@ defmodule FPE.FF3_1 do
 
   ## API
 
-  defguardp is_valid_key(k) when is_binary(k) and bit_size(k) in [128, 192, 256]
-
-  @spec new(k, radix | alphabet) :: {:ok, ctx} | {:error, term}
-        when k: FFX.key(), radix: radix
-  def new(k, _radix_or_alphabet) when not is_valid_key(k), do: {:error, {:invalid_key, k}}
-
-  def new(k, radix_or_alphabet) do
-    with {:ok, radix, codec} <- validate_radix_or_alphabet(radix_or_alphabet),
+  @spec new(key, radix | alphabet) :: {:ok, ctx} | {:error, term}
+        when key: FFX.key()
+  def new(key, radix_or_alphabet) do
+    with :ok <- validate_key(key),
+         {:ok, radix, codec} <- validate_radix_or_alphabet(radix_or_alphabet),
          {:ok, minlen} <- calculate_minlen(radix),
          {:ok, maxlen} <- calculate_maxlen(minlen, radix) do
       {:ok,
        ctx(
-         k: k,
+         k: key,
          radix: radix,
          codec: codec,
          minlen: minlen,
@@ -73,6 +70,19 @@ defmodule FPE.FF3_1 do
   end
 
   ## Internal Functions
+
+  defp validate_key(key) do
+    case key do
+      key when byte_size(key) in [16, 24, 32] ->
+        :ok
+
+      <<invalid_size::bytes>> ->
+        {:error, {:key_has_invalid_size, byte_size(invalid_size)}}
+
+      not_a_binary ->
+        {:error, {:key_not_a_binary, not_a_binary}}
+    end
+  end
 
   defp validate_radix_or_alphabet(radix_or_alphabet) do
     alias FPE.FFX.Codec
