@@ -10,13 +10,17 @@ defmodule FPE.FFX.Codec.BuiltinLower do
   @type t :: %__MODULE__{radix: radix}
   @type radix :: 11..36
 
-  @largest "0123456789abcdefghijklmnopqrstuvwxyz"
+  @broadest_version "0123456789abcdefghijklmnopqrstuvwxyz"
 
   ## API Functions
 
   @spec maybe_new(non_neg_integer | String.t()) :: {radix, t()} | nil
   def maybe_new(radix) when is_integer(radix) do
-    case radix in 11..36 do
+    case radix in 2..36 do
+      true when radix < 11 ->
+        # Otherwise we'd unnecessarily call String.downcase/1
+        raise "Call Builtin.maybe_new/1 first"
+
       true ->
         {radix, %__MODULE__{radix: radix}}
 
@@ -28,7 +32,11 @@ defmodule FPE.FFX.Codec.BuiltinLower do
   def maybe_new(alphabet) do
     radix = byte_size(alphabet)
 
-    case String.starts_with?(@largest, alphabet) and radix >= 11 do
+    case String.starts_with?(@broadest_version, alphabet) do
+      true when radix < 11 ->
+        # Otherwise we'd unnecessarily call String.downcase/1
+        raise "Call Builtin.maybe_new/1 first"
+
       true ->
         {radix, %__MODULE__{radix: byte_size(alphabet)}}
 

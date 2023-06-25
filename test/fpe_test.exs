@@ -792,6 +792,105 @@ defmodule FpeTest do
     )
   end
 
+  test "explicit alphabet matches builtin decimal" do
+    check_test_vector(
+      <<63, 89, 255, 222, 188, 211, 44, 18, 129, 227, 228, 6, 210, 23, 145, 98, 144, 216, 104, 61,
+        203, 144, 121, 253>>,
+      <<10, 154, 124, 214, 232, 247, 159>>,
+      "0000000000000",
+      "0973773893290",
+      "0123456789"
+    )
+  end
+
+  test "explicit alphabet matches builtin base 11" do
+    check_test_vector(
+      <<63, 89, 255, 222, 188, 211, 44, 18, 129, 227, 228, 6, 210, 23, 145, 98, 144, 216, 104, 61,
+        203, 144, 121, 253>>,
+      <<10, 154, 124, 214, 232, 247, 159>>,
+      "0000000000000",
+      "00A963AA50706",
+      "0123456789A"
+    )
+  end
+
+  test "explicit alphabet matches lower builtin base 11" do
+    check_test_vector(
+      <<63, 89, 255, 222, 188, 211, 44, 18, 129, 227, 228, 6, 210, 23, 145, 98, 144, 216, 104, 61,
+        203, 144, 121, 253>>,
+      <<10, 154, 124, 214, 232, 247, 159>>,
+      "0000000000000",
+      "00a963aa50706",
+      "0123456789a"
+    )
+  end
+
+  test "explicit alphabet matches lower builtin hex" do
+    check_test_vector(
+      <<63, 89, 255, 222, 188, 211, 44, 18, 129, 227, 228, 6, 210, 23, 145, 98, 144, 216, 104, 61,
+        203, 144, 121, 253>>,
+      <<10, 154, 124, 214, 232, 247, 159>>,
+      "0000000000000",
+      "ceedaa52eec58",
+      "0123456789abcdef"
+    )
+  end
+
+  test "explicit alphabet matches builtin base 36" do
+    check_test_vector(
+      <<63, 89, 255, 222, 188, 211, 44, 18, 129, 227, 228, 6, 210, 23, 145, 98, 144, 216, 104, 61,
+        203, 144, 121, 53>>,
+      <<10, 154, 124, 214, 232, 247, 159>>,
+      "0000000000000",
+      "VYZB0ULDK6REY",
+      "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+    )
+  end
+
+  test "explicit alphabet matches lower builtin base 36" do
+    check_test_vector(
+      <<63, 89, 255, 222, 188, 211, 44, 18, 129, 227, 228, 6, 210, 23, 145, 98, 144, 216, 104, 61,
+        203, 144, 121, 25>>,
+      <<10, 154, 124, 214, 232, 247, 159>>,
+      "0000000000000",
+      "3x981nkki3avx",
+      "0123456789abcdefghijklmnopqrstuvwxyz"
+    )
+  end
+
+  test "custom upper case alphabet for base 37" do
+    check_test_vector(
+      <<63, 89, 255, 222, 188, 211, 44, 18, 129, 227, 228, 6, 210, 23, 145, 98, 144, 216, 104, 61,
+        203, 14, 121, 53>>,
+      <<10, 154, 124, 214, 232, 247, 159>>,
+      "0000000000000",
+      "RKEC2GGAPM@NI",
+      "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ@"
+    )
+  end
+
+  test "custom lower case alphabet for base 37" do
+    check_test_vector(
+      <<63, 89, 255, 22, 18, 211, 44, 18, 129, 227, 228, 6, 210, 23, 145, 98, 144, 216, 104, 61,
+        203, 14, 121, 53>>,
+      <<10, 154, 124, 214, 232, 247, 159>>,
+      "0000000000000",
+      "8iq56yqgurap0",
+      "0123456789abcdefghijklmnopqrstuvwxyz@"
+    )
+  end
+
+  test "zero is not 0" do
+    check_test_vector(
+      <<6, 89, 255, 22, 18, 211, 44, 18, 129, 227, 228, 6, 210, 23, 145, 98, 144, 216, 104, 61,
+        203, 14, 121, 53>>,
+      <<10, 124, 124, 214, 232, 247, 159>>,
+      "OOOOOO",
+      "O41451",
+      "O123456789"
+    )
+  end
+
   test "unibyte custom alphabet" do
     check_test_vector(
       <<63, 89, 255, 222, 188, 211, 44, 18, 129, 227, 228, 6, 210, 23, 145, 98, 144, 216, 104, 61,

@@ -10,7 +10,7 @@ defmodule FPE.FFX.Codec.Builtin do
   @type t :: %__MODULE__{radix: radix}
   @type radix :: 2..36
 
-  @largest "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+  @broadest_version "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 
   ## API Functions
 
@@ -28,7 +28,7 @@ defmodule FPE.FFX.Codec.Builtin do
   def maybe_new(alphabet) when byte_size(alphabet) >= 2 do
     radix = byte_size(alphabet)
 
-    case @largest |> String.starts_with?(alphabet) do
+    case @broadest_version |> String.starts_with?(alphabet) do
       true ->
         {radix, %__MODULE__{radix: radix}}
 
