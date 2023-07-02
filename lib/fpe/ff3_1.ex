@@ -60,20 +60,28 @@ defmodule FPE.FF3_1 do
   @spec encrypt!(ctx, t, vX) :: vY
         when t: tweak, vX: String.t(), vY: String.t()
   def encrypt!(ctx, t, vX) do
-    do_encrypt_or_decrypt!(ctx, t, vX, _enc = true)
+    {:ok, vY} = encrypt(ctx, t, vX)
+    vY
+  end
+
+  @spec encrypt(ctx, t, vX) :: {:ok, vY} | {:error, reason}
+        when t: tweak, vX: String.t(), vY: String.t(), reason: term
+  def encrypt(ctx, t, vX) do
+    do_encrypt_or_decrypt(ctx, t, vX, _enc = true)
   end
 
   @spec decrypt!(ctx, t, vX) :: vY
         when t: tweak, vX: String.t(), vY: String.t()
   def decrypt!(ctx, t, vX) do
-    do_encrypt_or_decrypt!(ctx, t, vX, _enc = false)
+    {:ok, vY} = decrypt(ctx, t, vX)
+    vY
   end
 
-  @spec get_codec!(ctx) :: term
-  def get_codec!(fpe_ff3_1_ctx(codec: codec)), do: codec
-
-  @spec get_min_and_maxlens!(ctx) :: {pos_integer, pos_integer}
-  def get_min_and_maxlens!(fpe_ff3_1_ctx(minlen: minlen, maxlen: maxlen)), do: {minlen, maxlen}
+  @spec decrypt(ctx, t, vX) :: {:ok, vY} | {:error, reason}
+        when t: tweak, vX: String.t(), vY: String.t(), reason: term
+  def decrypt(ctx, t, vX) do
+    do_encrypt_or_decrypt(ctx, t, vX, _enc = false)
+  end
 
   ## Internal Functions
 
@@ -173,26 +181,30 @@ defmodule FPE.FF3_1 do
     end
   end
 
-  defp do_encrypt_or_decrypt!(ctx, t, vX, enc) do
-    with :ok <- validate_enc_or_dec_input(ctx, vX),
+  defp do_encrypt_or_decrypt(ctx, t, vX, enc) do
+    with :ok <- validate_enc_or_dec_input_len(ctx, vX),
+         :ok <- validate_enc_or_dec_input_alphabet(ctx, vX),
          :ok <- validate_tweak(t) do
       fpe_ff3_1_ctx(k: k, radix: radix, codec: codec) = ctx
       {even_m, odd_m, vA, vB, even_vW, odd_vW} = setup_encrypt_or_decrypt_vars!(t, vX)
 
-      case enc do
-        true ->
-          do_encrypt_rounds!(_i = 0, k, radix, codec, even_m, odd_m, vA, vB, even_vW, odd_vW)
+      vY =
+        case enc do
+          true ->
+            do_encrypt_rounds!(_i = 0, k, radix, codec, even_m, odd_m, vA, vB, even_vW, odd_vW)
 
-        false ->
-          do_decrypt_rounds!(_i = 7, k, radix, codec, odd_m, even_m, vA, vB, odd_vW, even_vW)
-      end
+          false ->
+            do_decrypt_rounds!(_i = 7, k, radix, codec, odd_m, even_m, vA, vB, odd_vW, even_vW)
+        end
+
+      {:ok, vY}
     else
-      {:error, message} ->
-        raise ArgumentError, message: message
+      {:error, _} = error ->
+        error
     end
   end
 
-  defp validate_enc_or_dec_input(ctx, vX) do
+  defp validate_enc_or_dec_input_len(ctx, vX) do
     fpe_ff3_1_ctx(minlen: minlen, maxlen: maxlen) = ctx
 
     case String.length(vX) do
@@ -202,6 +214,16 @@ defmodule FPE.FF3_1 do
       _invalid_size ->
         {:error, "Invalid input not between #{minlen} and #{maxlen} symbols long: #{inspect(vX)}"}
     end
+  end
+
+  defp validate_enc_or_dec_input_alphabet(ctx, vX) do
+    alias FPE.FFX.Codec
+    fpe_ff3_1_ctx(codec: codec) = ctx
+    _ = Codec.num_radix(codec, vX)
+    :ok
+  rescue
+    exc in ArgumentError ->
+      {:error, {:invalid_input, exc.message}}
   end
 
   defp validate_tweak(tweak) do

@@ -27,6 +27,10 @@ defmodule FPE.FFX.Codec.CustomUnibyte do
       num_radix_recur(string, symbol_to_amount, radix, _acc0 = 0)
     end
 
+    def num_radix(_codec, string) do
+      raise ArgumentError, "Not a non-empty string: #{inspect(string)}"
+    end
+
     def str_m_radix(codec, m, int) when is_integer(int) and int >= 0 do
       amount_to_symbol = codec.amount_to_symbol
       radix = tuple_size(amount_to_symbol)
