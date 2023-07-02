@@ -7,6 +7,7 @@ defmodule FPE.FFX do
   @type radix :: pos_integer
   @type numerical_string :: <<_::8, _::_*8>>
   @type byte_string :: <<_::8, _::_*8>>
+  @opaque codec :: %{atom => term, __struct__: module}
 
   ## Internal API
 
@@ -33,15 +34,18 @@ defmodule FPE.FFX do
     @moduledoc false
     alias FPE.FFX
 
-    # 4.5, Algorithm 1: NUM_radix(X) -> x
-    @spec num_radix(t, vX) :: x
-          when vX: FFX.numerical_string(), x: non_neg_integer
-    def num_radix(codec, vX)
+    @spec radix(FFX.codec()) :: FFX.radix()
+    def radix(codec)
 
-    # 4.5, Algorithm 3: STR_m_radix(X) -> x
-    @spec str_m_radix(t, m, x) :: vX
-          when m: non_neg_integer, x: non_neg_integer, vX: FFX.numerical_string()
-    def str_m_radix(codec, m, int)
+    # 4.5, Algorithm 1: NUM_radix(X) -> x
+    @spec string_to_int(FFX.codec(), vX) :: x
+          when vX: FFX.numerical_string(), x: non_neg_integer
+    def string_to_int(codec, vX)
+
+    # 4.5, Algorithm 3: STR_m_radix(x) -> X
+    @spec int_to_padded_string(FFX.codec(), count, non_neg_integer) :: vX
+          when count: non_neg_integer, vX: FFX.numerical_string()
+    def int_to_padded_string(codec, count, int)
   end
 
   defprotocol Reversible do
@@ -49,12 +53,12 @@ defmodule FPE.FFX do
     alias FPE.FFX
 
     # 4.5, Algorithm 4: REV(X) -> Y
-    @spec rev(t, vX) :: vY
+    @spec reverse_string(FFX.codec(), vX) :: vY
           when vX: FFX.numerical_string(), vY: FFX.numerical_string()
-    def rev(codec, vX)
+    def reverse_string(codec, vX)
   end
 
   defimpl Reversible, for: Any do
-    def rev(_codec, vX), do: FPE.FFX.revb(vX)
+    def reverse_string(_codec, vX), do: FPE.FFX.revb(vX)
   end
 end
