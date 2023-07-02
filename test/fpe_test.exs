@@ -1,5 +1,6 @@
 defmodule FpeTest do
-  use ExUnit.Case
+  use ExUnit.Case, async: true
+  doctest FPE.FF3_1
 
   ## I didn't find any official test vectors, so I copied the ones from ubiq-go:
   ## * https://github.com/ubiqsecurity/ubiq-fpe-go/blob/63af101126699b7438045844d0f25120e424789d/ff3_1_test.go

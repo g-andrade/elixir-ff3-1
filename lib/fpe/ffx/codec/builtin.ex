@@ -1,6 +1,6 @@
 defmodule FPE.FFX.Codec.Builtin do
   @moduledoc false
-  @derive [FPE.FFX.Reversible]
+  @derive [FPE.FFX.Codec.Reversible]
 
   ## Types
 
@@ -14,14 +14,14 @@ defmodule FPE.FFX.Codec.Builtin do
 
   ## API Functions
 
-  @spec maybe_new(non_neg_integer | String.t()) :: {:ok, t()} | :error
+  @spec maybe_new(non_neg_integer | String.t()) :: {:ok, t()} | nil
   def maybe_new(radix) when is_integer(radix) do
     case radix in 2..36 do
       true ->
         {:ok, %__MODULE__{radix: radix}}
 
       false ->
-        :error
+        nil
     end
   end
 
@@ -32,7 +32,7 @@ defmodule FPE.FFX.Codec.Builtin do
         {:ok, %__MODULE__{radix: radix}}
 
       false ->
-        :error
+        nil
     end
   end
 
