@@ -40,19 +40,6 @@ defmodule FPE.FFX.Codec.CustomUnibyte do
       |> String.pad_leading(m, <<zero_symbol>>)
     end
 
-    def strip_leading_zeroes(codec, string) do
-      amount_to_symbol = codec.amount_to_symbol
-      zero_symbol = elem(amount_to_symbol, 0)
-
-      case string do
-        <<^zero_symbol, rest::bytes>> when byte_size(rest) != 0 ->
-          strip_leading_zeroes(codec, rest)
-
-        stripped ->
-          stripped
-      end
-    end
-
     defp num_radix_recur(<<symbol, remaining_string::bytes>>, symbol_to_amount, radix, acc) do
       Map.fetch!(symbol_to_amount, symbol)
     rescue

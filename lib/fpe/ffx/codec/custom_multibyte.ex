@@ -37,22 +37,6 @@ defmodule FPE.FFX.Codec.CustomMultibyte do
       |> String.pad_leading(m, zero_symbol)
     end
 
-    def strip_leading_zeroes(codec, string) do
-      amount_to_symbol = codec.amount_to_symbol
-      zero_symbol = elem(amount_to_symbol, 0)
-
-      case String.replace_prefix(string, zero_symbol, "") do
-        "" ->
-          string
-
-        ^string ->
-          string
-
-        stripped ->
-          strip_leading_zeroes(codec, stripped)
-      end
-    end
-
     defp num_radix_recur(string, symbol_to_amount, radix, acc) do
       case String.next_grapheme(string) do
         {symbol, remaining_string} ->
