@@ -6,7 +6,7 @@ defmodule FPE.FF3_1 do
 
   alias FPE.FFX
 
-  ## API Types
+  ## Types
 
   # 5.2, FF3-1 requirements
   @min_radix 2
@@ -17,47 +17,39 @@ defmodule FPE.FF3_1 do
   # 5.2, Algorithm 9: FF3.Encrypt(K, T, X)
   @type tweak :: <<_::56>>
 
-  @type ctx_opts :: [
-          fixed_len: pos_integer | nil
-        ]
-
   Record.defrecordp(:fpe_ff3_1_ctx, [
     :k,
     :codec,
-    :len_constraints
+    :minlen,
+    :maxlen
   ])
 
   @opaque ctx ::
             record(:fpe_ff3_1_ctx,
               k: FFX.key(),
               codec: map,
-              len_constraints: len_constraints
+              minlen: pos_integer,
+              maxlen: pos_integer
             )
-
-  ## Internal Types
-
-  @typep len_constraints :: ranged_len_constraints | fixed_len_constraints
-  @typep ranged_len_constraints :: {:ranged, pos_integer, pos_integer}
-  @typep fixed_len_constraints :: {:fixed, pos_integer}
 
   ## API
 
-  @spec new_ctx(k, radix | alphabet, opts) :: {:ok, ctx} | {:error, term}
-        when k: FFX.key(), opts: ctx_opts
-  def new_ctx(k, radix_or_alphabet, opts \\ []) do
+  @spec new_ctx(k, radix | alphabet) :: {:ok, ctx} | {:error, term}
+        when k: FFX.key()
+  def new_ctx(k, radix_or_alphabet) do
     alias FPE.FFX.Codec
 
     with :ok <- validate_key(k),
          {:ok, codec} <- validate_radix_or_alphabet(radix_or_alphabet),
          radix = Codec.radix(codec),
-         {:ok, min_len} <- calculate_min_len(radix),
-         {:ok, max_len} <- calculate_max_len(min_len, radix),
-         {:ok, len_constraints} <- validate_len_constraints(min_len, max_len, opts) do
+         {:ok, minlen} <- calculate_minlen(radix),
+         {:ok, maxlen} <- calculate_maxlen(minlen, radix) do
       {:ok,
        fpe_ff3_1_ctx(
          k: k,
          codec: codec,
-         len_constraints: len_constraints
+         minlen: minlen,
+         maxlen: maxlen
        )}
     else
       {:error, _} = error ->
@@ -165,54 +157,35 @@ defmodule FPE.FF3_1 do
     end
   end
 
-  defp calculate_min_len(radix) do
-    # 5.2, FF3-1 requirements: radix ** min_len >= 1_000_000
+  defp calculate_minlen(radix) do
+    # 5.2, FF3-1 requirements: radix ** minlen >= 1_000_000
     min_domain_size = 1_000_000
 
     case ceil(:math.log2(min_domain_size) / :math.log2(radix)) do
-      min_len when min_len >= 2 ->
-        # 5.2, FF3-1 requirements: 2 <= min_len <= [...]
-        {:ok, min_len}
+      minlen when minlen >= 2 ->
+        # 5.2, FF3-1 requirements: 2 <= minlen <= [...]
+        {:ok, minlen}
 
-      min_len ->
-        {:error, {:min_len_too_low, min_len}}
+      minlen ->
+        {:error, {:minlen_too_low, minlen}}
     end
   end
 
-  defp calculate_max_len(min_len, radix) do
+  defp calculate_maxlen(minlen, radix) do
     upper_limit = 2 * floor(96 / :math.log2(radix))
 
     case upper_limit do
-      max_len when max_len >= min_len ->
-        # 5.2, FF3-1 requirements: 2 <= min_len <= max_len <= [...]
-        {:ok, max_len}
+      maxlen when maxlen >= minlen ->
+        # 5.2, FF3-1 requirements: 2 <= minlen <= maxlen <= [...]
+        {:ok, maxlen}
 
-      max_len ->
-        {:error, {:max_len_less_when_min_len, %{max: max_len, min: min_len}}}
-    end
-  end
-
-  defp validate_len_constraints(min_len, max_len, opts) do
-    case opts[:fixed_len] do
-      fixed_len when is_integer(fixed_len) and fixed_len < min_len ->
-        {:error, {:fixed_len_too_low, %{fixed_len: fixed_len, min_len: min_len}}}
-
-      fixed_len when is_integer(fixed_len) and fixed_len > max_len ->
-        {:error, {:fixed_len_too_high, %{fixed_len: fixed_len, max_len: max_len}}}
-
-      fixed_len when is_integer(fixed_len) ->
-        {:ok, {:fixed, fixed_len}}
-
-      nil ->
-        {:ok, {:ranged, min_len, max_len}}
-
-      bad_opt ->
-        {:error, {:bad_fixed_len, bad_opt}}
+      maxlen ->
+        {:error, {:maxlen_less_when_minlen, %{max: maxlen, min: minlen}}}
     end
   end
 
   defp do_encrypt_or_decrypt(ctx, t, vX, enc) do
-    with {:ok, vX} <- validate_enc_or_dec_input_len(ctx, vX),
+    with :ok <- validate_enc_or_dec_input_len(ctx, vX),
          :ok <- validate_enc_or_dec_input_alphabet(ctx, vX),
          :ok <- validate_tweak(t) do
       fpe_ff3_1_ctx(k: k, codec: codec) = ctx
@@ -235,31 +208,14 @@ defmodule FPE.FF3_1 do
   end
 
   defp validate_enc_or_dec_input_len(ctx, vX) do
-    alias FPE.FFX.Codec
+    fpe_ff3_1_ctx(minlen: minlen, maxlen: maxlen) = ctx
 
-    fpe_ff3_1_ctx(len_constraints: len_constraints) = ctx
-    input_len = String.length(vX)
+    case String.length(vX) do
+      valid_size when valid_size in minlen..maxlen ->
+        :ok
 
-    case len_constraints do
-      {:ranged, min, max} when input_len in min..max ->
-        {:ok, vX}
-
-      {:fixed, fixed} when input_len == fixed ->
-        {:ok, vX}
-
-      {:fixed, fixed} when input_len < fixed ->
-        # pad
-        fpe_ff3_1_ctx(codec: codec) = ctx
-        string_with_zero = Codec.int_to_padded_string(codec, 0, 0)
-        pad_amount = fixed - input_len
-        padded_vX = String.pad_leading(vX, pad_amount, string_with_zero)
-        {:ok, padded_vX}
-
-      {:ranged, min, max} ->
-        {:error, "Invalid input not between #{min} and #{max} symbols long: #{inspect(vX)}"}
-
-      {:fixed, fixed} ->
-        {:error, "Invalid input more than #{fixed} symbols long: #{inspect(vX)}"}
+      _invalid_size ->
+        {:error, "Invalid input not between #{minlen} and #{maxlen} symbols long: #{inspect(vX)}"}
     end
   end
 
