@@ -49,6 +49,7 @@ defmodule FPE.FFX.Codec.BuiltinLower do
     def radix(codec), do: codec.radix
 
     def string_to_int(codec, string) do
+      # FIXME should we refuse upper-cased strings here?
       :erlang.binary_to_integer(string, codec.radix)
     end
 
