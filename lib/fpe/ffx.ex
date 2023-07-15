@@ -1,3 +1,4 @@
+# credo:disable-for-this-file Credo.Check.Readability.VariableNames
 defmodule FPE.FFX do
   # https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-38Gr1-draft.pdf
 

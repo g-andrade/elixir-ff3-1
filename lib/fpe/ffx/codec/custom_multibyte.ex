@@ -50,7 +50,7 @@ defmodule FPE.FFX.Codec.CustomMultibyte do
             Map.fetch!(symbol_to_amount, symbol)
           rescue
             KeyError ->
-              raise ArgumentError, "Unrecognized symbol: #{inspect(symbol)}"
+              reraise ArgumentError, "Unrecognized symbol: #{inspect(symbol)}"
           else
             amount ->
               acc = acc * radix + amount

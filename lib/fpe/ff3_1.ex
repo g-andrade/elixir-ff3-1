@@ -1,3 +1,5 @@
+# credo:disable-for-this-file Credo.Check.Readability.ModuleNames
+# credo:disable-for-this-file Credo.Check.Readability.VariableNames
 defmodule FPE.FF3_1 do
   @moduledoc """
   An implementation of the NIST-approved FF3-1 algorithm in Elixir.
@@ -479,6 +481,7 @@ defmodule FPE.FF3_1 do
     )
   end
 
+  # credo:disable-for-next-line Credo.Check.Refactor.FunctionArity
   defp do_encrypt_rounds!(8 = _i, _k, _codec, _m, _other_m, vA, vB, _vW, _other_vW) do
     ## 5. Return A || B
     <<vA::bytes, vB::bytes>>
@@ -532,6 +535,7 @@ defmodule FPE.FF3_1 do
     )
   end
 
+  # credo:disable-for-next-line Credo.Check.Refactor.FunctionArity
   defp do_decrypt_rounds!(-1 = _i, _k, _codec, _m, _other_m, vA, vB, _vW, _other_vW) do
     ## 5. Return A || B
     <<vA::bytes, vB::bytes>>
