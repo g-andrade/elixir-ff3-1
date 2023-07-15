@@ -8,6 +8,14 @@ defmodule FPE.MixProject do
       elixir: "~> 1.14",
       start_permanent: Mix.env() == :prod,
       deps: deps(),
+      docs: [
+        main: "readme",
+        extras: [
+          "CHANGELOG.md",
+          "LICENSE",
+          "README.md"
+        ]
+      ],
       test_coverage: [
         summary: [
           # FIXME
