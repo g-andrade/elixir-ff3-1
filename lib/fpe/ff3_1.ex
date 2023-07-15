@@ -19,7 +19,7 @@ defmodule FPE.FF3_1 do
 
   alias FPE.FFX
 
-  ## Types
+  ## API Types
 
   # 5.2, FF3-1 requirements
   @min_radix 2
@@ -45,6 +45,11 @@ defmodule FPE.FF3_1 do
               maxlen: pos_integer
             )
 
+  @type ctx_opts :: [
+          case_insensitive: boolean,
+          norm_insensitive: boolean
+        ]
+
   ## API
 
   @doc """
@@ -56,13 +61,14 @@ defmodule FPE.FF3_1 do
       iex> {:ok, _ctx} = FPE.FF3_1.new_ctx(key, _radix = 10)
 
   """
-  @spec new_ctx(k, radix | alphabet) :: {:ok, ctx} | {:error, term}
+  @spec new_ctx(k, radix | alphabet, ctx_opts) :: {:ok, ctx} | {:error, term}
         when k: FFX.key()
-  def new_ctx(k, radix_or_alphabet) do
+  def new_ctx(k, radix_or_alphabet, opts \\ []) do
     alias FPE.FFX.Codec
 
     with :ok <- validate_key(k),
-         {:ok, codec} <- validate_radix_or_alphabet(radix_or_alphabet),
+         {:ok, codec_input_opts} <- validate_ctx_opts(opts),
+         {:ok, codec} <- validate_radix_or_alphabet(radix_or_alphabet, codec_input_opts),
          radix = Codec.radix(codec),
          {:ok, minlen} <- calculate_minlen(radix),
          {:ok, maxlen} <- calculate_maxlen(minlen, radix) do
@@ -269,20 +275,55 @@ defmodule FPE.FF3_1 do
     end
   end
 
-  defp validate_radix_or_alphabet(radix_or_alphabet) do
+  defp validate_ctx_opts(opts) do
     alias FPE.FFX.Codec
 
-    case [Codec.Builtin, Codec.BuiltinLower]
-         |> Enum.find_value(& &1.maybe_new(radix_or_alphabet)) do
+    case opts do
+      _proper_list when length(opts) >= 0 ->
+        codec_input_opts = %Codec.InputOpts{}
+        validate_ctx_opts_recur(opts, codec_input_opts)
+
+      _improper_list when is_list(opts) ->
+        {:error, {:opts_is_improper_list, opts}}
+
+      _not_a_list ->
+        {:error, {:opts_not_a_list, opts}}
+    end
+  end
+
+  defp validate_ctx_opts_recur([{:case_insensitive, val} | next], codec_input_opts)
+       when is_boolean(val) do
+    codec_input_opts = %{codec_input_opts | case_insensitive: val}
+    validate_ctx_opts_recur(next, codec_input_opts)
+  end
+
+  defp validate_ctx_opts_recur([{:norm_insensitive, val} | next], codec_input_opts)
+       when is_boolean(val) do
+    codec_input_opts = %{codec_input_opts | norm_insensitive: val}
+    validate_ctx_opts_recur(next, codec_input_opts)
+  end
+
+  defp validate_ctx_opts_recur([invalid_opt | _next], _codec_input_opts) do
+    {:error, {:invalid_opt, invalid_opt}}
+  end
+
+  defp validate_ctx_opts_recur([], codec_input_opts) do
+    {:ok, codec_input_opts}
+  end
+
+  defp validate_radix_or_alphabet(radix_or_alphabet, codec_input_opts) do
+    alias FPE.FFX.Codec
+
+    case Codec.Builtin.maybe_new(radix_or_alphabet, codec_input_opts) do
       {:ok, codec} ->
         {:ok, codec}
 
       nil ->
-        validate_custom_alphabet(radix_or_alphabet)
+        validate_custom_alphabet(radix_or_alphabet, codec_input_opts)
     end
   end
 
-  defp validate_custom_alphabet(radix) when is_integer(radix) do
+  defp validate_custom_alphabet(radix, _codec_input_opts) when is_integer(radix) do
     case radix < @min_radix do
       true ->
         {:error, {:invalid_radix, radix, :less_than_minimum, @min_radix}}
@@ -293,7 +334,9 @@ defmodule FPE.FF3_1 do
     end
   end
 
-  defp validate_custom_alphabet(alphabet) when is_binary(alphabet) do
+  defp validate_custom_alphabet(alphabet, codec_input_opts) when is_binary(alphabet) do
+    alias FPE.FFX.Codec
+
     ordered_graphemes = String.graphemes(alphabet)
     unique_graphemes = Enum.uniq(ordered_graphemes)
     nr_of_symbols = length(ordered_graphemes)
@@ -304,24 +347,11 @@ defmodule FPE.FF3_1 do
         {:error, {:alphabet_exceeds_max_radix, @max_radix}}
 
       nr_of_symbols == nr_of_unique_symbols ->
-        codec = new_custom_codec(ordered_graphemes)
-        {:ok, codec}
+        Codec.Custom.new(ordered_graphemes, codec_input_opts)
 
       nr_of_symbols > nr_of_unique_symbols ->
         repeated_symbols = ordered_graphemes -- unique_graphemes
         {:error, {:alphabet_has_repeated_symbols, repeated_symbols}}
-    end
-  end
-
-  defp new_custom_codec(ordered_graphemes) do
-    alias FPE.FFX.Codec
-
-    case ordered_graphemes |> Enum.any?(&(byte_size(&1) > 1)) do
-      true ->
-        Codec.CustomMultibyte.new(ordered_graphemes)
-
-      false ->
-        Codec.CustomUnibyte.new(ordered_graphemes)
     end
   end
 
@@ -354,7 +384,7 @@ defmodule FPE.FF3_1 do
 
   defp do_encrypt_or_decrypt(ctx, t, vX, enc) do
     with :ok <- validate_enc_or_dec_input_len(ctx, vX),
-         :ok <- validate_enc_or_dec_input_alphabet(ctx, vX),
+         {:ok, vX} <- validate_enc_or_dec_input(ctx, vX),
          :ok <- validate_tweak(t) do
       fpe_ff3_1_ctx(k: k, codec: codec) = ctx
       {even_m, odd_m, vA, vB, even_vW, odd_vW} = setup_encrypt_or_decrypt_vars!(t, vX)
@@ -387,11 +417,12 @@ defmodule FPE.FF3_1 do
     end
   end
 
-  defp validate_enc_or_dec_input_alphabet(ctx, vX) do
+  defp validate_enc_or_dec_input(ctx, vX) do
     alias FPE.FFX.Codec
     fpe_ff3_1_ctx(codec: codec) = ctx
-    _ = Codec.string_to_int(codec, vX)
-    :ok
+    prepared_vX = Codec.prepare_input_string(codec, vX)
+    _ = Codec.string_to_int(codec, prepared_vX)
+    {:ok, prepared_vX}
   rescue
     exc in ArgumentError ->
       {:error, {:invalid_input, exc.message}}
@@ -482,9 +513,10 @@ defmodule FPE.FF3_1 do
   end
 
   # credo:disable-for-next-line Credo.Check.Refactor.FunctionArity
-  defp do_encrypt_rounds!(8 = _i, _k, _codec, _m, _other_m, vA, vB, _vW, _other_vW) do
+  defp do_encrypt_rounds!(8 = _i, _k, codec, _m, _other_m, vA, vB, _vW, _other_vW) do
+    alias FPE.FFX.Codec
     ## 5. Return A || B
-    <<vA::bytes, vB::bytes>>
+    Codec.output_string(codec, <<vA::bytes, vB::bytes>>)
   end
 
   defp do_decrypt_rounds!(i, k, codec, m, other_m, vA, vB, vW, other_vW) when i >= 0 do
@@ -536,9 +568,10 @@ defmodule FPE.FF3_1 do
   end
 
   # credo:disable-for-next-line Credo.Check.Refactor.FunctionArity
-  defp do_decrypt_rounds!(-1 = _i, _k, _codec, _m, _other_m, vA, vB, _vW, _other_vW) do
+  defp do_decrypt_rounds!(-1 = _i, _k, codec, _m, _other_m, vA, vB, _vW, _other_vW) do
+    alias FPE.FFX.Codec
     ## 5. Return A || B
-    <<vA::bytes, vB::bytes>>
+    Codec.output_string(codec, <<vA::bytes, vB::bytes>>)
   end
 
   defp ciph(k, input) do

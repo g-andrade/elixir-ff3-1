@@ -39,6 +39,24 @@ defmodule FPE.FFX do
     """
     alias FPE.FFX
 
+    defmodule InputOpts do
+      @moduledoc false
+
+      defstruct case_insensitive: true,
+                norm_insensitive: true
+
+      @type t :: %__MODULE__{
+              case_insensitive: boolean,
+              norm_insensitive: boolean
+            }
+    end
+
+    @doc """
+    Prepares an input ciphertext or plaintext for internal processing
+    """
+    @spec prepare_input_string(t(), FFX.numerical_string()) :: FFX.numerical_string()
+    def prepare_input_string(codec, vX)
+
     @doc """
     Returns a codec instance's radix
     """
@@ -60,6 +78,12 @@ defmodule FPE.FFX do
     @spec int_to_padded_string(t(), count, non_neg_integer) :: vX
           when count: non_neg_integer, vX: FFX.numerical_string()
     def int_to_padded_string(codec, count, int)
+
+    @doc """
+    Prepares an internal ciphertext or plaintext for output
+    """
+    @spec output_string(t(), FFX.numerical_string()) :: FFX.numerical_string()
+    def output_string(codec, vX)
   end
 
   defprotocol Codec.Reversible do
