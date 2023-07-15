@@ -63,7 +63,7 @@ jobs:
         run: mix credo --strict
 
       - name: Run tests
-        run: mix test --coverage
+        run: mix test --cover
 
       - name: Run Dialyzer
         run: mix dialyzer
