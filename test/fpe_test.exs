@@ -914,11 +914,137 @@ defmodule FpeTest do
     )
   end
 
+  test "builtin alphabet - case insensitive" do
+    run_builtin_alphabet_case_sensitiveness_test(
+      fn ctx, tweak, plaintext, ciphertext ->
+        modified_plaintext = randomly_change_case(plaintext)
+        assert FPE.FF3_1.encrypt!(ctx, tweak, modified_plaintext) == ciphertext
+
+        modified_ciphertext = randomly_change_case(ciphertext)
+        assert FPE.FF3_1.decrypt!(ctx, tweak, modified_ciphertext) == plaintext
+      end,
+      "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+    )
+  end
+
+  test "builtin lower case alphabet - case insensitive" do
+    run_builtin_alphabet_case_sensitiveness_test(
+      fn ctx, tweak, plaintext, ciphertext ->
+        modified_plaintext = randomly_change_case(plaintext)
+        assert FPE.FF3_1.encrypt!(ctx, tweak, modified_plaintext) == ciphertext
+
+        modified_ciphertext = randomly_change_case(ciphertext)
+        assert FPE.FF3_1.decrypt!(ctx, tweak, modified_ciphertext) == plaintext
+      end,
+      "0123456789abcdefghijklmnopqrstuvwxyz"
+    )
+  end
+
+  test "builtin alphabet - case sensitive" do
+    run_builtin_alphabet_case_sensitiveness_test(
+      fn ctx, tweak, plaintext, ciphertext ->
+        modified_plaintext = randomly_change_case(plaintext)
+
+        if String.upcase(modified_plaintext) != modified_plaintext do
+          assert catch_error(FPE.FF3_1.encrypt!(ctx, tweak, modified_plaintext))
+        else
+          assert ciphertext == FPE.FF3_1.encrypt!(ctx, tweak, modified_plaintext)
+        end
+
+        modified_ciphertext = randomly_change_case(ciphertext)
+
+        if String.upcase(modified_ciphertext) != modified_ciphertext do
+          assert catch_error(FPE.FF3_1.decrypt!(ctx, tweak, modified_ciphertext))
+        else
+          assert plaintext == FPE.FF3_1.decrypt!(ctx, tweak, modified_ciphertext)
+        end
+      end,
+      "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ",
+      case_insensitive: false
+    )
+  end
+
+  test "builtin lower case alphabet - case sensitive" do
+    run_builtin_alphabet_case_sensitiveness_test(
+      fn ctx, tweak, plaintext, ciphertext ->
+        modified_plaintext = randomly_change_case(plaintext)
+
+        if String.downcase(modified_plaintext) != modified_plaintext do
+          assert catch_error(FPE.FF3_1.encrypt!(ctx, tweak, modified_plaintext))
+        else
+          assert ciphertext == FPE.FF3_1.encrypt!(ctx, tweak, modified_plaintext)
+        end
+
+        modified_ciphertext = randomly_change_case(ciphertext)
+
+        if String.downcase(modified_ciphertext) != modified_ciphertext do
+          assert catch_error(FPE.FF3_1.decrypt!(ctx, tweak, modified_ciphertext))
+        else
+          assert plaintext == FPE.FF3_1.decrypt!(ctx, tweak, modified_ciphertext)
+        end
+      end,
+      "0123456789abcdefghijklmnopqrstuvwxyz",
+      case_insensitive: false
+    )
+  end
+
   ## Helpers
 
   defp check_test_vector(key, tweak, plaintext, ciphertext, radix_or_alphabet) do
     {:ok, ctx} = FPE.FF3_1.new_ctx(key, radix_or_alphabet)
     assert FPE.FF3_1.encrypt!(ctx, tweak, plaintext) == ciphertext
     assert FPE.FF3_1.decrypt!(ctx, tweak, ciphertext) == plaintext
+  end
+
+  defp run_builtin_alphabet_case_sensitiveness_test(fun, largest_alphabet, ctx_opts \\ []) do
+    alias FPE.FF3_1
+    alias FPE.FFX
+
+    graphemes = String.graphemes(largest_alphabet)
+    max_radix = length(graphemes)
+
+    Enum.each(
+      2..max_radix,
+      fn radix ->
+        alphabet = String.slice(largest_alphabet, 0..(radix - 1))
+        key = :crypto.strong_rand_bytes(32)
+        tweak = :crypto.strong_rand_bytes(7)
+        {:ok, ctx} = FF3_1.new_ctx(key, alphabet, ctx_opts)
+
+        %{minlen: minlen, maxlen: maxlen} = FF3_1.domain_constraints(ctx)
+        largest_symbol = String.last(alphabet)
+        maxvalue = String.duplicate(largest_symbol, maxlen) |> String.to_integer(radix)
+        value = :rand.uniform(maxvalue + 1) - 1
+
+        codec = FF3_1.codec(ctx)
+        plaintext = FFX.Codec.int_to_padded_string(codec, minlen, value)
+        ciphertext = FF3_1.encrypt!(ctx, tweak, plaintext)
+
+        Enum.each(
+          1..20,
+          fn _attempt ->
+            fun.(ctx, tweak, plaintext, ciphertext)
+          end
+        )
+      end
+    )
+  end
+
+  defp randomly_change_case(string) do
+    string
+    |> String.graphemes()
+    |> Enum.map(fn grapheme ->
+      case :rand.uniform(3) do
+        1 ->
+          String.downcase(grapheme)
+
+        2 ->
+          String.upcase(grapheme)
+
+        3 ->
+          grapheme
+      end
+    end)
+    |> List.to_string()
   end
 end

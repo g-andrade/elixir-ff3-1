@@ -265,6 +265,14 @@ defmodule FPE.FF3_1 do
   @spec codec(ctx) :: FFX.codec()
   def codec(fpe_ff3_1_ctx(codec: codec)), do: codec
 
+  @doc """
+  Returns a `ctx`'s domain constraints.
+  """
+  @spec domain_constraints(ctx) :: %{minlen: pos_integer, maxlen: pos_integer}
+  def domain_constraints(fpe_ff3_1_ctx(minlen: minlen, maxlen: maxlen)) do
+    %{minlen: minlen, maxlen: maxlen}
+  end
+
   ## Internal Functions
 
   defp validate_key(k) do
