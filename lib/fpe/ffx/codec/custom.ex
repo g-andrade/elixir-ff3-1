@@ -121,10 +121,6 @@ defmodule FPE.FFX.Codec.Custom do
       string_to_int_recur(string, symbol_to_amount, radix, _acc0 = 0)
     end
 
-    def string_to_int(_codec, string) do
-      raise ArgumentError, "Not a non-empty string: #{inspect(string)}"
-    end
-
     def int_to_padded_string(codec, m, int) when is_integer(int) and int >= 0 do
       amount_to_symbol = codec.amount_to_symbol
       radix = tuple_size(amount_to_symbol)
@@ -164,17 +160,9 @@ defmodule FPE.FFX.Codec.Custom do
     defp string_to_int_recur(string, symbol_to_amount, radix, acc) do
       case String.next_grapheme(string) do
         {symbol, remaining_string} ->
-          try do
-            Map.fetch!(symbol_to_amount, symbol)
-          rescue
-            KeyError ->
-              # credo:disable-for-next-line Credo.Check.Warning.RaiseInsideRescue
-              raise ArgumentError, "Unrecognized symbol: #{inspect(symbol)}"
-          else
-            amount ->
-              acc = acc * radix + amount
-              string_to_int_recur(remaining_string, symbol_to_amount, radix, acc)
-          end
+          amount = Map.fetch!(symbol_to_amount, symbol)
+          acc = acc * radix + amount
+          string_to_int_recur(remaining_string, symbol_to_amount, radix, acc)
 
         nil ->
           acc
