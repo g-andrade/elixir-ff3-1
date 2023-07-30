@@ -881,7 +881,7 @@ defmodule FpeTest do
     )
   end
 
-  test "zero is not 0" do
+  test "zero is not ?0" do
     check_test_vector(
       <<6, 89, 255, 22, 18, 211, 44, 18, 129, 227, 228, 6, 210, 23, 145, 98, 144, 216, 104, 61,
         203, 14, 121, 53>>,
