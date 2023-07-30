@@ -31,7 +31,6 @@ defmodule FPE.FFX.IntermediateForm do
       false ->
         imperfect_lpr_recur(
           ctx.radix,
-          ctx.bits_per_symbol,
           tail_padding,
           number,
           _acc = 0,
@@ -52,14 +51,14 @@ defmodule FPE.FFX.IntermediateForm do
 
   ## Internal
 
-  defp imperfect_lpr_recur(radix, bits_per_symbol, tail_padding, number, acc, iter) do
+  defp imperfect_lpr_recur(radix, tail_padding, number, acc, iter) do
     case number != 0 do
       true ->
         weight = rem(number, radix)
         number = div(number, radix)
         acc = acc * radix + weight
         iter = iter + 1
-        imperfect_lpr_recur(radix, bits_per_symbol, tail_padding, number, acc, iter)
+        imperfect_lpr_recur(radix, tail_padding, number, acc, iter)
 
       false ->
         padding_needed = max(0, tail_padding - iter)
