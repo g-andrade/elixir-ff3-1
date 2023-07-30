@@ -2,6 +2,8 @@ defmodule FpeTest do
   use ExUnit.Case, async: true
   doctest FPE.FF3_1
 
+  require Logger
+
   ## I didn't find any official test vectors, so I copied the ones from ubiq-go:
   ## * https://github.com/ubiqsecurity/ubiq-fpe-go/blob/63af101126699b7438045844d0f25120e424789d/ff3_1_test.go
 
@@ -988,7 +990,7 @@ defmodule FpeTest do
     )
   end
 
-  test "custom alphabet - case insensitive" do
+  test "custom alphabet - case insensitive, norm insensitive" do
     run_alphabet_sensitiveness_test(
       fn ctx, tweak, plaintext, ciphertext ->
         modified_plaintext = randomly_change_case(plaintext)
@@ -1001,7 +1003,7 @@ defmodule FpeTest do
     )
   end
 
-  test "custom alphabet - case sensitive" do
+  test "custom alphabet - case sensitive, norm insensitive" do
     run_alphabet_sensitiveness_test(
       fn ctx, tweak, plaintext, ciphertext ->
         modified_plaintext = randomly_change_case(plaintext)
@@ -1020,8 +1022,57 @@ defmodule FpeTest do
           assert plaintext == FPE.FF3_1.decrypt!(ctx, tweak, modified_ciphertext)
         end
       end,
-      "abcdefgh⚠ijklMnopqrstuvwxyzこんにちは世界Σé",
+      "abcdefgh⚠ijklMnopqrstuvåäöwxyzこんにちは世界Σé",
       case_insensitive: false
+    )
+  end
+
+  test "custom alphabet - case insensitive, norm sensitive" do
+    run_alphabet_sensitiveness_test(
+      fn ctx, tweak, plaintext, ciphertext ->
+        modified_plaintext = randomly_change_norm(plaintext)
+
+        if modified_plaintext != plaintext do
+          assert catch_error(FPE.FF3_1.encrypt!(ctx, tweak, modified_plaintext))
+        else
+          assert ciphertext == FPE.FF3_1.encrypt!(ctx, tweak, modified_plaintext)
+        end
+
+        modified_ciphertext = randomly_change_norm(ciphertext)
+
+        if modified_ciphertext != ciphertext do
+          assert catch_error(FPE.FF3_1.decrypt!(ctx, tweak, modified_ciphertext))
+        else
+          assert plaintext == FPE.FF3_1.decrypt!(ctx, tweak, modified_ciphertext)
+        end
+      end,
+      "abcdefgh⚠ijklMnópqrståäöuvwxyzこんにちは世界Σé",
+      norm_insensitive: false
+    )
+  end
+
+  test "custom alphabet - case sensitive, norm sensitive" do
+    run_alphabet_sensitiveness_test(
+      fn ctx, tweak, plaintext, ciphertext ->
+        modified_plaintext = randomly_change_case(plaintext) |> randomly_change_norm()
+
+        if modified_plaintext != plaintext do
+          assert catch_error(FPE.FF3_1.encrypt!(ctx, tweak, modified_plaintext))
+        else
+          assert ciphertext == FPE.FF3_1.encrypt!(ctx, tweak, modified_plaintext)
+        end
+
+        modified_ciphertext = randomly_change_case(ciphertext) |> randomly_change_norm()
+
+        if modified_ciphertext != ciphertext do
+          assert catch_error(FPE.FF3_1.decrypt!(ctx, tweak, modified_ciphertext))
+        else
+          assert plaintext == FPE.FF3_1.decrypt!(ctx, tweak, modified_ciphertext)
+        end
+      end,
+      "abcdefgh⚠ijklMnópqråäöstuvwxyzこんにちは世界Σé",
+      case_insensitive: false,
+      norm_insensitive: false
     )
   end
 
@@ -1082,6 +1133,30 @@ defmodule FpeTest do
           String.upcase(grapheme)
 
         3 ->
+          grapheme
+      end
+    end)
+    |> List.to_string()
+  end
+
+  defp randomly_change_norm(string) do
+    string
+    |> String.graphemes()
+    |> Enum.map(fn grapheme ->
+      case :rand.uniform(12) do
+        1 ->
+          :unicode.characters_to_nfc_binary(grapheme)
+
+        2 ->
+          :unicode.characters_to_nfd_binary(grapheme)
+
+        4 ->
+          :unicode.characters_to_nfkc_binary(grapheme)
+
+        5 ->
+          :unicode.characters_to_nfkd_binary(grapheme)
+
+        _ ->
           grapheme
       end
     end)
