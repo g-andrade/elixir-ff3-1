@@ -138,7 +138,7 @@ defmodule FPE.FFX.Codec.Custom do
 
     defp prepare_input_for_case!(codec, string) do
       case codec.input_opts.case_insensitive do
-        true -> String.downcase(string)
+        true -> :string.casefold(string)
         false -> string
       end
     end
