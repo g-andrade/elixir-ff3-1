@@ -107,6 +107,7 @@ defmodule FPE.FFX.Codec.Custom do
       case check_input_string_symbols(codec, maybe_canon) do
         :ok ->
           {:ok, maybe_canon}
+
         {:error, _} = error ->
           error
       end

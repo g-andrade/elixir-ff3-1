@@ -397,10 +397,32 @@ defmodule FPE.FF3_1 do
       vY =
         case enc do
           true ->
-            do_encrypt_rounds!(_i = 0, k, codec, iform_ctx, even_m, odd_m, vA, vB, even_vW, odd_vW)
+            do_encrypt_rounds!(
+              _i = 0,
+              k,
+              codec,
+              iform_ctx,
+              even_m,
+              odd_m,
+              vA,
+              vB,
+              even_vW,
+              odd_vW
+            )
 
           false ->
-            do_decrypt_rounds!(_i = 7, k, codec, iform_ctx, odd_m, even_m, vA, vB, odd_vW, even_vW)
+            do_decrypt_rounds!(
+              _i = 7,
+              k,
+              codec,
+              iform_ctx,
+              odd_m,
+              even_m,
+              vA,
+              vB,
+              odd_vW,
+              even_vW
+            )
         end
 
       {:ok, vY}
