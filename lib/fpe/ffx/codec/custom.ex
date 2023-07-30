@@ -4,20 +4,17 @@ defmodule FPE.FFX.Codec.Custom do
   alias FPE.FFX.Codec
 
   @enforce_keys [
-    :canonized_symbols,
     :symbol_to_amount,
     :amount_to_symbol,
     :input_opts
   ]
   defstruct [
-    :canonized_symbols,
     :symbol_to_amount,
     :amount_to_symbol,
     :input_opts
   ]
 
   @opaque t :: %__MODULE__{
-            canonized_symbols: %{String.grapheme() => String.grapheme()},
             symbol_to_amount: %{String.grapheme() => non_neg_integer},
             amount_to_symbol: tuple(),
             input_opts: Codec.InputOpts.t()
@@ -25,16 +22,11 @@ defmodule FPE.FFX.Codec.Custom do
 
   @spec new([String.grapheme(), ...], Codec.InputOpts.t()) :: {:ok, t()} | {:error, term}
   def new(ordered_graphemes, input_opts) do
-    with {:ok, canon_graphemes} <- maybe_validate_case(ordered_graphemes, input_opts),
-         {:ok, canon_graphemes} <- maybe_validate_norm(canon_graphemes, input_opts) do
+    with {:ok, maybe_canon_graphemes} <- maybe_validate_case(ordered_graphemes, input_opts),
+         {:ok, maybe_canon_graphemes} <- maybe_validate_norm(maybe_canon_graphemes, input_opts) do
       {:ok,
        %__MODULE__{
-         canonized_symbols:
-           Map.new(
-             Enum.zip(canon_graphemes, ordered_graphemes)
-             |> Enum.filter(fn {canon, original} -> canon != original end)
-           ),
-         symbol_to_amount: ordered_graphemes |> Enum.with_index() |> Map.new(),
+         symbol_to_amount: maybe_canon_graphemes |> Enum.with_index() |> Map.new(),
          amount_to_symbol: ordered_graphemes |> List.to_tuple(),
          input_opts: input_opts
        }}
@@ -109,12 +101,14 @@ defmodule FPE.FFX.Codec.Custom do
     ## API
 
     def prepare_input_string(codec, string) do
-      case codec.canonized_symbols do
-        empty when map_size(empty) == 0 ->
-          string
+      maybe_canon = prepare_input_for_case!(codec, string)
+      maybe_canon = prepare_input_for_norm!(codec, maybe_canon)
 
-        canonized_symbols ->
-          prepare_input_string_recur(string, canonized_symbols, codec.input_opts)
+      case check_input_string_symbols(codec, maybe_canon) do
+        :ok ->
+          {:ok, maybe_canon}
+        {:error, _} = error ->
+          error
       end
     end
 
@@ -139,11 +133,32 @@ defmodule FPE.FFX.Codec.Custom do
       |> String.pad_leading(m, zero_symbol)
     end
 
-    def output_string(_codec, string) do
-      string
+    ## Private
+
+    defp prepare_input_for_case!(codec, string) do
+      case codec.input_opts.case_insensitive do
+        true -> String.downcase(string)
+        false -> string
+      end
     end
 
-    ## Private
+    defp prepare_input_for_norm!(codec, string) do
+      case codec.input_opts.norm_insensitive do
+        true -> Custom.normalize_string!(string)
+        false -> string
+      end
+    end
+
+    defp check_input_string_symbols(codec, string) do
+      case String.graphemes(string)
+           |> Enum.find(&(not is_map_key(codec.symbol_to_amount, &1))) do
+        nil ->
+          :ok
+
+        unknown_symbol ->
+          {:error, {:unknown_symbol, unknown_symbol}}
+      end
+    end
 
     defp string_to_int_recur(string, symbol_to_amount, radix, acc) do
       case String.next_grapheme(string) do
@@ -178,38 +193,5 @@ defmodule FPE.FFX.Codec.Custom do
           int_to_padded_string_recur(int, amount_to_symbol, radix, acc)
       end
     end
-
-    defp prepare_input_string_recur(string, canonized_symbols, input_opts) do
-      case String.next_grapheme(string) do
-        {symbol, remaining_string} ->
-          canon_symbol = canon_symbol(symbol, input_opts)
-          mapped_symbol = Map.get(canonized_symbols, canon_symbol, symbol)
-
-          <<
-            mapped_symbol::bytes,
-            prepare_input_string_recur(remaining_string, canonized_symbols, input_opts)::bytes
-          >>
-
-        nil ->
-          <<>>
-      end
-    end
-
-    defp canon_symbol(symbol, input_opts) do
-      symbol =
-        case input_opts.case_insensitive do
-          true -> :string.casefold(symbol)
-          false -> symbol
-        end
-
-      case input_opts.norm_insensitive do
-        true -> Custom.normalize_string!(symbol)
-        false -> symbol
-      end
-    end
-  end
-
-  defimpl FPE.FFX.Codec.Reversible, for: __MODULE__ do
-    def reverse_string(_codec, vX), do: String.reverse(vX)
   end
 end

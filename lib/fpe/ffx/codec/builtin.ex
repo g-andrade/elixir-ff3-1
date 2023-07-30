@@ -3,8 +3,6 @@ defmodule FPE.FFX.Codec.Builtin do
 
   alias FPE.FFX.Codec
 
-  @derive [Codec.Reversible]
-
   ## Types
 
   @enforce_keys [:radix, :case_insensitive, :lower_case]
@@ -56,26 +54,26 @@ defmodule FPE.FFX.Codec.Builtin do
 
   defimpl Codec, for: __MODULE__ do
     def prepare_input_string(codec, string) when codec.case_insensitive do
-      string
+      {:ok, string}
     end
 
     def prepare_input_string(codec, string) when codec.lower_case do
       case string == String.downcase(string, :ascii) do
         true ->
-          string
+          {:ok, string}
 
         false ->
-          raise ArgumentError, "String not in down case: #{inspect(string)}"
+          {:error, :string_not_in_downcase}
       end
     end
 
     def prepare_input_string(_codec, string) do
       case string == String.upcase(string, :ascii) do
         true ->
-          string
+          {:ok, string}
 
         false ->
-          raise ArgumentError, "String not in up case: #{inspect(string)}"
+          {:error, :string_not_in_upcase}
       end
     end
 
@@ -86,16 +84,16 @@ defmodule FPE.FFX.Codec.Builtin do
     end
 
     def int_to_padded_string(codec, count, int) when int >= 0 do
-      :erlang.integer_to_binary(int, codec.radix)
+      encoded = :erlang.integer_to_binary(int, codec.radix)
+
+      case codec.lower_case do
+        true ->
+          String.downcase(encoded, :ascii)
+
+        false ->
+          encoded
+      end
       |> String.pad_leading(count, "0")
-    end
-
-    def output_string(codec, string) when codec.lower_case do
-      String.downcase(string, :ascii)
-    end
-
-    def output_string(_codec, string) do
-      string
     end
   end
 end

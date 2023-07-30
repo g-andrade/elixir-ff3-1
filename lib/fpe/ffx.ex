@@ -54,7 +54,8 @@ defmodule FPE.FFX do
     @doc """
     Prepares an input ciphertext or plaintext for internal processing
     """
-    @spec prepare_input_string(t(), FFX.numerical_string()) :: FFX.numerical_string()
+    @spec prepare_input_string(t(), FFX.numerical_string()) ::
+            {:ok, FFX.numerical_string()} | {:error, term}
     def prepare_input_string(codec, vX)
 
     @doc """
@@ -78,31 +79,5 @@ defmodule FPE.FFX do
     @spec int_to_padded_string(t(), count, non_neg_integer) :: vX
           when count: non_neg_integer, vX: FFX.numerical_string()
     def int_to_padded_string(codec, count, int)
-
-    @doc """
-    Prepares an internal ciphertext or plaintext for output
-    """
-    @spec output_string(t(), FFX.numerical_string()) :: FFX.numerical_string()
-    def output_string(codec, vX)
-  end
-
-  defprotocol Codec.Reversible do
-    @moduledoc """
-    FFX reference function required to revert numerical strings
-    according to a particular alphabet or radix.
-    """
-    alias FPE.FFX
-
-    # 4.5, Algorithm 4: REV(X) -> Y
-    @doc """
-    Reverts the symbols in numerical string `vX`
-    """
-    @spec reverse_string(t(), vX) :: vY
-          when vX: FFX.numerical_string(), vY: FFX.numerical_string()
-    def reverse_string(codec, vX)
-  end
-
-  defimpl Codec.Reversible, for: Any do
-    def reverse_string(_codec, vX), do: FPE.FFX.revb(vX)
   end
 end
