@@ -33,35 +33,27 @@ defmodule FF3_1.FFX.Codec.Builtin do
   @spec maybe_new(non_neg_integer | String.t()) :: {:ok, t()} | nil
   @doc false
   def maybe_new(radix) when is_integer(radix) do
-    case radix in 2..36 do
-      true ->
-        {:ok,
-         %__MODULE__{
-           radix: radix,
-           lower_case: false
-         }}
-
-      false ->
-        nil
+    if radix in 2..36 do
+      {:ok,
+       %__MODULE__{
+         radix: radix,
+         lower_case: false
+       }}
     end
   end
 
   def maybe_new(alphabet) when byte_size(alphabet) >= 2 do
-    matches_upper = @broadest_upper_version |> String.starts_with?(alphabet)
-    matches_lower = not matches_upper and @broadest_lower_version |> String.starts_with?(alphabet)
+    matches_upper = String.starts_with?(@broadest_upper_version, alphabet)
+    matches_lower = not matches_upper and String.starts_with?(@broadest_lower_version, alphabet)
 
-    case matches_upper or matches_lower do
-      true ->
-        radix = byte_size(alphabet)
+    if matches_upper or matches_lower do
+      radix = byte_size(alphabet)
 
-        {:ok,
-         %__MODULE__{
-           radix: radix,
-           lower_case: matches_lower
-         }}
-
-      false ->
-        nil
+      {:ok,
+       %__MODULE__{
+         radix: radix,
+         lower_case: matches_lower
+       }}
     end
   end
 
@@ -79,14 +71,14 @@ defmodule FF3_1.FFX.Codec.Builtin do
     def int_to_padded_string(codec, count, int) when int >= 0 do
       encoded = :erlang.integer_to_binary(int, codec.radix)
 
-      case codec.lower_case do
-        true ->
+      case_result =
+        if codec.lower_case do
           String.downcase(encoded, :ascii)
-
-        false ->
+        else
           encoded
-      end
-      |> String.pad_leading(count, "0")
+        end
+
+      String.pad_leading(case_result, count, "0")
     end
   end
 end

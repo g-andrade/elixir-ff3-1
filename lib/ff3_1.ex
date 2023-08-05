@@ -211,9 +211,10 @@ defmodule FF3_1 do
   """
 
   import Bitwise
-  require Record
 
   alias FF3_1.FFX
+
+  require Record
 
   ## API Types
 
@@ -345,13 +346,11 @@ defmodule FF3_1 do
   end
 
   defp validate_custom_alphabet(radix) when is_integer(radix) do
-    case radix < @min_radix do
-      true ->
-        {:error, {:invalid_radix, radix, :less_than_minimum, @min_radix}}
-
-      false ->
-        # largest than builtin
-        {:error, {:invalid_radix, radix, :you_need_to_provide_the_alphabet}}
+    # largest than builtin
+    if radix < @min_radix do
+      {:error, {:invalid_radix, radix, :less_than_minimum, @min_radix}}
+    else
+      {:error, {:invalid_radix, radix, :you_need_to_provide_the_alphabet}}
     end
   end
 
@@ -410,34 +409,32 @@ defmodule FF3_1 do
          {:ok, even_m, odd_m, vA, vB, even_vW, odd_vW} <-
            setup_encrypt_or_decrypt_vars(codec, t, vX) do
       vY =
-        case enc do
-          true ->
-            do_encrypt_rounds!(
-              _i = 0,
-              k,
-              codec,
-              iform_ctx,
-              even_m,
-              odd_m,
-              vA,
-              vB,
-              even_vW,
-              odd_vW
-            )
-
-          false ->
-            do_decrypt_rounds!(
-              _i = 7,
-              k,
-              codec,
-              iform_ctx,
-              odd_m,
-              even_m,
-              vA,
-              vB,
-              odd_vW,
-              even_vW
-            )
+        if enc do
+          do_encrypt_rounds!(
+            _i = 0,
+            k,
+            codec,
+            iform_ctx,
+            even_m,
+            odd_m,
+            vA,
+            vB,
+            even_vW,
+            odd_vW
+          )
+        else
+          do_decrypt_rounds!(
+            _i = 7,
+            k,
+            codec,
+            iform_ctx,
+            odd_m,
+            even_m,
+            vA,
+            vB,
+            odd_vW,
+            even_vW
+          )
         end
 
       {:ok, vY}
@@ -507,6 +504,7 @@ defmodule FF3_1 do
   defp do_encrypt_rounds!(i, k, codec, iform_ctx, m, other_m, vA, vB, vW, other_vW) when i < 8 do
     alias FFX.Codec
     alias FFX.IntermediateForm
+
     radix = Codec.radix(codec)
 
     # 4.ii. Let P = W ⊕ [i]⁴ || [NUM_radix(REV(B))]¹²
@@ -566,6 +564,7 @@ defmodule FF3_1 do
   defp do_decrypt_rounds!(i, k, codec, iform_ctx, m, other_m, vA, vB, vW, other_vW) when i >= 0 do
     alias FFX.Codec
     alias FFX.IntermediateForm
+
     radix = Codec.radix(codec)
 
     ## 4.ii. Let P = W ⊕ [i]⁴ || [NUM_radix(REV(A))]¹²

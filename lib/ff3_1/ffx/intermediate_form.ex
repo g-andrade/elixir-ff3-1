@@ -28,57 +28,51 @@ defmodule FF3_1.FFX.IntermediateForm do
 
   @spec left_pad_and_revert(ctx, non_neg_integer, non_neg_integer) :: non_neg_integer
   def left_pad_and_revert(ctx, number, tail_padding) do
-    case ctx.perfect_fit do
-      false ->
-        imperfect_lpr_recur(
-          ctx.radix,
-          tail_padding,
-          number,
-          _acc = 0,
-          _iter = 0
-        )
-
-      true ->
-        perfect_lpr_recur(
-          ctx.mask,
-          ctx.bits_per_symbol,
-          tail_padding,
-          number,
-          _acc = 0,
-          _iter = 0
-        )
+    if ctx.perfect_fit do
+      perfect_lpr_recur(
+        ctx.mask,
+        ctx.bits_per_symbol,
+        tail_padding,
+        number,
+        _acc = 0,
+        _iter = 0
+      )
+    else
+      imperfect_lpr_recur(
+        ctx.radix,
+        tail_padding,
+        number,
+        _acc = 0,
+        _iter = 0
+      )
     end
   end
 
   ## Internal
 
   defp imperfect_lpr_recur(radix, tail_padding, number, acc, iter) do
-    case number != 0 do
-      true ->
-        weight = rem(number, radix)
-        number = div(number, radix)
-        acc = acc * radix + weight
-        iter = iter + 1
-        imperfect_lpr_recur(radix, tail_padding, number, acc, iter)
-
-      false ->
-        padding_needed = max(0, tail_padding - iter)
-        acc * Integer.pow(radix, padding_needed)
+    if number != 0 do
+      weight = rem(number, radix)
+      number = div(number, radix)
+      acc = acc * radix + weight
+      iter = iter + 1
+      imperfect_lpr_recur(radix, tail_padding, number, acc, iter)
+    else
+      padding_needed = max(0, tail_padding - iter)
+      acc * Integer.pow(radix, padding_needed)
     end
   end
 
   defp perfect_lpr_recur(mask, bits_per_symbol, tail_padding, number, acc, iter) do
-    case number != 0 do
-      true ->
-        weight = number &&& mask
-        number = number >>> bits_per_symbol
-        acc = bor(acc <<< bits_per_symbol, weight)
-        iter = iter + 1
-        perfect_lpr_recur(mask, bits_per_symbol, tail_padding, number, acc, iter)
-
-      false ->
-        padding_needed = max(0, tail_padding - iter)
-        acc <<< (padding_needed * bits_per_symbol)
+    if number != 0 do
+      weight = number &&& mask
+      number = number >>> bits_per_symbol
+      acc = bor(acc <<< bits_per_symbol, weight)
+      iter = iter + 1
+      perfect_lpr_recur(mask, bits_per_symbol, tail_padding, number, acc, iter)
+    else
+      padding_needed = max(0, tail_padding - iter)
+      acc <<< (padding_needed * bits_per_symbol)
     end
   end
 end

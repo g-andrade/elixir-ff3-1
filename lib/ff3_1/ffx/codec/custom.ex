@@ -54,7 +54,7 @@ defmodule FF3_1.FFX.Codec.Custom do
         {:ok,
          %__MODULE__{
            symbol_to_amount: maybe_canon_graphemes |> Enum.with_index() |> Map.new(),
-           amount_to_symbol: ordered_graphemes |> List.to_tuple()
+           amount_to_symbol: List.to_tuple(ordered_graphemes)
          }}
 
       {:error, _} = error ->
@@ -79,18 +79,16 @@ defmodule FF3_1.FFX.Codec.Custom do
   end
 
   defp validate_canonicalization(graphemes, canonize_fun) do
-    canonized = graphemes |> Enum.map(canonize_fun)
+    canonized = Enum.map(graphemes, canonize_fun)
     canonized_len = length(canonized)
     uniq = Enum.uniq(canonized)
     uniq_len = length(uniq)
 
-    case uniq_len != canonized_len do
-      true ->
-        ambiguous = canonized -- uniq
-        {:error, ambiguous}
-
-      false ->
-        {:ok, canonized}
+    if uniq_len != canonized_len do
+      ambiguous = canonized -- uniq
+      {:error, ambiguous}
+    else
+      {:ok, canonized}
     end
   end
 
@@ -124,7 +122,8 @@ defmodule FF3_1.FFX.Codec.Custom do
       radix = tuple_size(amount_to_symbol)
       zero_symbol = elem(amount_to_symbol, 0)
 
-      int_to_padded_string_recur(int, amount_to_symbol, radix, _acc0 = [])
+      int
+      |> int_to_padded_string_recur(amount_to_symbol, radix, _acc0 = [])
       |> String.pad_leading(m, zero_symbol)
     end
 
