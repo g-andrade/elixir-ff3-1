@@ -15,19 +15,18 @@ defmodule FF3_1.FFX.Codec.Custom do
   [multiple](https://hexdocs.pm/elixir/1.15/String.html#downcase/2),
   [ways](https://www.erlang.org/doc/man/string#casefold-1) of making a string
   case agnostic;
-  * Case sensitiveness perfect sense in some cases (think
+  * Case sensitiveness makes sense in some cases (think
   base64) but not in others;
   * What if an alphabet has multiple casings of the same symbol but single
   casings of others? Things start getting real weird, real fast.
 
   At the same time, it's hard to imagine different Unicode norms of the same
-  symbol within the same alphabet ever being a real use case.
+  symbol within the same alphabet ever being a real use case. (Well - neither
+  is an alphabet made up of emoji. But here we are.)
 
-  Well - neither is an alphabet made up of emoji. But here we are.
-
-  If you wish to handle case insensitivity, you'll need to pick whichever way
-  best fits your application, and handle it before invoking `FPE` encryption
-  and decryption functions.
+  If you wish to handle case insensitivity, you'll need to pick what best fits
+  your application, and handle it before invoking `FF3_1` encryption and
+  decryption functions.
   """
 
   alias FF3_1.FFX.Codec
