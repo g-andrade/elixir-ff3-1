@@ -1,14 +1,27 @@
 defmodule FPE.FFX.Codec.Builtin do
-  @moduledoc false
+  @moduledoc """
+  An implementation of `FPE.FFX.Codec` that handles alphabets made up of digits
+  0 to 9 and letters a to z, in that order, with all letters of equal casing,
+  encompassing radixes from 2 and up to 36.
+
+  In other words: whatever `String.to_integer/2` (and ultimately
+  `:erlang.binary_to_integer/2`) can handle [except mixed case], this module
+  will be a wrap of.
+
+  If you specify a radix, the output will be upper case. If you'd like lower
+  case outputs, you'll need to specify the corresponding alphabet.
+
+  Inputs are case insensitive, unlike `FPE.FFX.Codec.Custom`.
+  """
 
   alias FPE.FFX.Codec
 
   ## Types
 
-  @enforce_keys [:radix, :case_insensitive, :lower_case]
-  defstruct [:radix, :case_insensitive, :lower_case]
+  @enforce_keys [:radix, :lower_case]
+  defstruct [:radix, :lower_case]
 
-  @opaque t :: %__MODULE__{radix: radix, case_insensitive: boolean, lower_case: boolean}
+  @opaque t :: %__MODULE__{radix: radix, lower_case: boolean}
   @type radix :: 2..36
 
   @broadest_upper_version "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ"
@@ -16,14 +29,14 @@ defmodule FPE.FFX.Codec.Builtin do
 
   ## API Functions
 
-  @spec maybe_new(non_neg_integer | String.t(), Codec.InputOpts.t()) :: {:ok, t()} | nil
-  def maybe_new(radix, input_opts) when is_integer(radix) do
+  @spec maybe_new(non_neg_integer | String.t()) :: {:ok, t()} | nil
+  @doc false
+  def maybe_new(radix) when is_integer(radix) do
     case radix in 2..36 do
       true ->
         {:ok,
          %__MODULE__{
            radix: radix,
-           case_insensitive: input_opts.case_insensitive,
            lower_case: false
          }}
 
@@ -32,7 +45,7 @@ defmodule FPE.FFX.Codec.Builtin do
     end
   end
 
-  def maybe_new(alphabet, input_opts) when byte_size(alphabet) >= 2 do
+  def maybe_new(alphabet) when byte_size(alphabet) >= 2 do
     matches_upper = @broadest_upper_version |> String.starts_with?(alphabet)
     matches_lower = not matches_upper and @broadest_lower_version |> String.starts_with?(alphabet)
 
@@ -43,7 +56,6 @@ defmodule FPE.FFX.Codec.Builtin do
         {:ok,
          %__MODULE__{
            radix: radix,
-           case_insensitive: input_opts.case_insensitive,
            lower_case: matches_lower
          }}
 
@@ -53,34 +65,14 @@ defmodule FPE.FFX.Codec.Builtin do
   end
 
   defimpl Codec, for: __MODULE__ do
-    def prepare_input_string(codec, string) when codec.case_insensitive do
-      {:ok, string}
-    end
-
-    def prepare_input_string(codec, string) when codec.lower_case do
-      case string == String.downcase(string, :ascii) do
-        true ->
-          {:ok, string}
-
-        false ->
-          {:error, :string_not_in_downcase}
-      end
-    end
-
-    def prepare_input_string(_codec, string) do
-      case string == String.upcase(string, :ascii) do
-        true ->
-          {:ok, string}
-
-        false ->
-          {:error, :string_not_in_upcase}
-      end
-    end
-
+    @moduledoc false
     def radix(codec), do: codec.radix
 
-    def string_to_int(codec, string) do
-      :erlang.binary_to_integer(string, codec.radix)
+    def string_to_int(codec, string) when byte_size(string) !== 0 do
+      {:ok, String.to_integer(string, codec.radix)}
+    rescue
+      ArgumentError ->
+        {:error, :unknown_symbol}
     end
 
     def int_to_padded_string(codec, count, int) when int >= 0 do

@@ -1,87 +1,95 @@
 defmodule FPE.FFX.Codec.Custom do
-  @moduledoc false
+  @moduledoc """
+  An implementation of `FPE.FFX.Codec` that handles alphabets other than the
+  ones supported by `FPE.FFX.Codec.Builtin`.
+
+  Each [grapheme
+  cluster](https://hexdocs.pm/elixir/1.15/String.html#module-grapheme-clusters)
+  represents a visual symbol.
+
+  It's **case sensitive** (unlike `FPE.FFX.Codec.Builtin`), but [norm
+  insensitive](https://hexdocs.pm/elixir/1.15/String.html#normalize/2). This is
+  because:
+  * There are
+  [multiple](https://hexdocs.pm/elixir/1.15/String.html#downcase/2),
+  [ways](https://www.erlang.org/doc/man/string#casefold-1) of making a string
+  case agnostic;
+  * Case sensitiveness perfect sense in some cases (think
+  base64) but not in others;
+  * What if an alphabet has multiple casings of the same symbol but single
+  casings of others? Things start getting real weird, real fast.
+
+  At the same time, it's hard to imagine different Unicode norms of the same
+  symbol within the same alphabet ever being a real use case.
+
+  Well - neither is an alphabet made up of emoji. But here we are.
+
+  If you wish to handle case insensitivity, you'll need to pick whichever way
+  best fits your application, and handle it before invoking `FPE` encryption
+  and decryption functions.
+  """
 
   alias FPE.FFX.Codec
 
   @enforce_keys [
     :symbol_to_amount,
-    :amount_to_symbol,
-    :input_opts
+    :amount_to_symbol
   ]
   defstruct [
     :symbol_to_amount,
-    :amount_to_symbol,
-    :input_opts
+    :amount_to_symbol
   ]
 
   @opaque t :: %__MODULE__{
             symbol_to_amount: %{String.grapheme() => non_neg_integer},
-            amount_to_symbol: tuple(),
-            input_opts: Codec.InputOpts.t()
+            amount_to_symbol: tuple()
           }
 
-  @spec new([String.grapheme(), ...], Codec.InputOpts.t()) :: {:ok, t()} | {:error, term}
-  def new(ordered_graphemes, input_opts) do
-    with {:ok, maybe_canon_graphemes} <- maybe_validate_case(ordered_graphemes, input_opts),
-         {:ok, maybe_canon_graphemes} <- maybe_validate_norm(maybe_canon_graphemes, input_opts) do
-      {:ok,
-       %__MODULE__{
-         symbol_to_amount: maybe_canon_graphemes |> Enum.with_index() |> Map.new(),
-         amount_to_symbol: ordered_graphemes |> List.to_tuple(),
-         input_opts: input_opts
-       }}
-    else
+  @spec new([String.grapheme(), ...]) :: {:ok, t()} | {:error, term}
+  @doc false
+  def new(ordered_graphemes) do
+    case validate_norm(ordered_graphemes) do
+      {:ok, maybe_canon_graphemes} ->
+        {:ok,
+         %__MODULE__{
+           symbol_to_amount: maybe_canon_graphemes |> Enum.with_index() |> Map.new(),
+           amount_to_symbol: ordered_graphemes |> List.to_tuple()
+         }}
+
       {:error, _} = error ->
         error
     end
   end
 
+  @doc false
   def normalize_string!(string) do
     {:ok, normalized} = normalize_string(string)
     normalized
   end
 
-  defp maybe_validate_case(graphemes, input_opts) when input_opts.case_insensitive do
-    case validate_insensitiveness(graphemes, &:string.casefold/1) do
+  defp validate_norm(graphemes) do
+    case validate_canonicalization(graphemes, &normalize_string!/1) do
       {:ok, _} = success ->
         success
 
       {:error, ambiguous_symbols} ->
-        {:error, {:case_insensitive_alphabet_has_ambiguous_symbols, ambiguous_symbols}}
+        {:error, {:alphabet_has_ambiguous_symbols, ambiguous_symbols}}
     end
   end
 
-  defp maybe_validate_case(graphemes, _input_opts) do
-    {:ok, graphemes}
-  end
-
-  defp maybe_validate_norm(graphemes, input_opts) when input_opts.norm_insensitive do
-    case validate_insensitiveness(graphemes, &normalize_string!/1) do
-      {:ok, _} = success ->
-        success
-
-      {:error, ambiguous_symbols} ->
-        {:error, {:norm_insensitive_alphabet_has_ambiguous_symbols, ambiguous_symbols}}
-    end
-  end
-
-  defp maybe_validate_norm(graphemes, _input_opts) do
-    {:ok, graphemes}
-  end
-
-  defp validate_insensitiveness(graphemes, desensitize_fun) do
-    desensitized = graphemes |> Enum.map(desensitize_fun)
-    desensitized_len = length(desensitized)
-    uniq = Enum.uniq(desensitized)
+  defp validate_canonicalization(graphemes, canonize_fun) do
+    canonized = graphemes |> Enum.map(canonize_fun)
+    canonized_len = length(canonized)
+    uniq = Enum.uniq(canonized)
     uniq_len = length(uniq)
 
-    case uniq_len != desensitized_len do
+    case uniq_len != canonized_len do
       true ->
-        ambiguous = desensitized -- uniq
+        ambiguous = canonized -- uniq
         {:error, ambiguous}
 
       false ->
-        {:ok, desensitized}
+        {:ok, canonized}
     end
   end
 
@@ -96,29 +104,18 @@ defmodule FPE.FFX.Codec.Custom do
   end
 
   defimpl Codec, for: __MODULE__ do
+    @moduledoc false
     alias FPE.FFX.Codec.Custom
 
     ## API
 
-    def prepare_input_string(codec, string) do
-      maybe_canon = prepare_input_for_case!(codec, string)
-      maybe_canon = prepare_input_for_norm!(codec, maybe_canon)
-
-      case check_input_string_symbols(codec, maybe_canon) do
-        :ok ->
-          {:ok, maybe_canon}
-
-        {:error, _} = error ->
-          error
-      end
-    end
-
     def radix(codec), do: tuple_size(codec.amount_to_symbol)
 
-    def string_to_int(codec, string) when byte_size(string) > 0 do
+    def string_to_int(codec, string) when byte_size(string) !== 0 do
+      canon_string = Custom.normalize_string!(string)
       symbol_to_amount = codec.symbol_to_amount
       radix = map_size(symbol_to_amount)
-      string_to_int_recur(string, symbol_to_amount, radix, _acc0 = 0)
+      string_to_int_recur(canon_string, symbol_to_amount, radix, _acc0 = 0)
     end
 
     def int_to_padded_string(codec, m, int) when is_integer(int) and int >= 0 do
@@ -130,42 +127,22 @@ defmodule FPE.FFX.Codec.Custom do
       |> String.pad_leading(m, zero_symbol)
     end
 
-    ## Private
-
-    defp prepare_input_for_case!(codec, string) do
-      case codec.input_opts.case_insensitive do
-        true -> :string.casefold(string)
-        false -> string
-      end
-    end
-
-    defp prepare_input_for_norm!(codec, string) do
-      case codec.input_opts.norm_insensitive do
-        true -> Custom.normalize_string!(string)
-        false -> string
-      end
-    end
-
-    defp check_input_string_symbols(codec, string) do
-      case String.graphemes(string)
-           |> Enum.find(&(not is_map_key(codec.symbol_to_amount, &1))) do
-        nil ->
-          :ok
-
-        unknown_symbol ->
-          {:error, {:unknown_symbol, unknown_symbol}}
-      end
-    end
-
     defp string_to_int_recur(string, symbol_to_amount, radix, acc) do
       case String.next_grapheme(string) do
         {symbol, remaining_string} ->
-          amount = Map.fetch!(symbol_to_amount, symbol)
-          acc = acc * radix + amount
-          string_to_int_recur(remaining_string, symbol_to_amount, radix, acc)
+          try do
+            Map.fetch!(symbol_to_amount, symbol)
+          rescue
+            KeyError ->
+              {:error, {:unknown_symbol, symbol}}
+          else
+            amount ->
+              acc = acc * radix + amount
+              string_to_int_recur(remaining_string, symbol_to_amount, radix, acc)
+          end
 
         nil ->
-          acc
+          {:ok, acc}
       end
     end
 

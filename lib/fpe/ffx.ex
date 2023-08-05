@@ -39,43 +39,18 @@ defmodule FPE.FFX do
     """
     alias FPE.FFX
 
-    defmodule InputOpts do
-      @moduledoc false
-
-      defstruct case_insensitive: true,
-                norm_insensitive: true
-
-      @type t :: %__MODULE__{
-              case_insensitive: boolean,
-              norm_insensitive: boolean
-            }
-    end
-
-    @doc """
-    Prepares an input ciphertext or plaintext for internal processing
-    """
-    @spec prepare_input_string(t(), FFX.numerical_string()) ::
-            {:ok, FFX.numerical_string()} | {:error, term}
-    def prepare_input_string(codec, vX)
-
-    @doc """
-    Returns a codec instance's radix
-    """
+    @doc false
     @spec radix(t()) :: FFX.radix()
     def radix(codec)
 
     # 4.5, Algorithm 1: NUM_radix(X) -> x
-    @doc """
-    Converts numerical string `vX` to integer `x`
-    """
-    @spec string_to_int(t(), vX) :: x
-          when vX: FFX.numerical_string(), x: non_neg_integer
+    @doc false
+    @spec string_to_int(t(), vX) :: {:ok, x} | {:error, reason}
+          when vX: FFX.numerical_string(), x: non_neg_integer, reason: term
     def string_to_int(codec, vX)
 
     # 4.5, Algorithm 3: STR_m_radix(x) -> X
-    @doc """
-    Converts integer `x` to padded numerical string `vX`
-    """
+    @doc false
     @spec int_to_padded_string(t(), count, non_neg_integer) :: vX
           when count: non_neg_integer, vX: FFX.numerical_string()
     def int_to_padded_string(codec, count, int)

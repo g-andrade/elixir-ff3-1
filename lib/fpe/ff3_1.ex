@@ -47,15 +47,10 @@ defmodule FPE.FF3_1 do
               maxlen: pos_integer
             )
 
-  @type ctx_opts :: [
-          case_insensitive: boolean,
-          norm_insensitive: boolean
-        ]
-
   ## API
 
   @doc """
-  Validates arguments and creates context used for both encryption and decryption.
+  Validates arguments and creates a context used for both encryption and decryption.
 
   ## Examples
 
@@ -63,15 +58,14 @@ defmodule FPE.FF3_1 do
       iex> {:ok, _ctx} = FPE.FF3_1.new_ctx(key, _radix = 10)
 
   """
-  @spec new_ctx(k, radix | alphabet, ctx_opts) :: {:ok, ctx} | {:error, term}
+  @spec new_ctx(k, radix | alphabet) :: {:ok, ctx} | {:error, term}
         when k: FFX.key()
-  def new_ctx(k, radix_or_alphabet, opts \\ []) do
+  def new_ctx(k, radix_or_alphabet) do
     alias FFX.Codec
     alias FFX.IntermediateForm
 
     with :ok <- validate_key(k),
-         {:ok, codec_input_opts} <- validate_ctx_opts(opts),
-         {:ok, codec} <- validate_radix_or_alphabet(radix_or_alphabet, codec_input_opts),
+         {:ok, codec} <- validate_radix_or_alphabet(radix_or_alphabet),
          radix = Codec.radix(codec),
          iform_ctx = IntermediateForm.new_ctx(radix),
          {:ok, minlen} <- calculate_minlen(radix),
@@ -94,7 +88,7 @@ defmodule FPE.FF3_1 do
   Encrypts plaintext numerical string `vX` in base `radix` using `ctx` and 7-byte `tweak`.
 
   Returns encrypted numerical string `vY` in base `radix` and **of length equal to `vX`**
-  (⚠ no padding!)
+  (⚠️ no padding!)
 
   Minimum and maximum length of `vX` depend on radix, as defined by the spec.
 
@@ -137,7 +131,7 @@ defmodule FPE.FF3_1 do
       iex> ciphertext2 != ciphertext1
       true
 
-  Custom alphabets can be used:
+  [Custom alphabets](`FPE.FFX.Codec.Custom`) can be used (case sensitive):
 
       iex> # Lower case base 36, AES-256
       iex> key = :crypto.strong_rand_bytes(32)
@@ -171,7 +165,7 @@ defmodule FPE.FF3_1 do
   Decrypts encrypted numerical string `vX` in base `radix` using `ctx` and 7-byte `tweak`.
 
   Returns plaintext numerical string `vY` in base `radix` and **of length equal to `vX`**
-  (⚠ no padding!)
+  (⚠️ no padding!)
 
   Minimum and maximum length of `vX` depend on radix, as defined by the spec.
 
@@ -224,7 +218,7 @@ defmodule FPE.FF3_1 do
       iex> FPE.FF3_1.decrypt!(ctx, tweak2, ciphertext2)
       plaintext
 
-  Custom alphabets can be used:
+  [Custom alphabets](`FPE.FFX.Codec.Custom`) can be used (case sensitive):
 
       iex> # Uppercase base 36, AES-256
       iex> key = :crypto.strong_rand_bytes(32)
@@ -288,55 +282,19 @@ defmodule FPE.FF3_1 do
     end
   end
 
-  defp validate_ctx_opts(opts) do
+  defp validate_radix_or_alphabet(radix_or_alphabet) do
     alias FPE.FFX.Codec
 
-    case opts do
-      _proper_list when length(opts) >= 0 ->
-        codec_input_opts = %Codec.InputOpts{}
-        validate_ctx_opts_recur(opts, codec_input_opts)
-
-      _improper_list when is_list(opts) ->
-        {:error, {:opts_is_improper_list, opts}}
-
-      _not_a_list ->
-        {:error, {:opts_not_a_list, opts}}
-    end
-  end
-
-  defp validate_ctx_opts_recur([{:case_insensitive, val} | next], codec_input_opts)
-       when is_boolean(val) do
-    codec_input_opts = %{codec_input_opts | case_insensitive: val}
-    validate_ctx_opts_recur(next, codec_input_opts)
-  end
-
-  defp validate_ctx_opts_recur([{:norm_insensitive, val} | next], codec_input_opts)
-       when is_boolean(val) do
-    codec_input_opts = %{codec_input_opts | norm_insensitive: val}
-    validate_ctx_opts_recur(next, codec_input_opts)
-  end
-
-  defp validate_ctx_opts_recur([invalid_opt | _next], _codec_input_opts) do
-    {:error, {:invalid_opt, invalid_opt}}
-  end
-
-  defp validate_ctx_opts_recur([], codec_input_opts) do
-    {:ok, codec_input_opts}
-  end
-
-  defp validate_radix_or_alphabet(radix_or_alphabet, codec_input_opts) do
-    alias FPE.FFX.Codec
-
-    case Codec.Builtin.maybe_new(radix_or_alphabet, codec_input_opts) do
+    case Codec.Builtin.maybe_new(radix_or_alphabet) do
       {:ok, codec} ->
         {:ok, codec}
 
       nil ->
-        validate_custom_alphabet(radix_or_alphabet, codec_input_opts)
+        validate_custom_alphabet(radix_or_alphabet)
     end
   end
 
-  defp validate_custom_alphabet(radix, _codec_input_opts) when is_integer(radix) do
+  defp validate_custom_alphabet(radix) when is_integer(radix) do
     case radix < @min_radix do
       true ->
         {:error, {:invalid_radix, radix, :less_than_minimum, @min_radix}}
@@ -347,7 +305,7 @@ defmodule FPE.FF3_1 do
     end
   end
 
-  defp validate_custom_alphabet(alphabet, codec_input_opts) when is_binary(alphabet) do
+  defp validate_custom_alphabet(alphabet) when is_binary(alphabet) do
     alias FPE.FFX.Codec
 
     ordered_graphemes = String.graphemes(alphabet)
@@ -360,7 +318,7 @@ defmodule FPE.FF3_1 do
         {:error, {:alphabet_exceeds_max_radix, @max_radix}}
 
       nr_of_symbols == nr_of_unique_symbols ->
-        Codec.Custom.new(ordered_graphemes, codec_input_opts)
+        Codec.Custom.new(ordered_graphemes)
 
       nr_of_symbols > nr_of_unique_symbols ->
         repeated_symbols = ordered_graphemes -- unique_graphemes
@@ -397,11 +355,10 @@ defmodule FPE.FF3_1 do
 
   defp do_encrypt_or_decrypt(ctx, t, vX, enc) do
     with :ok <- validate_enc_or_dec_input_len(ctx, vX),
-         {:ok, vX} <- validate_enc_or_dec_input(ctx, vX),
-         :ok <- validate_tweak(t) do
-      fpe_ff3_1_ctx(k: k, codec: codec, iform_ctx: iform_ctx) = ctx
-      {even_m, odd_m, vA, vB, even_vW, odd_vW} = setup_encrypt_or_decrypt_vars!(codec, t, vX)
-
+         :ok <- validate_tweak(t),
+         fpe_ff3_1_ctx(k: k, codec: codec, iform_ctx: iform_ctx) = ctx,
+         {:ok, even_m, odd_m, vA, vB, even_vW, odd_vW} <-
+           setup_encrypt_or_decrypt_vars(codec, t, vX) do
       vY =
         case enc do
           true ->
@@ -452,19 +409,6 @@ defmodule FPE.FF3_1 do
     end
   end
 
-  defp validate_enc_or_dec_input(ctx, vX) do
-    alias FPE.FFX.Codec
-    fpe_ff3_1_ctx(codec: codec) = ctx
-
-    case Codec.prepare_input_string(codec, vX) do
-      {:ok, prepared_vX} ->
-        {:ok, prepared_vX}
-
-      {:error, reason} ->
-        {:error, {:invalid_input, reason, vX}}
-    end
-  end
-
   defp validate_tweak(tweak) do
     case tweak do
       valid_size when bit_size(valid_size) == 56 ->
@@ -478,9 +422,10 @@ defmodule FPE.FF3_1 do
     end
   end
 
-  defp setup_encrypt_or_decrypt_vars!(codec, t, vX) do
+  defp setup_encrypt_or_decrypt_vars(codec, t, vX) do
     alias FFX.Codec
     alias FFX.IntermediateForm
+
     n = String.length(vX)
 
     # 1. Let u = ceil(n/2); v = n - u
@@ -489,20 +434,24 @@ defmodule FPE.FF3_1 do
 
     # 2. Let A = X[1..u]; B = X[u + 1..n]
     {vA_str, vB_str} = String.split_at(vX, u)
-    vA = Codec.string_to_int(codec, vA_str)
-    vB = Codec.string_to_int(codec, vB_str)
 
-    # 3. Let T_L = T[0..27] || O⁴ and T_R = T[32..55] || T[28..31] || O⁴
-    <<t_left::bits-size(28), t_middle::bits-size(4), t_right::bits-size(24)>> = t
-    <<vT_L::bytes>> = <<t_left::bits, 0::4>>
-    <<vT_R::bytes>> = <<t_right::bits, t_middle::bits, 0::4>>
+    with {:ok, vA} <- Codec.string_to_int(codec, vA_str),
+         {:ok, vB} <- Codec.string_to_int(codec, vB_str) do
+      # 3. Let T_L = T[0..27] || O⁴ and T_R = T[32..55] || T[28..31] || O⁴
+      <<t_left::bits-size(28), t_middle::bits-size(4), t_right::bits-size(24)>> = t
+      <<vT_L::bytes>> = <<t_left::bits, 0::4>>
+      <<vT_R::bytes>> = <<t_right::bits, t_middle::bits, 0::4>>
 
-    # 4.i. If i is even, let m = u and W = T_R, else let m = v and W = T_L
-    even_m = u
-    odd_m = v
-    even_vW = vT_R
-    odd_vW = vT_L
-    {even_m, odd_m, vA, vB, even_vW, odd_vW}
+      # 4.i. If i is even, let m = u and W = T_R, else let m = v and W = T_L
+      even_m = u
+      odd_m = v
+      even_vW = vT_R
+      odd_vW = vT_L
+      {:ok, even_m, odd_m, vA, vB, even_vW, odd_vW}
+    else
+      {:error, reason} ->
+        {:error, {:invalid_input, vX, reason}}
+    end
   end
 
   defp do_encrypt_rounds!(i, k, codec, iform_ctx, m, other_m, vA, vB, vW, other_vW) when i < 8 do
