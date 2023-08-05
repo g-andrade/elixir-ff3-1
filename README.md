@@ -1,4 +1,4 @@
-# FPE: Format-preserving encryption for Elixir (FF3-1)
+# FF3_1: Format-preserving encryption for Elixir
 
 Work in progress to provide format-preserving encryption through the FF3-1 algorithm,
 [a revised version of FF3](https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-38Gr1-draft.pdf)
@@ -13,9 +13,9 @@ I wrote this for the kicks - it is not a serious project.
     >>
     tweak = <<0xCF, 0x29, 0xDA, 0x1E, 0x18, 0xD9, 0x70>>
 
-    {:ok, ctx} = FPE.FF3_1.new_ctx(key, 10)
-    assert "4716569208" == FPE.FF3_1.encrypt!(ctx, tweak, "6520935496")
-    assert "6520935496" == FPE.FF3_1.decrypt!(ctx, tweak, "4716569208")
+    {:ok, ctx} = FF3_1.new_ctx(key, 10)
+    assert "4716569208" == FF3_1.encrypt!(ctx, tweak, "6520935496")
+    assert "6520935496" == FF3_1.decrypt!(ctx, tweak, "4716569208")
 ```
 
 ## Installation
@@ -26,7 +26,7 @@ by adding `fpe` to your list of dependencies in `mix.exs`:
 ```elixir
 def deps do
   [
-    {:fpe, "~> 0.1.0"}
+    {:ff3_1, "~> 0.1.0"}
   ]
 end
 ```

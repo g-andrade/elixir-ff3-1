@@ -1,4 +1,5 @@
-defmodule FPE.FFX.IntermediateForm do
+# credo:disable-for-this-file Credo.Check.Readability.ModuleNames
+defmodule FF3_1.FFX.IntermediateForm do
   @moduledoc false
   import Bitwise
 
@@ -6,13 +7,13 @@ defmodule FPE.FFX.IntermediateForm do
   defstruct [:radix, :mask, :bits_per_symbol, :perfect_fit]
 
   @opaque ctx :: %__MODULE__{
-            radix: FPE.FFX.radix(),
+            radix: FF3_1.FFX.radix(),
             mask: pos_integer,
             bits_per_symbol: pos_integer,
             perfect_fit: boolean
           }
 
-  @spec new_ctx(FPE.FFX.radix()) :: ctx()
+  @spec new_ctx(FF3_1.FFX.radix()) :: ctx()
   def new_ctx(radix) do
     precise_bits_per_symbol = :math.log2(radix)
     bits_per_symbol = ceil(precise_bits_per_symbol)

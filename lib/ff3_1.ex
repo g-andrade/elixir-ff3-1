@@ -1,6 +1,6 @@
 # credo:disable-for-this-file Credo.Check.Readability.ModuleNames
 # credo:disable-for-this-file Credo.Check.Readability.VariableNames
-defmodule FPE.FF3_1 do
+defmodule FF3_1 do
   @moduledoc """
   An implementation of the NIST-approved FF3-1 algorithm in Elixir.
 
@@ -21,7 +21,7 @@ defmodule FPE.FF3_1 do
   key and radix.
 
       iex> key = :crypto.strong_rand_bytes(32)
-      iex> {:ok, _ctx} = FPE.FF3_1.new_ctx(key, _radix = 10)
+      iex> {:ok, _ctx} = FF3_1.new_ctx(key, _radix = 10)
 
   Keys can be 32, 24 or 16 bytes long, and AES-256, AES-192 or AES-128 will be
   used, respectively.
@@ -38,11 +38,11 @@ defmodule FPE.FF3_1 do
   A 7-byte `tweak` is required, which we'll handwave for now.
 
       iex> key = :crypto.strong_rand_bytes(32)
-      iex> {:ok, ctx} = FPE.FF3_1.new_ctx(key, _radix = 10)
+      iex> {:ok, ctx} = FF3_1.new_ctx(key, _radix = 10)
       iex> tweak = <<0::56>>
       iex> plaintext = "34436524"
-      iex> ciphertext = FPE.FF3_1.encrypt!(ctx, tweak, plaintext)
-      iex> ^plaintext = FPE.FF3_1.decrypt!(ctx, tweak, ciphertext)
+      iex> ciphertext = FF3_1.encrypt!(ctx, tweak, plaintext)
+      iex> ^plaintext = FF3_1.decrypt!(ctx, tweak, ciphertext)
 
   ## Leading zeroes
 
@@ -50,12 +50,12 @@ defmodule FPE.FF3_1 do
   of equal length to their respective plaintexts, and vice-versa.
 
       iex> key = :crypto.strong_rand_bytes(32)
-      iex> {:ok, ctx} = FPE.FF3_1.new_ctx(key, _radix = 10)
+      iex> {:ok, ctx} = FF3_1.new_ctx(key, _radix = 10)
       iex> tweak = <<0::56>>
       iex> plaintext1 =   "34436524"
       iex> plaintext2 = "0034436524"
-      iex> ciphertext1 = FPE.FF3_1.encrypt!(ctx, tweak, plaintext1)
-      iex> ciphertext2 = FPE.FF3_1.encrypt!(ctx, tweak, plaintext2)
+      iex> ciphertext1 = FF3_1.encrypt!(ctx, tweak, plaintext1)
+      iex> ciphertext2 = FF3_1.encrypt!(ctx, tweak, plaintext2)
       iex> false = (ciphertext2 == ciphertext1)
       iex> true = (String.length(ciphertext1) == String.length(plaintext1))
       iex> true = (String.length(ciphertext2) == String.length(plaintext2))
@@ -66,16 +66,16 @@ defmodule FPE.FF3_1 do
   any given `ctx`; these limits depend on the radix.
 
       iex> key = :crypto.strong_rand_bytes(32)
-      iex> {:ok, ctx} = FPE.FF3_1.new_ctx(key, _radix = 10)
-      iex> %{minlen: 6, maxlen: 56} = FPE.FF3_1.domain_constraints(ctx)
+      iex> {:ok, ctx} = FF3_1.new_ctx(key, _radix = 10)
+      iex> %{minlen: 6, maxlen: 56} = FF3_1.domain_constraints(ctx)
 
       iex> key = :crypto.strong_rand_bytes(32)
-      iex> {:ok, ctx} = FPE.FF3_1.new_ctx(key, _radix = 16)
-      iex> %{minlen: 5, maxlen: 48} = FPE.FF3_1.domain_constraints(ctx)
+      iex> {:ok, ctx} = FF3_1.new_ctx(key, _radix = 16)
+      iex> %{minlen: 5, maxlen: 48} = FF3_1.domain_constraints(ctx)
 
       iex> key = :crypto.strong_rand_bytes(32)
-      iex> {:ok, ctx} = FPE.FF3_1.new_ctx(key, _radix = 2)
-      iex> %{minlen: 20, maxlen: 192} = FPE.FF3_1.domain_constraints(ctx)
+      iex> {:ok, ctx} = FF3_1.new_ctx(key, _radix = 2)
+      iex> %{minlen: 20, maxlen: 192} = FF3_1.domain_constraints(ctx)
 
   The reasoning for `minlen`, from my layman's understanding, is that when
   working with smaller radixes, numerical strings below a particular length
@@ -94,12 +94,12 @@ defmodule FPE.FF3_1 do
   vary with each instance of the encryption whenever possible.
 
       iex> key = :crypto.strong_rand_bytes(32)
-      iex> {:ok, ctx} = FPE.FF3_1.new_ctx(key, _radix = 10)
+      iex> {:ok, ctx} = FF3_1.new_ctx(key, _radix = 10)
       iex> plaintext= "135522432"
       iex> tweak1 = <<"dev.env">>
       iex> tweak2 = <<"prodenv">>
-      iex> ciphertext1 = FPE.FF3_1.encrypt!(ctx, tweak1, plaintext)
-      iex> ciphertext2 = FPE.FF3_1.encrypt!(ctx, tweak2, plaintext)
+      iex> ciphertext1 = FF3_1.encrypt!(ctx, tweak1, plaintext)
+      iex> ciphertext2 = FF3_1.encrypt!(ctx, tweak2, plaintext)
       iex> ciphertext2 != ciphertext1
 
   For an explanation and further examples, refer to Appendix C (page 20) of
@@ -116,29 +116,29 @@ defmodule FPE.FF3_1 do
   #### Base 8
 
       iex> key = :crypto.strong_rand_bytes(32)
-      iex> {:ok, ctx} = FPE.FF3_1.new_ctx(key, _radix = 8)
+      iex> {:ok, ctx} = FF3_1.new_ctx(key, _radix = 8)
       iex> tweak = <<0::56>>
       iex> plaintext = "34436524"
-      iex> ciphertext = FPE.FF3_1.encrypt!(ctx, tweak, plaintext)
-      iex> ^plaintext = FPE.FF3_1.decrypt!(ctx, tweak, ciphertext)
+      iex> ciphertext = FF3_1.encrypt!(ctx, tweak, plaintext)
+      iex> ^plaintext = FF3_1.decrypt!(ctx, tweak, ciphertext)
 
   #### Base 16
 
       iex> key = :crypto.strong_rand_bytes(32)
-      iex> {:ok, ctx} = FPE.FF3_1.new_ctx(key, _radix = 16)
+      iex> {:ok, ctx} = FF3_1.new_ctx(key, _radix = 16)
       iex> tweak = <<0::56>>
       iex> plaintext = "AFD093902C"
-      iex> ciphertext = FPE.FF3_1.encrypt!(ctx, tweak, plaintext)
-      iex> ^plaintext = FPE.FF3_1.decrypt!(ctx, tweak, ciphertext)
+      iex> ciphertext = FF3_1.encrypt!(ctx, tweak, plaintext)
+      iex> ^plaintext = FF3_1.decrypt!(ctx, tweak, ciphertext)
 
   #### Base 36
 
       iex> key = :crypto.strong_rand_bytes(32)
-      iex> {:ok, ctx} = FPE.FF3_1.new_ctx(key, _radix = 36)
+      iex> {:ok, ctx} = FF3_1.new_ctx(key, _radix = 36)
       iex> tweak = <<0::56>>
       iex> plaintext = "ZZZAFD093902CBZDE"
-      iex> ciphertext = FPE.FF3_1.encrypt!(ctx, tweak, plaintext)
-      iex> ^plaintext = FPE.FF3_1.decrypt!(ctx, tweak, ciphertext)
+      iex> ciphertext = FF3_1.encrypt!(ctx, tweak, plaintext)
+      iex> ^plaintext = FF3_1.decrypt!(ctx, tweak, ciphertext)
 
   ### Built-in alphabet: case insensitivity to input
 
@@ -147,11 +147,11 @@ defmodule FPE.FF3_1 do
 
       iex> key = :crypto.strong_rand_bytes(32)
       iex> radix = 16
-      iex> {:ok, ctx} = FPE.FF3_1.new_ctx(key, radix)
+      iex> {:ok, ctx} = FF3_1.new_ctx(key, radix)
       iex> tweak = <<0::56>>
       iex> input = "aBcDDFF01234eeEee"
-      iex> _ciphertext = FPE.FF3_1.encrypt!(ctx, tweak, input)
-      iex> _plaintext = FPE.FF3_1.decrypt!(ctx, tweak, input)
+      iex> _ciphertext = FF3_1.encrypt!(ctx, tweak, input)
+      iex> _plaintext = FF3_1.decrypt!(ctx, tweak, input)
 
   ### Builtin-alphabet: lower case
 
@@ -161,11 +161,11 @@ defmodule FPE.FF3_1 do
 
       iex> key = :crypto.strong_rand_bytes(32)
       iex> alphabet = "0123456789abcdef" # radix 16
-      iex> {:ok, ctx} = FPE.FF3_1.new_ctx(key, alphabet)
+      iex> {:ok, ctx} = FF3_1.new_ctx(key, alphabet)
       iex> tweak = <<0::56>>
       iex> input = "aBcDDFF01234eeEee"
-      iex> ciphertext = FPE.FF3_1.encrypt!(ctx, tweak, input)
-      iex> plaintext = FPE.FF3_1.decrypt!(ctx, tweak, input)
+      iex> ciphertext = FF3_1.encrypt!(ctx, tweak, input)
+      iex> plaintext = FF3_1.decrypt!(ctx, tweak, input)
       iex> ^ciphertext = String.downcase(ciphertext)
       iex> ^plaintext = String.downcase(plaintext)
 
@@ -176,44 +176,44 @@ defmodule FPE.FF3_1 do
   alphabets can be used.
 
   Note that custom alphabets are **case sensitive** but norm insensitive.
-  The reasoning behind this can be found under `FPE.FFX.Codec.Custom`.
+  The reasoning behind this can be found under `FF3_1.FFX.Codec.Custom`.
 
   #### Base 20 with custom alphabet
 
       iex> key = :crypto.strong_rand_bytes(32)
       iex> alphabet = "abcdefghij0123456789"
-      iex> {:ok, ctx} = FPE.FF3_1.new_ctx(key, alphabet)
+      iex> {:ok, ctx} = FF3_1.new_ctx(key, alphabet)
       iex> tweak = <<0::56>>
       iex> plaintext = "34534abcd32235"
-      iex> ciphertext = FPE.FF3_1.encrypt!(ctx, tweak, plaintext)
-      iex> ^plaintext = FPE.FF3_1.decrypt!(ctx, tweak, ciphertext)
+      iex> ciphertext = FF3_1.encrypt!(ctx, tweak, plaintext)
+      iex> ^plaintext = FF3_1.decrypt!(ctx, tweak, ciphertext)
 
   #### Base 40 with custom alphabet
 
       iex> key = :crypto.strong_rand_bytes(32)
       iex> alphabet = "0123456789abcdefghijklmnopqrstuvwxyz@#/*"
-      iex> {:ok, ctx} = FPE.FF3_1.new_ctx(key, alphabet)
+      iex> {:ok, ctx} = FF3_1.new_ctx(key, alphabet)
       iex> tweak = <<0::56>>
       iex> plaintext = "34534ab@@@@@/cd32235"
-      iex> ciphertext = FPE.FF3_1.encrypt!(ctx, tweak, plaintext)
-      iex> ^plaintext = FPE.FF3_1.decrypt!(ctx, tweak, ciphertext)
+      iex> ciphertext = FF3_1.encrypt!(ctx, tweak, plaintext)
+      iex> ^plaintext = FF3_1.decrypt!(ctx, tweak, ciphertext)
 
   #### Unicode support
 
       iex> key = :crypto.strong_rand_bytes(32)
       iex> alphabet = "🌕🌖🌗🌘🌑🌒🌓🌔"
-      iex> {:ok, ctx} = FPE.FF3_1.new_ctx(key, alphabet)
+      iex> {:ok, ctx} = FF3_1.new_ctx(key, alphabet)
       iex> tweak = <<0::56>>
       iex> plaintext = "🌖🌕🌘🌑🌓🌗🌔🌒🌒🌒🌒"
-      iex> ciphertext = FPE.FF3_1.encrypt!(ctx, tweak, plaintext)
-      iex> ^plaintext = FPE.FF3_1.decrypt!(ctx, tweak, ciphertext)
+      iex> ciphertext = FF3_1.encrypt!(ctx, tweak, plaintext)
+      iex> ^plaintext = FF3_1.decrypt!(ctx, tweak, ciphertext)
 
   """
 
   import Bitwise
   require Record
 
-  alias FPE.FFX
+  alias FF3_1.FFX
 
   ## API Types
 
@@ -303,7 +303,7 @@ defmodule FPE.FF3_1 do
   end
 
   @doc """
-  Returns a `ctx`'s `FPE.FFX.Codec`, should you wish to manipulate
+  Returns a `ctx`'s `FF3_1.FFX.Codec`, should you wish to manipulate
   or prepare encryption and decryption inputs.
   """
   @spec codec(ctx) :: FFX.codec()
@@ -333,7 +333,7 @@ defmodule FPE.FF3_1 do
   end
 
   defp validate_radix_or_alphabet(radix_or_alphabet) do
-    alias FPE.FFX.Codec
+    alias FF3_1.FFX.Codec
 
     case Codec.Builtin.maybe_new(radix_or_alphabet) do
       {:ok, codec} ->
@@ -356,7 +356,7 @@ defmodule FPE.FF3_1 do
   end
 
   defp validate_custom_alphabet(alphabet) when is_binary(alphabet) do
-    alias FPE.FFX.Codec
+    alias FF3_1.FFX.Codec
 
     ordered_graphemes = String.graphemes(alphabet)
     unique_graphemes = Enum.uniq(ordered_graphemes)
@@ -614,7 +614,7 @@ defmodule FPE.FF3_1 do
 
   # credo:disable-for-next-line Credo.Check.Refactor.FunctionArity
   defp do_decrypt_rounds!(-1 = _i, _k, codec, _iform_ctx, m, other_m, vA, vB, _vW, _other_vW) do
-    alias FPE.FFX.Codec
+    alias FF3_1.FFX.Codec
     ## 5. Return A || B
     vA_str = Codec.int_to_padded_string(codec, other_m, vA)
     vB_str = Codec.int_to_padded_string(codec, m, vB)

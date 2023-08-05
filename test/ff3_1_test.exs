@@ -1,6 +1,6 @@
 defmodule FpeTest do
   use ExUnit.Case, async: true
-  doctest FPE.FF3_1
+  doctest FF3_1
 
   require Logger
 
@@ -921,28 +921,28 @@ defmodule FpeTest do
 
   test "builtin alphabet is case insensitive" do
     key = :crypto.strong_rand_bytes(32)
-    {:ok, ctx} = FPE.FF3_1.new_ctx(key, _radix = 16)
+    {:ok, ctx} = FF3_1.new_ctx(key, _radix = 16)
     tweak = :crypto.strong_rand_bytes(7)
 
     plaintext = "aabbcd1512f"
-    ciphertext = FPE.FF3_1.encrypt!(ctx, tweak, plaintext)
+    ciphertext = FF3_1.encrypt!(ctx, tweak, plaintext)
 
     Enum.each(
       1..20,
       fn _attempt_nr ->
         modified_plaintext = randomly_change_case(plaintext)
-        assert FPE.FF3_1.encrypt!(ctx, tweak, modified_plaintext) == ciphertext
+        assert FF3_1.encrypt!(ctx, tweak, modified_plaintext) == ciphertext
       end
     )
 
     ciphertext = "aabbcd1512f"
-    plaintext = FPE.FF3_1.decrypt!(ctx, tweak, ciphertext)
+    plaintext = FF3_1.decrypt!(ctx, tweak, ciphertext)
 
     Enum.each(
       1..20,
       fn _attempt_nr ->
         modified_ciphertext = randomly_change_case(ciphertext)
-        assert FPE.FF3_1.decrypt!(ctx, tweak, modified_ciphertext) == plaintext
+        assert FF3_1.decrypt!(ctx, tweak, modified_ciphertext) == plaintext
       end
     )
   end
@@ -950,11 +950,11 @@ defmodule FpeTest do
   test "custom alphabet is case sensitive" do
     key = :crypto.strong_rand_bytes(32)
     alphabet = "abcdéfgHijk🪩lMnoPqRsTuV"
-    {:ok, ctx} = FPE.FF3_1.new_ctx(key, alphabet)
+    {:ok, ctx} = FF3_1.new_ctx(key, alphabet)
     tweak = :crypto.strong_rand_bytes(7)
 
     plaintext = "b🪩cdéfgHilMnoPqRsTuV"
-    ciphertext = FPE.FF3_1.encrypt!(ctx, tweak, plaintext)
+    ciphertext = FF3_1.encrypt!(ctx, tweak, plaintext)
 
     Enum.each(
       1..20,
@@ -962,15 +962,15 @@ defmodule FpeTest do
         modified_plaintext = randomly_change_case(plaintext)
 
         if modified_plaintext != plaintext do
-          assert catch_error(FPE.FF3_1.encrypt!(ctx, tweak, modified_plaintext))
+          assert catch_error(FF3_1.encrypt!(ctx, tweak, modified_plaintext))
         else
-          assert FPE.FF3_1.encrypt!(ctx, tweak, modified_plaintext) == ciphertext
+          assert FF3_1.encrypt!(ctx, tweak, modified_plaintext) == ciphertext
         end
       end
     )
 
     ciphertext = "b🪩cdéfgHilMnoPqRsTuV"
-    plaintext = FPE.FF3_1.encrypt!(ctx, tweak, ciphertext)
+    plaintext = FF3_1.encrypt!(ctx, tweak, ciphertext)
 
     Enum.each(
       1..20,
@@ -978,9 +978,9 @@ defmodule FpeTest do
         modified_ciphertext = randomly_change_case(ciphertext)
 
         if modified_ciphertext != ciphertext do
-          assert catch_error(FPE.FF3_1.decrypt!(ctx, tweak, modified_ciphertext))
+          assert catch_error(FF3_1.decrypt!(ctx, tweak, modified_ciphertext))
         else
-          assert FPE.FF3_1.decrypt!(ctx, tweak, modified_ciphertext) == plaintext
+          assert FF3_1.decrypt!(ctx, tweak, modified_ciphertext) == plaintext
         end
       end
     )
@@ -989,28 +989,28 @@ defmodule FpeTest do
   test "custom alphabet is norm insensitive" do
     key = :crypto.strong_rand_bytes(32)
     alphabet = "abcdéfgHijk🪩lMnoP#{@letter_a_with_ring_above}qRsTuV"
-    {:ok, ctx} = FPE.FF3_1.new_ctx(key, alphabet)
+    {:ok, ctx} = FF3_1.new_ctx(key, alphabet)
     tweak = :crypto.strong_rand_bytes(7)
 
     plaintext = "b🪩cd#{@letter_a_with_ring_above}éfgHilMnoPqRsTuV"
-    ciphertext = FPE.FF3_1.encrypt!(ctx, tweak, plaintext)
+    ciphertext = FF3_1.encrypt!(ctx, tweak, plaintext)
 
     Enum.each(
       1..20,
       fn _attempt_nr ->
         modified_plaintext = randomly_change_norm(plaintext)
-        assert FPE.FF3_1.encrypt!(ctx, tweak, modified_plaintext) == ciphertext
+        assert FF3_1.encrypt!(ctx, tweak, modified_plaintext) == ciphertext
       end
     )
 
     ciphertext = "b🪩cd#{@letter_a_with_ring_above}éfgHilMnoPqRsTuV"
-    plaintext = FPE.FF3_1.decrypt!(ctx, tweak, ciphertext)
+    plaintext = FF3_1.decrypt!(ctx, tweak, ciphertext)
 
     Enum.each(
       1..20,
       fn _attempt_nr ->
         modified_ciphertext = randomly_change_norm(ciphertext)
-        assert FPE.FF3_1.decrypt!(ctx, tweak, modified_ciphertext) == plaintext
+        assert FF3_1.decrypt!(ctx, tweak, modified_ciphertext) == plaintext
       end
     )
   end
@@ -1018,9 +1018,9 @@ defmodule FpeTest do
   ## Helpers
 
   defp check_test_vector(key, tweak, plaintext, ciphertext, radix_or_alphabet) do
-    {:ok, ctx} = FPE.FF3_1.new_ctx(key, radix_or_alphabet)
-    assert FPE.FF3_1.encrypt!(ctx, tweak, plaintext) == ciphertext
-    assert FPE.FF3_1.decrypt!(ctx, tweak, ciphertext) == plaintext
+    {:ok, ctx} = FF3_1.new_ctx(key, radix_or_alphabet)
+    assert FF3_1.encrypt!(ctx, tweak, plaintext) == ciphertext
+    assert FF3_1.decrypt!(ctx, tweak, ciphertext) == plaintext
   end
 
   defp randomly_change_case(string) do

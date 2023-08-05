@@ -1,13 +1,14 @@
-defmodule FPE.FFX.Codec.Custom do
+# credo:disable-for-this-file Credo.Check.Readability.ModuleNames
+defmodule FF3_1.FFX.Codec.Custom do
   @moduledoc """
-  An implementation of `FPE.FFX.Codec` that handles alphabets other than the
-  ones supported by `FPE.FFX.Codec.Builtin`.
+  An implementation of `FF3_1.FFX.Codec` that handles alphabets other than the
+  ones supported by `FF3_1.FFX.Codec.Builtin`.
 
   Each [grapheme
   cluster](https://hexdocs.pm/elixir/1.15/String.html#module-grapheme-clusters)
   represents a visual symbol.
 
-  It's **case sensitive** (unlike `FPE.FFX.Codec.Builtin`), but [norm
+  It's **case sensitive** (unlike `FF3_1.FFX.Codec.Builtin`), but [norm
   insensitive](https://hexdocs.pm/elixir/1.15/String.html#normalize/2). This is
   because:
   * There are
@@ -29,7 +30,7 @@ defmodule FPE.FFX.Codec.Custom do
   and decryption functions.
   """
 
-  alias FPE.FFX.Codec
+  alias FF3_1.FFX.Codec
 
   @enforce_keys [
     :symbol_to_amount,
@@ -105,7 +106,7 @@ defmodule FPE.FFX.Codec.Custom do
 
   defimpl Codec, for: __MODULE__ do
     @moduledoc false
-    alias FPE.FFX.Codec.Custom
+    alias FF3_1.FFX.Codec.Custom
 
     ## API
 

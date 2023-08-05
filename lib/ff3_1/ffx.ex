@@ -1,5 +1,6 @@
+# credo:disable-for-this-file Credo.Check.Readability.ModuleNames
 # credo:disable-for-this-file Credo.Check.Readability.VariableNames
-defmodule FPE.FFX do
+defmodule FF3_1.FFX do
   # https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-38Gr1-draft.pdf
 
   ## Types
@@ -8,7 +9,7 @@ defmodule FPE.FFX do
   @type radix :: pos_integer
   @type numerical_string :: <<_::8, _::_*8>>
   @type byte_string :: <<_::8, _::_*8>>
-  @type codec :: FPE.FFX.Codec.t()
+  @type codec :: FF3_1.FFX.Codec.t()
 
   ## Internal API
 
@@ -37,7 +38,7 @@ defmodule FPE.FFX do
     to and from the numerical strings that represent them, given
     a particular alphabet or radix.
     """
-    alias FPE.FFX
+    alias FF3_1.FFX
 
     @doc false
     @spec radix(t()) :: FFX.radix()
