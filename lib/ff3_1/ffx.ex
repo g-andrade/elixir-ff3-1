@@ -4,6 +4,7 @@ defmodule FF3_1.FFX do
   @moduledoc """
   FFX reference functions required to manipulate byte strings.
   """
+
   # https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-38Gr1-draft.pdf
 
   ## Types
