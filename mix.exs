@@ -29,9 +29,7 @@ defmodule FF3_1.MixProject do
   def application do
     [
       extra_applications: [
-        :crypto,
-        # TODO review
-        :logger
+        :crypto
       ]
     ]
   end
