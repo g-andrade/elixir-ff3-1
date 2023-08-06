@@ -76,21 +76,21 @@ defmodule FF3_1 do
 
       iex> key = :crypto.strong_rand_bytes(32)
       iex> {:ok, ctx} = FF3_1.new_ctx(key, _radix = 10)
-      iex> %{minlen: 6, maxlen: 56} = FF3_1.domain_constraints(ctx)
+      iex> %{min_length: 6, max_length: 56} = FF3_1.constraints(ctx)
 
       iex> key = :crypto.strong_rand_bytes(32)
       iex> {:ok, ctx} = FF3_1.new_ctx(key, _radix = 16)
-      iex> %{minlen: 5, maxlen: 48} = FF3_1.domain_constraints(ctx)
+      iex> %{min_length: 5, max_length: 48} = FF3_1.constraints(ctx)
 
       iex> key = :crypto.strong_rand_bytes(32)
       iex> {:ok, ctx} = FF3_1.new_ctx(key, _radix = 2)
-      iex> %{minlen: 20, maxlen: 192} = FF3_1.domain_constraints(ctx)
+      iex> %{min_length: 20, max_length: 192} = FF3_1.constraints(ctx)
 
-  `minlen` is required because, for any given radix, short enough numerical
+  `min_length` is required because, for any given radix, short enough numerical
   strings encompass too few possible values, rending encryption ineffective
   under adversarial conditions. In other words: their domain is too small.
 
-  `maxlen` may be there - pure layman speculation - as an incentive for people
+  `max_length` may be there - pure layman speculation - as an incentive for people
   to use regular crypto when working with large enough numbers. I didn't find
   the exact reasoning for it.
 
@@ -240,8 +240,8 @@ defmodule FF3_1 do
     :k,
     :codec,
     :iform_ctx,
-    :minlen,
-    :maxlen
+    :min_length,
+    :max_length
   ])
 
   @opaque ctx ::
@@ -249,8 +249,8 @@ defmodule FF3_1 do
               k: FFX.key(),
               codec: FFX.Codec.t(),
               iform_ctx: FFX.IntermediateForm.ctx(),
-              minlen: pos_integer,
-              maxlen: pos_integer
+              min_length: pos_integer,
+              max_length: pos_integer
             )
 
   ## API
@@ -268,15 +268,15 @@ defmodule FF3_1 do
          {:ok, codec} <- validate_radix_or_alphabet(radix_or_alphabet),
          radix = Codec.radix(codec),
          iform_ctx = IntermediateForm.new_ctx(radix),
-         {:ok, minlen} <- calculate_minlen(radix),
-         {:ok, maxlen} <- calculate_maxlen(minlen, radix) do
+         {:ok, min_length} <- calculate_min_length(radix),
+         {:ok, max_length} <- calculate_max_length(min_length, radix) do
       {:ok,
        fpe_ff3_1_ctx(
          k: k,
          codec: codec,
          iform_ctx: iform_ctx,
-         minlen: minlen,
-         maxlen: maxlen
+         min_length: min_length,
+         max_length: max_length
        )}
     else
       {:error, _} = error ->
@@ -285,46 +285,46 @@ defmodule FF3_1 do
   end
 
   @doc """
-  Encrypts plaintext numerical string `vX` in base `radix` using `ctx` and 7-byte `tweak`.
+  Encrypts numerical string `plaintext` using `ctx` and 7-byte `tweak`.
 
-  Returns encrypted numerical string `vY` in base `radix` and **of length equal to `vX`**.
+  Returns numerical string `ciphertext` of length equal to `plaintext`.
 
-  Minimum and maximum length of `vX` depend on radix, as defined by the spec.
+  Minimum and maximum length of `plaintext` depend on radix (see `constraints/1`).
   """
-  @spec encrypt!(ctx, tweak, vX) :: vY
-        when vX: String.t(), vY: String.t()
-  def encrypt!(ctx, t, vX) do
-    {:ok, vY} = do_encrypt_or_decrypt(ctx, t, vX, _enc = true)
-    vY
+  @spec encrypt!(ctx, tweak, plaintext) :: ciphertext
+        when plaintext: String.t(), ciphertext: String.t()
+  def encrypt!(ctx, t, plaintext) do
+    {:ok, ciphertext} = do_encrypt_or_decrypt(ctx, t, plaintext, _enc = true)
+    ciphertext
   end
 
   @doc """
-  Decrypts encrypted numerical string `vX` in base `radix` using `ctx` and 7-byte `tweak`.
+  Decrypts numerical string `ciphertext` using `ctx` and 7-byte `tweak`.
 
-  Returns plaintext numerical string `vY` in base `radix` and **of length equal to `vX`**.
+  Returns numerical string `plaintext` of length equal to `ciphertext`**.
 
-  Minimum and maximum length of `vX` depend on radix, as defined by the spec.
+  Minimum and maximum length of `ciphertext` depend on radix (see `constraints/1`).
   """
-  @spec decrypt!(ctx, t, vX) :: vY
-        when t: tweak, vX: String.t(), vY: String.t()
-  def decrypt!(ctx, t, vX) do
-    {:ok, vY} = do_encrypt_or_decrypt(ctx, t, vX, _enc = false)
-    vY
+  @spec decrypt!(ctx, t, ciphertext) :: plaintext
+        when t: tweak, ciphertext: String.t(), plaintext: String.t()
+  def decrypt!(ctx, t, ciphertext) do
+    {:ok, plaintext} = do_encrypt_or_decrypt(ctx, t, ciphertext, _enc = false)
+    plaintext
   end
 
   @doc """
-  Returns a `ctx`'s `FF3_1.FFX.Codec`, should you wish to manipulate
-  or prepare encryption and decryption inputs.
+  Returns a `ctx`'s `FF3_1.FFX.Codec`, should you wish to further manipulate or
+  prepare encryption and decryption inputs or outputs.
   """
   @spec codec(ctx) :: FFX.codec()
   def codec(fpe_ff3_1_ctx(codec: codec)), do: codec
 
   @doc """
-  Returns a `ctx`'s domain constraints.
+  Returns a `ctx`'s [constraints](#module-length-constraints).
   """
-  @spec domain_constraints(ctx) :: %{minlen: pos_integer, maxlen: pos_integer}
-  def domain_constraints(fpe_ff3_1_ctx(minlen: minlen, maxlen: maxlen)) do
-    %{minlen: minlen, maxlen: maxlen}
+  @spec constraints(ctx) :: %{min_length: pos_integer, max_length: pos_integer}
+  def constraints(fpe_ff3_1_ctx(min_length: min_length, max_length: max_length)) do
+    %{min_length: min_length, max_length: max_length}
   end
 
   ## Internal Functions
@@ -384,30 +384,30 @@ defmodule FF3_1 do
     end
   end
 
-  defp calculate_minlen(radix) do
-    # 5.2, FF3-1 requirements: radix ** minlen >= 1_000_000
+  defp calculate_min_length(radix) do
+    # 5.2, FF3-1 requirements: radix ** min_length >= 1_000_000
     min_domain_size = 1_000_000
 
     case ceil(:math.log2(min_domain_size) / :math.log2(radix)) do
-      minlen when minlen >= 2 ->
-        # 5.2, FF3-1 requirements: 2 <= minlen <= [...]
-        {:ok, minlen}
+      min_length when min_length >= 2 ->
+        # 5.2, FF3-1 requirements: 2 <= min_length <= [...]
+        {:ok, min_length}
 
-      minlen ->
-        {:error, {:minlen_too_low, minlen}}
+      min_length ->
+        {:error, {:min_length_too_low, min_length}}
     end
   end
 
-  defp calculate_maxlen(minlen, radix) do
+  defp calculate_max_length(min_length, radix) do
     upper_limit = 2 * floor(96 / :math.log2(radix))
 
     case upper_limit do
-      maxlen when maxlen >= minlen ->
-        # 5.2, FF3-1 requirements: 2 <= minlen <= maxlen <= [...]
-        {:ok, maxlen}
+      max_length when max_length >= min_length ->
+        # 5.2, FF3-1 requirements: 2 <= min_length <= max_length <= [...]
+        {:ok, max_length}
 
-      maxlen ->
-        {:error, {:maxlen_less_when_minlen, %{max: maxlen, min: minlen}}}
+      max_length ->
+        {:error, {:max_length_less_when_min_length, %{max: max_length, min: min_length}}}
     end
   end
 
@@ -454,14 +454,14 @@ defmodule FF3_1 do
   end
 
   defp validate_enc_or_dec_input_len(ctx, vX) do
-    fpe_ff3_1_ctx(minlen: minlen, maxlen: maxlen) = ctx
+    fpe_ff3_1_ctx(min_length: min_length, max_length: max_length) = ctx
 
     case String.length(vX) do
-      valid_size when valid_size in minlen..maxlen ->
+      valid_size when valid_size in min_length..max_length ->
         :ok
 
       _invalid_size ->
-        {:error, "Invalid input not between #{minlen} and #{maxlen} symbols long: #{inspect(vX)}"}
+        {:error, "Invalid input not between #{min_length} and #{max_length} symbols long: #{inspect(vX)}"}
     end
   end
 
