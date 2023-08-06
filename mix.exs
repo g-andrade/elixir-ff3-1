@@ -9,11 +9,10 @@ defmodule FF3_1.MixProject do
       start_permanent: Mix.env() == :prod,
       deps: deps(),
       docs: [
-        main: "readme",
+        main: "FF3_1",
         extras: [
           "CHANGELOG.md",
-          "LICENSE",
-          "README.md"
+          "LICENSE"
         ]
       ],
       test_coverage: [
