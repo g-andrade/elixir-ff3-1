@@ -56,6 +56,8 @@ defmodule FF3_1.FFX.Codec.Builtin do
     end
   end
 
+  def maybe_new(_alphabet), do: nil
+
   defimpl Codec, for: __MODULE__ do
     @moduledoc false
     def radix(codec), do: codec.radix

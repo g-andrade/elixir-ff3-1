@@ -1005,6 +1005,154 @@ defmodule FpeTest do
     )
   end
 
+  test "invalid keys are rejected" do
+    key = ~c"key"
+    {:error, {:key_not_a_binary, ^key}} = FF3_1.new_ctx(key, _radix = 10)
+
+    Enum.each(
+      1..100,
+      fn key_size ->
+        key = :crypto.strong_rand_bytes(key_size)
+
+        if key_size in [16, 24, 32] do
+          {:ok, _ctx} = FF3_1.new_ctx(key, _radix = 10)
+        else
+          {:error, {:key_has_invalid_size, ^key_size}} = FF3_1.new_ctx(key, _radix = 10)
+        end
+      end
+    )
+  end
+
+  test "small alphabets and radixes" do
+    key = :crypto.strong_rand_bytes(24)
+
+    alphabet = ""
+    {:error, {:alphabet_smaller_than_min_radix, 2}} = FF3_1.new_ctx(key, alphabet)
+    {:error, {:invalid_radix, 0, :less_than_minimum, 2}} = FF3_1.new_ctx(key, _radix = 0)
+
+    alphabet = "0"
+    {:error, {:alphabet_smaller_than_min_radix, 2}} = FF3_1.new_ctx(key, alphabet)
+    {:error, {:invalid_radix, 1, :less_than_minimum, 2}} = FF3_1.new_ctx(key, _radix = 1)
+
+    alphabet = "01"
+    {:ok, _ctx} = FF3_1.new_ctx(key, alphabet)
+    {:ok, _ctx} = FF3_1.new_ctx(key, _radix = 2)
+  end
+
+  test "large alphabets" do
+    key = :crypto.strong_rand_bytes(24)
+
+    alphabet = "test/data/alphabet_0xFFFF_symbols_long.txt" |> File.read!() |> String.trim()
+    {:ok, _ctx} = FF3_1.new_ctx(key, alphabet)
+
+    alphabet = "test/data/alphabet_0x10000_symbols_long.txt" |> File.read!() |> String.trim()
+    {:error, {:alphabet_larger_than_max_radix, 0xFFFF}} = FF3_1.new_ctx(key, alphabet)
+  end
+
+  test "alphabets with repeated symbols are rejected" do
+    key = :crypto.strong_rand_bytes(16)
+    alphabet = "01234567389"
+    {:error, {:alphabet_has_repeated_symbols, ["3"]}} = FF3_1.new_ctx(key, alphabet)
+  end
+
+  test "unknown symbols are rejected - builtin alphabet" do
+    key = :crypto.strong_rand_bytes(24)
+    tweak = :crypto.strong_rand_bytes(7)
+    {:ok, ctx} = FF3_1.new_ctx(key, _radix = 10)
+    assert catch_error(FF3_1.encrypt!(ctx, tweak, "aaaaaaa"))
+    assert catch_error(FF3_1.decrypt!(ctx, tweak, "aaaaaaa"))
+  end
+
+  test "unknown symbols are rejected - custom alphabet" do
+    key = :crypto.strong_rand_bytes(24)
+    tweak = :crypto.strong_rand_bytes(7)
+    {:ok, ctx} = FF3_1.new_ctx(key, _alphabet = "abcdefghijklmn")
+    assert catch_error(FF3_1.encrypt!(ctx, tweak, "abcdefgzzzz"))
+    assert catch_error(FF3_1.decrypt!(ctx, tweak, "abcdefgzzzz"))
+  end
+
+  test "custom alphabet: ambiguous symbols are rejected" do
+    key = :crypto.strong_rand_bytes(24)
+    variant1 = :unicode.characters_to_nfc_binary(@letter_a_with_ring_above)
+    variant2 = :unicode.characters_to_nfd_binary(@letter_a_with_ring_above)
+
+    alphabet = "a#{variant1}b"
+    {:ok, _ctx} = FF3_1.new_ctx(key, alphabet)
+
+    alphabet = "a#{variant2}b"
+    {:ok, _ctx} = FF3_1.new_ctx(key, alphabet)
+
+    alphabet = "a#{variant1}b#{variant2}"
+    {:error, {:alphabet_has_ambiguous_symbols, [@letter_a_with_ring_above]}} = FF3_1.new_ctx(key, alphabet)
+  end
+
+  test "badly sized strings are rejected" do
+    key = :crypto.strong_rand_bytes(24)
+    tweak = :crypto.strong_rand_bytes(7)
+    {:ok, ctx} = FF3_1.new_ctx(key, _radix = 10)
+    %{min_length: min_length, max_length: max_length} = FF3_1.constraints(ctx)
+
+    short_string = String.duplicate("0", min_length - 1)
+    assert catch_error(FF3_1.encrypt!(ctx, tweak, short_string))
+    assert catch_error(FF3_1.decrypt!(ctx, tweak, short_string))
+
+    long_string = String.duplicate("0", max_length + 1)
+    assert catch_error(FF3_1.encrypt!(ctx, tweak, long_string))
+    assert catch_error(FF3_1.decrypt!(ctx, tweak, long_string))
+  end
+
+  test "custom alphabets: badly encoded strings are rejected" do
+    key = :crypto.strong_rand_bytes(24)
+
+    alphabet = "abcdefghijklmn"
+    {:ok, ctx} = FF3_1.new_ctx(key, alphabet)
+
+    tweak = :crypto.strong_rand_bytes(7)
+    input = "aaaaaaaaa" <> <<251, 251>>
+    assert catch_error(FF3_1.encrypt!(ctx, tweak, input))
+    assert catch_error(FF3_1.decrypt!(ctx, tweak, input))
+  end
+
+  test "invalid tweaks are rejected" do
+    key = :crypto.strong_rand_bytes(24)
+    {:ok, ctx} = FF3_1.new_ctx(key, _radix = 10)
+    input = "1234567"
+
+    tweak = <<0::48>>
+    assert catch_error(FF3_1.encrypt!(ctx, tweak, input))
+    assert catch_error(FF3_1.decrypt!(ctx, tweak, input))
+
+    tweak = <<0::64>>
+    assert catch_error(FF3_1.encrypt!(ctx, tweak, input))
+    assert catch_error(FF3_1.decrypt!(ctx, tweak, input))
+
+    tweak = ~c"0000000"
+    assert catch_error(FF3_1.encrypt!(ctx, tweak, input))
+    assert catch_error(FF3_1.decrypt!(ctx, tweak, input))
+  end
+
+  test "builtin codec can be extracted and used" do
+    alias FF3_1.FFX.Codec
+
+    key = :crypto.strong_rand_bytes(24)
+    {:ok, ctx} = FF3_1.new_ctx(key, _radix = 10)
+
+    codec = FF3_1.codec(ctx)
+    assert Codec.string_to_int(codec, "234234638") == {:ok, 234_234_638}
+    assert Codec.int_to_padded_string(codec, 234_234_638, _padding = 10) == "0234234638"
+  end
+
+  test "custom codec can be extracted and used" do
+    alias FF3_1.FFX.Codec
+
+    key = :crypto.strong_rand_bytes(24)
+    {:ok, ctx} = FF3_1.new_ctx(key, _alphabet = "012345678x")
+
+    codec = FF3_1.codec(ctx)
+    assert Codec.string_to_int(codec, "234234638x") == {:ok, 2_342_346_389}
+    assert Codec.int_to_padded_string(codec, 2_342_346_389, _padding = 12) == "00234234638x"
+  end
+
   ## Helpers
 
   defp check_test_vector(key, tweak, plaintext, ciphertext, radix_or_alphabet) do

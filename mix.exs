@@ -8,13 +8,12 @@ defmodule FF3_1.MixProject do
       elixir: "~> 1.14",
       start_permanent: Mix.env() == :prod,
       deps: deps(),
-      elixirc_options: (
-        if Mix.env() == :dev do
-          [:warnings_as_errors]
+      elixirc_options:
+        if Mix.env() in [:dev, :test] do
+          [{:warnings_as_errors, true}]
         else
           []
-        end
-      ),
+        end,
       docs: [
         main: "FF3_1",
         extras: [

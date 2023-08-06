@@ -90,8 +90,9 @@ defmodule FF3_1.FFX.Codec.Custom do
     end
   end
 
-  defp normalize_string(string) do
-    case :unicode.characters_to_nfkc_binary(string) do
+  @doc false
+  def normalize_string(string) do
+    case :unicode.characters_to_nfc_binary(string) do
       <<normalized::bytes>> ->
         {:ok, normalized}
 
@@ -109,10 +110,15 @@ defmodule FF3_1.FFX.Codec.Custom do
     def radix(codec), do: tuple_size(codec.amount_to_symbol)
 
     def string_to_int(codec, string) when byte_size(string) !== 0 do
-      canon_string = Custom.normalize_string!(string)
-      symbol_to_amount = codec.symbol_to_amount
-      radix = map_size(symbol_to_amount)
-      string_to_int_recur(canon_string, symbol_to_amount, radix, _acc0 = 0)
+      case Custom.normalize_string(string) do
+        {:ok, canon_string} ->
+          symbol_to_amount = codec.symbol_to_amount
+          radix = map_size(symbol_to_amount)
+          string_to_int_recur(canon_string, symbol_to_amount, radix, _acc0 = 0)
+
+        {:error, reason} ->
+          {:error, {:invalid_encoding, reason}}
+      end
     end
 
     def int_to_padded_string(codec, int, pad_count) when is_integer(int) and int >= 0 do

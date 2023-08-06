@@ -372,8 +372,11 @@ defmodule FF3_1 do
     nr_of_unique_symbols = length(unique_graphemes)
 
     cond do
-      nr_of_symbols > @max_radix ->
-        {:error, {:alphabet_exceeds_max_radix, @max_radix}}
+      nr_of_unique_symbols < @min_radix ->
+        {:error, {:alphabet_smaller_than_min_radix, @min_radix}}
+
+      nr_of_unique_symbols > @max_radix ->
+        {:error, {:alphabet_larger_than_max_radix, @max_radix}}
 
       nr_of_symbols == nr_of_unique_symbols ->
         Codec.Custom.new(ordered_graphemes)
@@ -392,9 +395,6 @@ defmodule FF3_1 do
       min_length when min_length >= 2 ->
         # 5.2, FF3-1 requirements: 2 <= min_length <= [...]
         {:ok, min_length}
-
-      min_length ->
-        {:error, {:min_length_too_low, min_length}}
     end
   end
 
@@ -405,9 +405,6 @@ defmodule FF3_1 do
       max_length when max_length >= min_length ->
         # 5.2, FF3-1 requirements: 2 <= min_length <= max_length <= [...]
         {:ok, max_length}
-
-      max_length ->
-        {:error, {:max_length_less_when_min_length, %{max: max_length, min: min_length}}}
     end
   end
 
