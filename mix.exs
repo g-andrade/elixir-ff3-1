@@ -23,8 +23,9 @@ defmodule FF3_1.MixProject do
       ],
       test_coverage: [
         summary: [
-          # FIXME
-          threshold: 0
+          # Threshold adjusted over time as :cover doesn't account for macros
+          # (e.g. defstruct)
+          threshold: 85.71
         ]
       ]
     ]
