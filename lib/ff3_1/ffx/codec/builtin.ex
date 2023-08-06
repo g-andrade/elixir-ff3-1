@@ -67,7 +67,7 @@ defmodule FF3_1.FFX.Codec.Builtin do
         {:error, :unknown_symbol}
     end
 
-    def int_to_padded_string(codec, count, int) when int >= 0 do
+    def int_to_padded_string(codec, int, pad_count) when int >= 0 do
       encoded = :erlang.integer_to_binary(int, codec.radix)
 
       case_result =
@@ -77,7 +77,7 @@ defmodule FF3_1.FFX.Codec.Builtin do
           encoded
         end
 
-      String.pad_leading(case_result, count, "0")
+      String.pad_leading(case_result, pad_count, "0")
     end
   end
 end

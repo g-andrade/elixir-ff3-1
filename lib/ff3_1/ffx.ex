@@ -17,8 +17,9 @@ defmodule FF3_1.FFX do
 
   ## Internal API
 
-  # 4.5, Algorithm 2: NUM(X) -> x
-  @doc false
+  @doc """
+  4.5, Algorithm 2: NUM(X) -> x
+  """
   @spec num(vX) :: x
         when vX: byte_string, x: non_neg_integer
   def num(vX) do
@@ -26,8 +27,9 @@ defmodule FF3_1.FFX do
     x
   end
 
-  # 4.5, Algorithm 5: REVB(X) -> Y
-  @doc false
+  @doc """
+  4.5, Algorithm 5: REVB(X) -> Y
+  """
   @spec revb(vX) :: vY
         when vX: byte_string, vY: byte_string
   def revb(vX) do
@@ -44,20 +46,21 @@ defmodule FF3_1.FFX do
     """
     alias FF3_1.FFX
 
-    @doc false
     @spec radix(t()) :: FFX.radix()
     def radix(codec)
 
-    # 4.5, Algorithm 1: NUM_radix(X) -> x
-    @doc false
+    @doc """
+    4.5, Algorithm 1: NUM_radix(X) -> x
+    """
     @spec string_to_int(t(), vX) :: {:ok, x} | {:error, reason}
           when vX: FFX.numerical_string(), x: non_neg_integer, reason: term
     def string_to_int(codec, vX)
 
-    # 4.5, Algorithm 3: STR_m_radix(x) -> X
-    @doc false
-    @spec int_to_padded_string(t(), count, non_neg_integer) :: vX
-          when count: non_neg_integer, vX: FFX.numerical_string()
-    def int_to_padded_string(codec, count, int)
+    @doc """
+    4.5, Algorithm 3: STR_m_radix(x) -> X
+    """
+    @spec int_to_padded_string(t(), non_neg_integer, pad_count) :: vX
+          when pad_count: non_neg_integer, vX: FFX.numerical_string()
+    def int_to_padded_string(codec, int, pad_count)
   end
 end

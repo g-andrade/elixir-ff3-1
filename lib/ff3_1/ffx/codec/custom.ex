@@ -115,14 +115,14 @@ defmodule FF3_1.FFX.Codec.Custom do
       string_to_int_recur(canon_string, symbol_to_amount, radix, _acc0 = 0)
     end
 
-    def int_to_padded_string(codec, m, int) when is_integer(int) and int >= 0 do
+    def int_to_padded_string(codec, int, pad_count) when is_integer(int) and int >= 0 do
       amount_to_symbol = codec.amount_to_symbol
       radix = tuple_size(amount_to_symbol)
       zero_symbol = elem(amount_to_symbol, 0)
 
       int
       |> int_to_padded_string_recur(amount_to_symbol, radix, _acc0 = [])
-      |> String.pad_leading(m, zero_symbol)
+      |> String.pad_leading(pad_count, zero_symbol)
     end
 
     defp string_to_int_recur(string, symbol_to_amount, radix, acc) do

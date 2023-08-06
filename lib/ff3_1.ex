@@ -565,8 +565,8 @@ defmodule FF3_1 do
     alias FFX.Codec
     alias FFX.IntermediateForm
     ## 5. Return A || B
-    vA_str = Codec.int_to_padded_string(codec, m, vA)
-    vB_str = Codec.int_to_padded_string(codec, other_m, vB)
+    vA_str = Codec.int_to_padded_string(codec, vA, m)
+    vB_str = Codec.int_to_padded_string(codec, vB, other_m)
     <<vA_str::bytes, vB_str::bytes>>
   end
 
@@ -624,8 +624,8 @@ defmodule FF3_1 do
   defp do_decrypt_rounds!(-1 = _i, _k, codec, _iform_ctx, m, other_m, vA, vB, _vW, _other_vW) do
     alias FF3_1.FFX.Codec
     ## 5. Return A || B
-    vA_str = Codec.int_to_padded_string(codec, other_m, vA)
-    vB_str = Codec.int_to_padded_string(codec, m, vB)
+    vA_str = Codec.int_to_padded_string(codec, vA, other_m)
+    vB_str = Codec.int_to_padded_string(codec, vB, m)
     <<vA_str::bytes, vB_str::bytes>>
   end
 
