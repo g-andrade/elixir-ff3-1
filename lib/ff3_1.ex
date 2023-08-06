@@ -2,7 +2,14 @@
 # credo:disable-for-this-file Credo.Check.Readability.VariableNames
 defmodule FF3_1 do
   @moduledoc """
-  An implementation of the NIST-approved FF3-1 algorithm in Elixir.
+  An implementation of the FF3-1 [format-preserving crypto
+  (FPE)](https://en.wikipedia.org/wiki/Format-preserving_encryption) algorithm
+  in Elixir.
+
+  Numerical strings output by FPE have the same alphabet and length as the
+  input, which is useful to e.g. save encrypted credit card numbers in storage
+  that only accepts them in credit card number format, and other suchlike
+  applications.
 
   This implementation conforms, as best as possible, to
   [Draft SP 800-38G Rev. 1](https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-38Gr1-draft.pdf)
@@ -18,22 +25,24 @@ defmodule FF3_1 do
   ## Context
 
   We start by creating a context with `:new_ctx/2`, passing it a cryptographic
-  key and radix.
+  key and a radix.
 
       iex> key = :crypto.strong_rand_bytes(32)
       iex> {:ok, _ctx} = FF3_1.new_ctx(key, _radix = 10)
 
-  Keys can be 32, 24 or 16 bytes long, and AES-256, AES-192 or AES-128 will be
-  used, respectively.
+  Keys can be:
+  * 32 bytes long for AES-256
+  * 24 bytes long for AES-192
+  * 16 bytes long for AES-128
 
   Radix is an integer between 2 and 36. For larger radices up to 65535, a
-  custom alphabet is needed (more on that later).
+  custom alphabet is needed - more on that later.
 
-  ## Encrypting and decrypting
+  ## Encryption and decryption
 
-  We're going to `:encrypt!/3` our numerical string `plaintext`, in base 10,
+  We're going to `:encrypt!/3` our `plaintext` numerical string, in base 10,
   and get another of equal length, `ciphertext`, which we can `decrypt!/3`
-  back to get the original `plaintext`.
+  to get the `plaintext` back.
 
   A 7-byte `tweak` is required, which we'll handwave for now.
 
@@ -44,9 +53,9 @@ defmodule FF3_1 do
       iex> ciphertext = FF3_1.encrypt!(ctx, tweak, plaintext)
       iex> ^plaintext = FF3_1.decrypt!(ctx, tweak, ciphertext)
 
-  ## Leading zeroes
+  ## Leading zeroes matter
 
-  ⚠️ Bear in mind that **leading zeroes are significant**: ciphertexts are always
+  ⚠️ Keep in mind that **leading zeroes are significant**. Ciphertexts are always
   of equal length to their respective plaintexts, and vice-versa.
 
       iex> key = :crypto.strong_rand_bytes(32)
@@ -62,8 +71,8 @@ defmodule FF3_1 do
 
   ## Length constraints
 
-  FF3-1 imposes constraints on the length of the numerical strings used with
-  any given `ctx`; these limits depend on the radix.
+  Numerical strings under FF3-1 are subject to minimum and maximum lengths.
+  These constraints depend on the radix.
 
       iex> key = :crypto.strong_rand_bytes(32)
       iex> {:ok, ctx} = FF3_1.new_ctx(key, _radix = 10)
@@ -77,21 +86,22 @@ defmodule FF3_1 do
       iex> {:ok, ctx} = FF3_1.new_ctx(key, _radix = 2)
       iex> %{minlen: 20, maxlen: 192} = FF3_1.domain_constraints(ctx)
 
-  The reasoning for `minlen`, from my layman's understanding, is that when
-  working with smaller radixes, numerical strings below a particular length
-  encompass too few possible values, rendering the encryption ineffective in
-  adversarial conditions.
+  `minlen` is required because, for any given radix, short enough numerical
+  strings encompass too few possible values, rending encryption ineffective
+  under adversarial conditions. In other words: their domain is too small.
 
-  As for `maxlen`: I have no idea. But it's probably not sensible to use FPE
-  instead of regular crypto when working with such large numbers, anyway.
+  `maxlen` may be there - pure layman speculation - as an incentive for people
+  to use regular crypto when working with large enough numbers. I didn't find
+  the exact reasoning for it.
 
   ## Tweaks
 
-  Tweaks may be public information that can be used to produce different
-  ciphertexts for the same plaintext. **They are important in FPE modes**,
-  given that FPE (the technique) may be used in situations where the number of
-  possible strings is relatively small. In such a scenario, the tweak should
-  vary with each instance of the encryption whenever possible.
+  Tweaks may be public information used to produce different ciphertexts for
+  the same plaintext.
+
+  **They are important in FPE modes**, since FPE (the technique) may be used
+  when the number of possible strings is somewhat small. In such a scenario,
+  the tweak should vary with each instance of the encryption whenever possible.
 
       iex> key = :crypto.strong_rand_bytes(32)
       iex> {:ok, ctx} = FF3_1.new_ctx(key, _radix = 10)
@@ -108,10 +118,10 @@ defmodule FF3_1 do
 
   ## Built-in alphabet
 
-  For radixes between 2 and 36, if what `String.to_integer/2` does fits your
-  use case, you can specify the `radix` when building your `ctx` and you're
-  good to go. Both `plaintext` and `ciphertext` will be encoded in the chosen
-  base.
+  For radix values between 2 and 36, if what `String.to_integer/2` is good
+  enough, you only need to specify the `radix` when building your `ctx`.
+
+  Both `plaintext` and `ciphertext` will be encoded in the chosen base.
 
   #### Base 8
 
@@ -143,7 +153,7 @@ defmodule FF3_1 do
   ### Built-in alphabet: case insensitivity to input
 
   Even though the output of either `:encrypt!/3` or `:decrypt!` is
-  upper case, any case is accepted in inputs.
+  upper case, any case is accepted as input.
 
       iex> key = :crypto.strong_rand_bytes(32)
       iex> radix = 16
@@ -155,9 +165,8 @@ defmodule FF3_1 do
 
   ### Builtin-alphabet: lower case
 
-  If you want to use the built-in alphabet but desire for the output
-  to be lower case, you can specify it by declaring the alphabet
-  when creating `ctx`.
+  If you want to use the built-in alphabet but desire lower case outputs, you
+  can do it by declaring the alphabet when creating `ctx`.
 
       iex> key = :crypto.strong_rand_bytes(32)
       iex> alphabet = "0123456789abcdef" # radix 16
@@ -171,9 +180,9 @@ defmodule FF3_1 do
 
   ### Custom alphabets
 
-  Whether you need a radix beyond 36, or use symbols other than 0-9, A-Z in
-  your numerical strings (or use such symbols in a different order), custom
-  alphabets can be used.
+  Whether you need a radix larger than 36, or use symbols other than 0-9, A-Z
+  in your numerical strings (or use such symbols in a different order), custom
+  alphabets are supported.
 
   Note that custom alphabets are **case sensitive** but norm insensitive.
   The reasoning behind this can be found under `FF3_1.FFX.Codec.Custom`.
