@@ -293,8 +293,8 @@ defmodule FF3_1 do
   """
   @spec encrypt!(ctx, tweak, plaintext) :: ciphertext
         when plaintext: String.t(), ciphertext: String.t()
-  def encrypt!(ctx, t, plaintext) do
-    {:ok, ciphertext} = do_encrypt_or_decrypt(ctx, t, plaintext, _enc = true)
+  def encrypt!(ctx, tweak, plaintext) do
+    {:ok, ciphertext} = do_encrypt_or_decrypt(ctx, tweak, plaintext, _enc = true)
     ciphertext
   end
 
@@ -305,10 +305,10 @@ defmodule FF3_1 do
 
   Minimum and maximum length of `ciphertext` depend on radix (see `constraints/1`).
   """
-  @spec decrypt!(ctx, t, ciphertext) :: plaintext
-        when t: tweak, ciphertext: String.t(), plaintext: String.t()
-  def decrypt!(ctx, t, ciphertext) do
-    {:ok, plaintext} = do_encrypt_or_decrypt(ctx, t, ciphertext, _enc = false)
+  @spec decrypt!(ctx, tweak, ciphertext) :: plaintext
+        when ciphertext: String.t(), plaintext: String.t()
+  def decrypt!(ctx, tweak, ciphertext) do
+    {:ok, plaintext} = do_encrypt_or_decrypt(ctx, tweak, ciphertext, _enc = false)
     plaintext
   end
 
