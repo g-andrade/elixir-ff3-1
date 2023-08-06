@@ -134,20 +134,70 @@ defmodule FF3_1.FFX.Codec.Custom do
     defp string_to_int_recur(string, symbol_to_amount, radix, acc) do
       case String.next_grapheme(string) do
         {symbol, remaining_string} ->
-          try do
-            Map.fetch!(symbol_to_amount, symbol)
-          rescue
-            KeyError ->
-              {:error, {:unknown_symbol, symbol}}
-          else
-            amount ->
-              acc = acc * radix + amount
-              string_to_int_recur(remaining_string, symbol_to_amount, radix, acc)
-          end
+          string_to_int_step(symbol, remaining_string, symbol_to_amount, radix, acc)
 
         nil ->
           {:ok, acc}
       end
+    end
+
+    defp string_to_int_step(symbol, remaining_string, symbol_to_amount, radix, acc) do
+      Map.fetch!(symbol_to_amount, symbol)
+    rescue
+      KeyError ->
+        case maybe_string_to_int_fallback(symbol, symbol_to_amount) do
+          {amount, remaining_codepoints} ->
+            remaining_string = :unicode.characters_to_binary([remaining_codepoints, remaining_string])
+            acc = acc * radix + amount
+            string_to_int_recur(remaining_string, symbol_to_amount, radix, acc)
+
+          nil ->
+            {:error, {:unknown_symbol, symbol}}
+        end
+    else
+      amount ->
+        acc = acc * radix + amount
+        string_to_int_recur(remaining_string, symbol_to_amount, radix, acc)
+    end
+
+    defp maybe_string_to_int_fallback(symbol, symbol_to_amount) do
+      codepoints = String.codepoints(symbol)
+
+      if length(codepoints) < 0 do
+        nil
+      else
+        string_to_int_fallback(codepoints, symbol_to_amount)
+      end
+    end
+
+    defp string_to_int_fallback(codepoints, symbol_to_amount) do
+      # Why did I decide to support Unicode alphabets in general...
+      case find_matching_prefix(codepoints, symbol_to_amount) do
+        {amount, up_to_n_codepoints} ->
+          remaining_codepoints = Enum.slice(codepoints, up_to_n_codepoints, length(codepoints) - up_to_n_codepoints)
+          {amount, remaining_codepoints}
+
+        nil ->
+          nil
+      end
+    end
+
+    defp find_matching_prefix(codepoints, symbol_to_amount) do
+      Enum.find_value(
+        1..(length(codepoints) - 1),
+        fn iteration ->
+          up_to_n_codepoints = length(codepoints) - iteration
+          prefix = codepoints |> Enum.slice(0, up_to_n_codepoints) |> :unicode.characters_to_binary()
+
+          case Map.get(symbol_to_amount, prefix) do
+            nil ->
+              false
+
+            amount ->
+              {amount, up_to_n_codepoints}
+          end
+        end
+      )
     end
 
     defp int_to_padded_string_recur(int, amount_to_symbol, radix, acc) do
