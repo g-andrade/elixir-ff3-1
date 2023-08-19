@@ -32,6 +32,8 @@ defmodule FF3_1.FFX.Codec.Custom do
 
   # require Logger
 
+  @max_radix_we_will_validate_by_brute_force 500
+
   @enforce_keys [
     :symbol_to_amount,
     :amount_to_symbol
@@ -93,13 +95,22 @@ defmodule FF3_1.FFX.Codec.Custom do
   end
 
   defp validate_ambiguity(graphemes) do
-    problematic =
-      Enum.filter(
-        graphemes,
-        &(Unicode.GraphemeClusterBreak.grapheme_break(&1) != [:other])
-      )
+    case potentially_problematic_graphemes(graphemes) do
+      {:ok, potentially_problematic} ->
+        validate_ambiguity(graphemes, potentially_problematic)
 
-    case Enum.find_value(problematic, &find_symbol_ambiguity(&1, graphemes)) do
+      {:error, _} = error ->
+        error
+    end
+  end
+
+  defp validate_ambiguity(graphemes, potentially_problematic) do
+    potentially_problematic_set = MapSet.new(potentially_problematic)
+
+    case Enum.find_value(
+           potentially_problematic,
+           &find_symbol_ambiguity(&1, potentially_problematic_set, graphemes)
+         ) do
       nil ->
         :ok
 
@@ -114,23 +125,62 @@ defmodule FF3_1.FFX.Codec.Custom do
     end
   end
 
-  defp find_symbol_ambiguity(grapheme, [other | next]) do
-    case {
-      String.graphemes(grapheme <> other),
-      String.graphemes(other <> grapheme)
-    } do
-      {[^grapheme, ^other], [^other, grapheme]} ->
-        find_symbol_ambiguity(grapheme, next)
+  defp potentially_problematic_graphemes(graphemes) do
+    Enum.filter(
+      graphemes,
+      &(Kernel.apply(Unicode.GraphemeClusterBreak, :grapheme_break, [&1]) != [:other])
+    )
+  catch
+    :error, :undef when length(graphemes) <= @max_radix_we_will_validate_by_brute_force ->
+      false = Kernel.function_exported?(Unicode.GraphemeClusterBreak, :module_info, 0)
+      {:ok, graphemes}
 
-      {[^grapheme, ^other], reclustered} ->
-        {other, grapheme, reclustered}
+    :error, :undef ->
+      # Brute-force comparison would take too long
+      {:error, "You need the optional Unicode dep for such a large alphabet"}
+  else
+    potentially_problematic ->
+      {:ok, potentially_problematic}
+  end
 
-      {reclustered, _} ->
-        {grapheme, other, reclustered}
+  defp find_symbol_ambiguity(grapheme, potentially_problematic_set, [other | next]) do
+    case find_reclustering(grapheme, potentially_problematic_set, other) do
+      nil ->
+        find_symbol_ambiguity(grapheme, potentially_problematic_set, next)
+
+      ambiguity ->
+        ambiguity
     end
   end
 
-  defp find_symbol_ambiguity(_grapheme, []), do: nil
+  defp find_symbol_ambiguity(_grapheme, _potentially_problematic_set, []), do: nil
+
+  defp find_reclustering(grapheme, potentially_problematic_set, other) do
+    if MapSet.member?(potentially_problematic_set, other) do
+      # We'll do reverse comparison later
+      case String.graphemes(grapheme <> other) do
+        [^grapheme, ^other] ->
+          nil
+
+        reclustered ->
+          {grapheme, other, reclustered}
+      end
+    else
+      case {
+        String.graphemes(grapheme <> other),
+        String.graphemes(other <> grapheme)
+      } do
+        {[^grapheme, ^other], [^other, ^grapheme]} ->
+          nil
+
+        {[^grapheme, ^other], reclustered} ->
+          {other, grapheme, reclustered}
+
+        {reclustered, _} ->
+          {grapheme, other, reclustered}
+      end
+    end
+  end
 
   @doc false
   def normalize_string(string) do

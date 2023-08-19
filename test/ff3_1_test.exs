@@ -1044,6 +1044,15 @@ defmodule FpeTest do
   test "large alphabets" do
     key = :crypto.strong_rand_bytes(24)
 
+    alphabet = "test/data/alphabet_500_symbols_long.txt" |> File.read!() |> String.trim()
+    {:ok, _ctx} = FF3_1.new_ctx(key, alphabet)
+
+    alphabet = "test/data/alphabet_1000_symbols_long.txt" |> File.read!() |> String.trim()
+    {:ok, _ctx} = FF3_1.new_ctx(key, alphabet)
+
+    alphabet = "test/data/alphabet_10000_symbols_long.txt" |> File.read!() |> String.trim()
+    {:ok, _ctx} = FF3_1.new_ctx(key, alphabet)
+
     alphabet = "test/data/alphabet_0xFFFF_symbols_long.txt" |> File.read!() |> String.trim()
     {:ok, _ctx} = FF3_1.new_ctx(key, alphabet)
 

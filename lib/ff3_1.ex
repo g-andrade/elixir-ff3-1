@@ -35,7 +35,7 @@ defmodule FF3_1 do
   * 24 bytes long for AES-192
   * 16 bytes long for AES-128
 
-  Radix is an integer between 2 and 36. For larger radices up to 65535, a
+  Radix is an integer between 2 and 36. For larger radixes up to 65535, a
   custom alphabet is needed - more on that later.
 
   ## Encryption and decryption
@@ -186,6 +186,9 @@ defmodule FF3_1 do
 
   Note that custom alphabets are **case sensitive** but norm insensitive.
   The reasoning behind this can be found under `FF3_1.FFX.Codec.Custom`.
+
+  The optional `Unicode` dependency is required for large radixes (> 500 as of
+  moment of writing) since validating the alphabets takes too long otherwise.
 
   #### Base 20 with custom alphabet
 

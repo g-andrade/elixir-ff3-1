@@ -49,8 +49,7 @@ defmodule FF3_1.MixProject do
       {:ex_doc, "~> 0.27", only: :dev, runtime: false},
       {:recon, "~> 2.3", only: :dev, runtime: false},
       {:styler, "~> 0.8", only: [:dev, :test], runtime: false},
-      # TODO make optional
-      {:unicode, "~> 1.16"}
+      {:unicode, "~> 1.16", optional: true}
     ]
   end
 end
