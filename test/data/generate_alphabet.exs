@@ -1,5 +1,7 @@
 #!/usr/bin/env elixir
 
+require Logger
+
 # credo:disable-for-this-file Credo.Check.Refactor.Nesting
 # credo:disable-for-this-file Credo.Check.Refactor.CyclomaticComplexity
 defmodule AlphabetGenerator do
@@ -24,14 +26,15 @@ defmodule AlphabetGenerator do
 
       [cluster, current] ->
         is_printable = String.printable?(cluster)
+        is_safe = Unicode.GraphemeClusterBreak.grapheme_break(cluster) == [:other]
 
         case acc_n + String.length(cluster) do
-          less when less < n and is_printable ->
+          less when less < n and is_printable and is_safe ->
             acc = [cluster, acc]
             acc_n = less
             generate_recur(n, current, codepoint_after, acc, acc_n)
 
-          equal when equal === n and is_printable ->
+          equal when equal === n and is_printable and is_safe ->
             what_we_have =
               [cluster, acc]
               |> :unicode.characters_to_nfc_binary()
@@ -48,7 +51,7 @@ defmodule AlphabetGenerator do
                 String.slice(what_we_have, 0, n)
             end
 
-          other when other > n or not is_printable ->
+          other when other > n or not is_printable or not is_safe ->
             generate_recur(n, current, codepoint_after, acc, acc_n)
         end
     end
@@ -64,8 +67,13 @@ defmodule AlphabetGenerator do
   end
 end
 
-System.argv()
-|> hd()
+Logger.info("Installing and compiling `unicode` library (this could a while)")
+Mix.install([:unicode])
+
+Logger.info("Generating alphabet")
+[amount_str, output_filepath] = System.argv()
+
+amount_str
 |> String.to_integer()
 |> AlphabetGenerator.generate()
-|> IO.puts()
+|> then(fn alphabet -> File.write!(output_filepath, alphabet) end)

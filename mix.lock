@@ -16,4 +16,5 @@
   "recon": {:hex, :recon, "2.5.3", "739107b9050ea683c30e96de050bc59248fd27ec147696f79a8797ff9fa17153", [:mix, :rebar3], [], "hexpm", "6c6683f46fd4a1dfd98404b9f78dcabc7fcd8826613a89dcb984727a8c3099d7"},
   "statistex": {:hex, :statistex, "1.0.0", "f3dc93f3c0c6c92e5f291704cf62b99b553253d7969e9a5fa713e5481cd858a5", [:mix], [], "hexpm", "ff9d8bee7035028ab4742ff52fc80a2aa35cece833cf5319009b52f1b5a86c27"},
   "styler": {:hex, :styler, "0.8.2", "73b53e7860cb0a5c0a6a1ac1dd07124de329a7fbd0ab2161549218637e52968f", [:mix], [], "hexpm", "663fc10c8f053a238ffdf862a10c3e76e6e7323a918e6f78a268180747587460"},
+  "unicode": {:hex, :unicode, "1.16.2", "24c5385b641c266638f533e2f275dd13964e6d4299a07d5088daddfccfe928a2", [:mix], [], "hexpm", "f8fb5bbd3af46d4701421d621fa6198c59268fdc2b280315f85d547d30c7e60a"},
 }

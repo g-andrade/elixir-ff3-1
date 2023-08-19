@@ -30,6 +30,8 @@ defmodule FF3_1.FFX.Codec.Custom do
 
   alias FF3_1.FFX.Codec
 
+  # require Logger
+
   @enforce_keys [
     :symbol_to_amount,
     :amount_to_symbol
@@ -47,14 +49,14 @@ defmodule FF3_1.FFX.Codec.Custom do
   @spec new([String.grapheme(), ...]) :: {:ok, t()} | {:error, term}
   @doc false
   def new(ordered_graphemes) do
-    case validate_norm(ordered_graphemes) do
-      {:ok, maybe_canon_graphemes} ->
-        {:ok,
-         %__MODULE__{
-           symbol_to_amount: maybe_canon_graphemes |> Enum.with_index() |> Map.new(),
-           amount_to_symbol: List.to_tuple(ordered_graphemes)
-         }}
-
+    with {:ok, maybe_canon_graphemes} <- validate_norm(ordered_graphemes),
+         :ok <- validate_ambiguity(maybe_canon_graphemes) do
+      {:ok,
+       %__MODULE__{
+         symbol_to_amount: maybe_canon_graphemes |> Enum.with_index() |> Map.new(),
+         amount_to_symbol: List.to_tuple(ordered_graphemes)
+       }}
+    else
       {:error, _} = error ->
         error
     end
@@ -89,6 +91,46 @@ defmodule FF3_1.FFX.Codec.Custom do
       {:ok, canonized}
     end
   end
+
+  defp validate_ambiguity(graphemes) do
+    problematic =
+      Enum.filter(
+        graphemes,
+        &(Unicode.GraphemeClusterBreak.grapheme_break(&1) != [:other])
+      )
+
+    case Enum.find_value(problematic, &find_symbol_ambiguity(&1, graphemes)) do
+      nil ->
+        :ok
+
+      {first, second, reclustered} ->
+        {:error,
+         {:alphabet_has_symbols_reclustering_when_next_to_each_other,
+          [
+            first: first,
+            second: second,
+            reclustered_into: reclustered
+          ]}}
+    end
+  end
+
+  defp find_symbol_ambiguity(grapheme, [other | next]) do
+    case {
+      String.graphemes(grapheme <> other),
+      String.graphemes(other <> grapheme)
+    } do
+      {[^grapheme, ^other], [^other, grapheme]} ->
+        find_symbol_ambiguity(grapheme, next)
+
+      {[^grapheme, ^other], reclustered} ->
+        {other, grapheme, reclustered}
+
+      {reclustered, _} ->
+        {grapheme, other, reclustered}
+    end
+  end
+
+  defp find_symbol_ambiguity(_grapheme, []), do: nil
 
   @doc false
   def normalize_string(string) do
@@ -145,59 +187,11 @@ defmodule FF3_1.FFX.Codec.Custom do
       Map.fetch!(symbol_to_amount, symbol)
     rescue
       KeyError ->
-        case maybe_string_to_int_fallback(symbol, symbol_to_amount) do
-          {amount, remaining_codepoints} ->
-            remaining_string = :unicode.characters_to_binary([remaining_codepoints, remaining_string])
-            acc = acc * radix + amount
-            string_to_int_recur(remaining_string, symbol_to_amount, radix, acc)
-
-          nil ->
-            {:error, {:unknown_symbol, symbol}}
-        end
+        {:error, {:unknown_symbol, symbol}}
     else
       amount ->
         acc = acc * radix + amount
         string_to_int_recur(remaining_string, symbol_to_amount, radix, acc)
-    end
-
-    defp maybe_string_to_int_fallback(symbol, symbol_to_amount) do
-      codepoints = String.codepoints(symbol)
-
-      if length(codepoints) < 0 do
-        nil
-      else
-        string_to_int_fallback(codepoints, symbol_to_amount)
-      end
-    end
-
-    defp string_to_int_fallback(codepoints, symbol_to_amount) do
-      # Why did I decide to support Unicode alphabets in general...
-      case find_matching_prefix(codepoints, symbol_to_amount) do
-        {amount, up_to_n_codepoints} ->
-          remaining_codepoints = Enum.slice(codepoints, up_to_n_codepoints, length(codepoints) - up_to_n_codepoints)
-          {amount, remaining_codepoints}
-
-        nil ->
-          nil
-      end
-    end
-
-    defp find_matching_prefix(codepoints, symbol_to_amount) do
-      Enum.find_value(
-        1..(length(codepoints) - 1),
-        fn iteration ->
-          up_to_n_codepoints = length(codepoints) - iteration
-          prefix = codepoints |> Enum.slice(0, up_to_n_codepoints) |> :unicode.characters_to_binary()
-
-          case Map.get(symbol_to_amount, prefix) do
-            nil ->
-              false
-
-            amount ->
-              {amount, up_to_n_codepoints}
-          end
-        end
-      )
     end
 
     defp int_to_padded_string_recur(int, amount_to_symbol, radix, acc) do

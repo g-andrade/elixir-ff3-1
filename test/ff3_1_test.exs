@@ -8,6 +8,8 @@ defmodule FpeTest do
   # has different representations under different norms
   @letter_a_with_ring_above "Å"
 
+  @zero_width_joiner <<8205::utf8>>
+
   ## I didn't find any official test vectors, so I copied the ones from ubiq-go:
   ## * https://github.com/ubiqsecurity/ubiq-fpe-go/blob/63af101126699b7438045844d0f25120e424789d/ff3_1_test.go
 
@@ -1084,6 +1086,17 @@ defmodule FpeTest do
 
     alphabet = "a#{variant1}b#{variant2}"
     {:error, {:alphabet_has_ambiguous_symbols, [@letter_a_with_ring_above]}} = FF3_1.new_ctx(key, alphabet)
+
+    alphabet = "#{@zero_width_joiner}abcd"
+    assert String.length(alphabet) == 5
+
+    {:error,
+     {:alphabet_has_symbols_reclustering_when_next_to_each_other,
+      [
+        first: @zero_width_joiner,
+        second: @zero_width_joiner,
+        reclustered_into: ["#{@zero_width_joiner}#{@zero_width_joiner}"]
+      ]}} = FF3_1.new_ctx(key, alphabet)
   end
 
   test "badly sized strings are rejected" do
