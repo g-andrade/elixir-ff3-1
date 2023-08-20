@@ -1,4 +1,6 @@
-defmodule FpeTest do
+# credo:disable-for-this-file Credo.Check.Design.AliasUsage
+# credo:disable-for-this-file Credo.Check.Readability.ModuleNames
+defmodule FF3_1_Test do
   use ExUnit.Case, async: true
 
   require Logger
@@ -1030,11 +1032,11 @@ defmodule FpeTest do
 
     alphabet = ""
     {:error, {:alphabet_smaller_than_min_radix, 2}} = FF3_1.new_ctx(key, alphabet)
-    {:error, {:invalid_radix, 0, :less_than_minimum, 2}} = FF3_1.new_ctx(key, _radix = 0)
+    {:error, {:invalid_radix, {0, :less_than_minimum, 2}}} = FF3_1.new_ctx(key, _radix = 0)
 
     alphabet = "0"
     {:error, {:alphabet_smaller_than_min_radix, 2}} = FF3_1.new_ctx(key, alphabet)
-    {:error, {:invalid_radix, 1, :less_than_minimum, 2}} = FF3_1.new_ctx(key, _radix = 1)
+    {:error, {:invalid_radix, {1, :less_than_minimum, 2}}} = FF3_1.new_ctx(key, _radix = 1)
 
     alphabet = "01"
     {:ok, _ctx} = FF3_1.new_ctx(key, alphabet)
@@ -1175,6 +1177,63 @@ defmodule FpeTest do
     assert Codec.int_to_padded_string(codec, 2_342_346_389, _padding = 12) == "00234234638x"
   end
 
+  test "setup modules working fine" do
+    alias FF3_1_Test.Helper.SetupModules
+
+    plaintext = "423423409017"
+    test_setup_module(SetupModules.BuiltinBase10, plaintext)
+
+    plaintext = "423423017AFDE"
+    test_setup_module(SetupModules.BuiltinBase16, plaintext)
+
+    plaintext = "abababcDcDfabi"
+    test_setup_module(SetupModules.CustomBase10, plaintext)
+  end
+
+  test "setup modules with wrong opts" do
+    alias FF3_1_Test.Helper.SetupModules
+
+    _ = Process.flag(:trap_exit, true)
+
+    assert match?(
+             {:error, {:key_has_invalid_size, _}},
+             SetupModules.WrongKeySize.start_link()
+           )
+
+    assert match?(
+             {:error, {:invalid_radix, _}},
+             SetupModules.InvalidRadix.start_link()
+           )
+
+    assert match?(
+             {:error, {:alphabet_smaller_than_min_radix, _}},
+             SetupModules.InvalidAlphabet.start_link()
+           )
+  end
+
+  test "setup module server alternative termination flows" do
+    alias FF3_1_Test.Helper.SetupModules
+
+    _ = Process.flag(:trap_exit, true)
+
+    {:ok, pid} = SetupModules.BuiltinBase10.start_link()
+    assert match?({:ok, _ctx}, FF3_1.Setup.Server.get_ctx(SetupModules.BuiltinBase10))
+    FF3_1.Setup.Server.stop(pid, :"everything's crashing")
+    assert match?({:ok, _ctx}, FF3_1.Setup.Server.get_ctx(SetupModules.BuiltinBase10))
+
+    {:ok, pid} = SetupModules.BuiltinBase10.start_link()
+    FF3_1.Setup.Server.stop(pid, :shutdown)
+
+    assert FF3_1.Setup.Server.get_ctx(SetupModules.BuiltinBase10) ==
+             {:error, {:ctx_not_found_for_module, SetupModules.BuiltinBase10}}
+
+    {:ok, pid} = SetupModules.BuiltinBase10.start_link()
+    FF3_1.Setup.Server.stop(pid, {:shutdown, :detailed_reason})
+
+    assert FF3_1.Setup.Server.get_ctx(SetupModules.BuiltinBase10) ==
+             {:error, {:ctx_not_found_for_module, SetupModules.BuiltinBase10}}
+  end
+
   ## Helpers
 
   defp check_test_vector(key, tweak, plaintext, ciphertext, radix_or_alphabet) do
@@ -1223,5 +1282,23 @@ defmodule FpeTest do
       end
     end)
     |> List.to_string()
+  end
+
+  defp test_setup_module(module, plaintext) do
+    assert FF3_1.Setup.Server.get_ctx(module) == {:error, {:ctx_not_found_for_module, module}}
+
+    {:ok, pid} = module.start_link()
+    {:ok, ctx} = FF3_1.Setup.Server.get_ctx(module)
+
+    tweak = :crypto.strong_rand_bytes(7)
+    ciphertext = module.encrypt!(tweak, plaintext)
+    assert module.decrypt!(tweak, ciphertext) == plaintext
+
+    assert ciphertext == FF3_1.encrypt!(ctx, tweak, plaintext)
+    assert module.constraints() == FF3_1.constraints(ctx)
+    assert module.codec() == FF3_1.codec(ctx)
+
+    :ok = FF3_1.Setup.Server.stop(pid)
+    assert FF3_1.Setup.Server.get_ctx(module) == {:error, {:ctx_not_found_for_module, module}}
   end
 end

@@ -8,12 +8,8 @@ defmodule FF3_1.MixProject do
       elixir: "~> 1.14",
       start_permanent: Mix.env() == :prod,
       deps: deps(),
-      elixirc_options:
-        if Mix.env() in [:dev, :test] do
-          [{:warnings_as_errors, true}]
-        else
-          []
-        end,
+      elixirc_paths: elixirc_paths(Mix.env()),
+      elixirc_options: elixirc_options(Mix.env()),
       docs: [
         main: "FF3_1",
         extras: [
@@ -51,5 +47,21 @@ defmodule FF3_1.MixProject do
       {:styler, "~> 0.8", only: [:dev, :test], runtime: false},
       {:unicode, "~> 1.16", optional: true}
     ]
+  end
+
+  defp elixirc_paths(env) do
+    if env == :test do
+      ["lib", "test/helper"]
+    else
+      ["lib"]
+    end
+  end
+
+  defp elixirc_options(env) do
+    if env in [:dev, :test] do
+      [{:warnings_as_errors, true}]
+    else
+      []
+    end
   end
 end

@@ -230,6 +230,8 @@ defmodule FF3_1 do
 
   ## API Types
 
+  @type key :: FFX.key()
+
   # 5.2, FF3-1 requirements
   @min_radix 2
   @max_radix 0xFFFF
@@ -239,8 +241,10 @@ defmodule FF3_1 do
   # 5.2, Algorithm 9: FF3.Encrypt(K, T, X)
   @type tweak :: <<_::56>>
 
+  @type constraints :: %{min_length: pos_integer, max_length: pos_integer}
+
   Record.defrecordp(:fpe_ff3_1_ctx, [
-    :k,
+    :key,
     :codec,
     :iform_ctx,
     :min_length,
@@ -249,7 +253,7 @@ defmodule FF3_1 do
 
   @opaque ctx ::
             record(:fpe_ff3_1_ctx,
-              k: FFX.key(),
+              key: key(),
               codec: FFX.Codec.t(),
               iform_ctx: FFX.IntermediateForm.ctx(),
               min_length: pos_integer,
@@ -261,13 +265,12 @@ defmodule FF3_1 do
   @doc """
   Validates arguments and creates a context used for both encryption and decryption.
   """
-  @spec new_ctx(k, radix | alphabet) :: {:ok, ctx} | {:error, term}
-        when k: FFX.key()
-  def new_ctx(k, radix_or_alphabet) do
+  @spec new_ctx(key, radix | alphabet) :: {:ok, ctx} | {:error, term}
+  def new_ctx(key, radix_or_alphabet) do
     alias FFX.Codec
     alias FFX.IntermediateForm
 
-    with :ok <- validate_key(k),
+    with :ok <- validate_key(key),
          {:ok, codec} <- validate_radix_or_alphabet(radix_or_alphabet),
          radix = Codec.radix(codec),
          iform_ctx = IntermediateForm.new_ctx(radix),
@@ -275,7 +278,7 @@ defmodule FF3_1 do
          {:ok, max_length} <- calculate_max_length(min_length, radix) do
       {:ok,
        fpe_ff3_1_ctx(
-         k: k,
+         key: key,
          codec: codec,
          iform_ctx: iform_ctx,
          min_length: min_length,
@@ -332,9 +335,9 @@ defmodule FF3_1 do
 
   ## Internal Functions
 
-  defp validate_key(k) do
-    case k do
-      k when byte_size(k) in [16, 24, 32] ->
+  defp validate_key(key) do
+    case key do
+      key when byte_size(key) in [16, 24, 32] ->
         :ok
 
       <<invalid_size::bytes>> ->
@@ -360,9 +363,9 @@ defmodule FF3_1 do
   defp validate_custom_alphabet(radix) when is_integer(radix) do
     # largest than builtin
     if radix < @min_radix do
-      {:error, {:invalid_radix, radix, :less_than_minimum, @min_radix}}
+      {:error, {:invalid_radix, {radix, :less_than_minimum, @min_radix}}}
     else
-      {:error, {:invalid_radix, radix, :you_need_to_provide_the_alphabet}}
+      {:error, {:invalid_radix, {radix, :you_need_to_provide_the_alphabet}}}
     end
   end
 
@@ -414,14 +417,14 @@ defmodule FF3_1 do
   defp do_encrypt_or_decrypt(ctx, t, vX, enc) do
     with :ok <- validate_enc_or_dec_input_len(ctx, vX),
          :ok <- validate_tweak(t),
-         fpe_ff3_1_ctx(k: k, codec: codec, iform_ctx: iform_ctx) = ctx,
+         fpe_ff3_1_ctx(key: key, codec: codec, iform_ctx: iform_ctx) = ctx,
          {:ok, even_m, odd_m, vA, vB, even_vW, odd_vW} <-
            setup_encrypt_or_decrypt_vars(codec, t, vX) do
       vY =
         if enc do
           do_encrypt_rounds!(
             _i = 0,
-            k,
+            key,
             codec,
             iform_ctx,
             even_m,
@@ -434,7 +437,7 @@ defmodule FF3_1 do
         else
           do_decrypt_rounds!(
             _i = 7,
-            k,
+            key,
             codec,
             iform_ctx,
             odd_m,
@@ -510,7 +513,7 @@ defmodule FF3_1 do
     end
   end
 
-  defp do_encrypt_rounds!(i, k, codec, iform_ctx, m, other_m, vA, vB, vW, other_vW) when i < 8 do
+  defp do_encrypt_rounds!(i, key, codec, iform_ctx, m, other_m, vA, vB, vW, other_vW) when i < 8 do
     alias FFX.Codec
     alias FFX.IntermediateForm
 
@@ -523,7 +526,7 @@ defmodule FF3_1 do
 
     ## 4.iii. Let S = REVB(CIPH_REVB(K)(REVB(P)))
     vS_revb_P = FFX.revb(vP)
-    vS_revb_K = FFX.revb(k)
+    vS_revb_K = FFX.revb(key)
     vS_ciph_etc = ciph(vS_revb_K, vS_revb_P)
     vS = FFX.revb(vS_ciph_etc)
 
@@ -546,7 +549,7 @@ defmodule FF3_1 do
 
     do_encrypt_rounds!(
       i + 1,
-      k,
+      key,
       codec,
       iform_ctx,
       # swap odd with even
@@ -561,7 +564,7 @@ defmodule FF3_1 do
   end
 
   # credo:disable-for-next-line Credo.Check.Refactor.FunctionArity
-  defp do_encrypt_rounds!(8 = _i, _k, codec, _iform_ctx, m, other_m, vA, vB, _vW, _other_vW) do
+  defp do_encrypt_rounds!(8 = _i, _key, codec, _iform_ctx, m, other_m, vA, vB, _vW, _other_vW) do
     alias FFX.Codec
     alias FFX.IntermediateForm
     ## 5. Return A || B
@@ -570,7 +573,7 @@ defmodule FF3_1 do
     <<vA_str::bytes, vB_str::bytes>>
   end
 
-  defp do_decrypt_rounds!(i, k, codec, iform_ctx, m, other_m, vA, vB, vW, other_vW) when i >= 0 do
+  defp do_decrypt_rounds!(i, key, codec, iform_ctx, m, other_m, vA, vB, vW, other_vW) when i >= 0 do
     alias FFX.Codec
     alias FFX.IntermediateForm
 
@@ -583,7 +586,7 @@ defmodule FF3_1 do
 
     ## 4.iii. Let S = REVB(CIPH_REVB(K)(REVB(P)))
     vS_revb_P = FFX.revb(vP)
-    vS_revb_K = FFX.revb(k)
+    vS_revb_K = FFX.revb(key)
     vS_ciph_etc = ciph(vS_revb_K, vS_revb_P)
     vS = FFX.revb(vS_ciph_etc)
 
@@ -606,7 +609,7 @@ defmodule FF3_1 do
 
     do_decrypt_rounds!(
       i - 1,
-      k,
+      key,
       codec,
       iform_ctx,
       # swap odd with even
@@ -621,7 +624,7 @@ defmodule FF3_1 do
   end
 
   # credo:disable-for-next-line Credo.Check.Refactor.FunctionArity
-  defp do_decrypt_rounds!(-1 = _i, _k, codec, _iform_ctx, m, other_m, vA, vB, _vW, _other_vW) do
+  defp do_decrypt_rounds!(-1 = _i, _key, codec, _iform_ctx, m, other_m, vA, vB, _vW, _other_vW) do
     alias FF3_1.FFX.Codec
     ## 5. Return A || B
     vA_str = Codec.int_to_padded_string(codec, vA, other_m)
@@ -629,13 +632,13 @@ defmodule FF3_1 do
     <<vA_str::bytes, vB_str::bytes>>
   end
 
-  defp ciph(k, input) do
+  defp ciph(key, input) do
     %{
       128 => :aes_128_ecb,
       192 => :aes_192_ecb,
       256 => :aes_256_ecb
     }
-    |> Map.fetch!(bit_size(k))
-    |> :crypto.crypto_one_time(k, input, _enc = true)
+    |> Map.fetch!(bit_size(key))
+    |> :crypto.crypto_one_time(key, input, _enc = true)
   end
 end
