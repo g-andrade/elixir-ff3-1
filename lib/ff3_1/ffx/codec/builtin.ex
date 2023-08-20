@@ -21,6 +21,8 @@ defmodule FF3_1.FFX.Codec.Builtin do
   @enforce_keys [:radix, :lower_case]
   defstruct [:radix, :lower_case]
 
+  @type numerical_string :: String.t()
+
   @opaque t :: %__MODULE__{radix: radix, lower_case: boolean}
   @type radix :: 2..36
 
@@ -62,14 +64,24 @@ defmodule FF3_1.FFX.Codec.Builtin do
     @moduledoc false
     def radix(codec), do: codec.radix
 
-    def string_to_int(codec, string) when byte_size(string) !== 0 do
+    def numerical_string_length(_codec, string) when is_binary(string) do
+      {:ok, String.length(string)}
+    end
+
+    def numerical_string_length(_codec, string) do
+      {:error, {:not_a_numerical_string, string}}
+    end
+
+    def split_numerical_string_at(_codec, string, n), do: String.split_at(string, n)
+
+    def numerical_string_to_int(codec, string) when byte_size(string) !== 0 do
       {:ok, String.to_integer(string, codec.radix)}
     rescue
       ArgumentError ->
         {:error, :unknown_symbol}
     end
 
-    def int_to_padded_string(codec, int, pad_count) when int >= 0 do
+    def int_to_padded_numerical_string(codec, int, pad_count) when int >= 0 do
       encoded = :erlang.integer_to_binary(int, codec.radix)
 
       case_result =
@@ -81,5 +93,7 @@ defmodule FF3_1.FFX.Codec.Builtin do
 
       String.pad_leading(case_result, pad_count, "0")
     end
+
+    def concat_numerical_strings(_codec, left, right), do: left <> right
   end
 end

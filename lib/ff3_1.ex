@@ -220,6 +220,76 @@ defmodule FF3_1 do
       iex> ciphertext = FF3_1.encrypt!(ctx, tweak, plaintext)
       iex> ^plaintext = FF3_1.decrypt!(ctx, tweak, ciphertext)
 
+  ### No alphabet
+
+  If you wish to handle translation of integers into and from symbols yourself,
+  you can use `FF3_1.FFX.Codec.NoSymbols`. Encryption and decryption functions
+  will receive, and return, integer values with a length tag.
+
+  #### Radix 10
+
+      iex> alias FF3_1.FFX.Codec.NoSymbols
+      iex> key = :crypto.strong_rand_bytes(32)
+      iex> radix = 10
+      iex> {:ok, codec} = NoSymbols.new(radix)
+      iex> {:ok, ctx} = FF3_1.new_ctx(key, codec)
+      iex> tweak = <<0::56>>
+      iex> input = 1234567
+      iex> input_length = 10
+      iex>
+      iex> plaintext = %NoSymbols.NumString{value: input, length: input_length}
+      iex> ciphertext = FF3_1.encrypt!(ctx, tweak, plaintext)
+      iex> %NoSymbols.NumString{length: ^input_length} = ciphertext
+      iex> ^plaintext = FF3_1.decrypt!(ctx, tweak, ciphertext)
+
+  #### Radix 40
+
+      iex> alias FF3_1.FFX.Codec.NoSymbols
+      iex> key = :crypto.strong_rand_bytes(32)
+      iex> radix = 40
+      iex> {:ok, codec} = NoSymbols.new(radix)
+      iex> {:ok, ctx} = FF3_1.new_ctx(key, codec)
+      iex> tweak = <<0::56>>
+      iex> input = 1234567
+      iex> input_length = 10
+      iex>
+      iex> plaintext = %NoSymbols.NumString{value: input, length: input_length}
+      iex> ciphertext = FF3_1.encrypt!(ctx, tweak, plaintext)
+      iex> %NoSymbols.NumString{length: ^input_length} = ciphertext
+      iex> ^plaintext = FF3_1.decrypt!(ctx, tweak, ciphertext)
+
+  #### Radix 500
+
+      iex> alias FF3_1.FFX.Codec.NoSymbols
+      iex> key = :crypto.strong_rand_bytes(32)
+      iex> radix = 500
+      iex> {:ok, codec} = NoSymbols.new(radix)
+      iex> {:ok, ctx} = FF3_1.new_ctx(key, codec)
+      iex> tweak = <<0::56>>
+      iex> input = 1234567
+      iex> input_length = 10
+      iex>
+      iex> plaintext = %NoSymbols.NumString{value: input, length: input_length}
+      iex> ciphertext = FF3_1.encrypt!(ctx, tweak, plaintext)
+      iex> %NoSymbols.NumString{length: ^input_length} = ciphertext
+      iex> ^plaintext = FF3_1.decrypt!(ctx, tweak, ciphertext)
+
+  #### Radix 65535
+
+      iex> alias FF3_1.FFX.Codec.NoSymbols
+      iex> key = :crypto.strong_rand_bytes(32)
+      iex> radix = 65535
+      iex> {:ok, codec} = NoSymbols.new(radix)
+      iex> {:ok, ctx} = FF3_1.new_ctx(key, codec)
+      iex> tweak = <<0::56>>
+      iex> input = 1234567
+      iex> input_length = 10
+      iex>
+      iex> plaintext = %NoSymbols.NumString{value: input, length: input_length}
+      iex> ciphertext = FF3_1.encrypt!(ctx, tweak, plaintext)
+      iex> %NoSymbols.NumString{length: ^input_length} = ciphertext
+      iex> ^plaintext = FF3_1.decrypt!(ctx, tweak, ciphertext)
+
   """
 
   import Bitwise
@@ -231,6 +301,8 @@ defmodule FF3_1 do
   ## API Types
 
   @type key :: FFX.key()
+  @type codec :: FFX.Codec.t()
+  @type numerical_string :: FFX.numerical_string()
 
   # 5.2, FF3-1 requirements
   @min_radix 2
@@ -253,8 +325,8 @@ defmodule FF3_1 do
 
   @opaque ctx ::
             record(:fpe_ff3_1_ctx,
-              key: key(),
-              codec: FFX.Codec.t(),
+              key: key,
+              codec: codec,
               iform_ctx: FFX.IntermediateForm.ctx(),
               min_length: pos_integer,
               max_length: pos_integer
@@ -265,13 +337,13 @@ defmodule FF3_1 do
   @doc """
   Validates arguments and creates a context used for both encryption and decryption.
   """
-  @spec new_ctx(key, radix | alphabet) :: {:ok, ctx} | {:error, term}
-  def new_ctx(key, radix_or_alphabet) do
+  @spec new_ctx(key, radix | alphabet | codec) :: {:ok, ctx} | {:error, term}
+  def new_ctx(key, radix_or_alphabet_or_codec) do
     alias FFX.Codec
     alias FFX.IntermediateForm
 
     with :ok <- validate_key(key),
-         {:ok, codec} <- validate_radix_or_alphabet(radix_or_alphabet),
+         {:ok, codec} <- validate_radix_or_alphabet(radix_or_alphabet_or_codec),
          radix = Codec.radix(codec),
          iform_ctx = IntermediateForm.new_ctx(radix),
          {:ok, min_length} <- calculate_min_length(radix),
@@ -298,7 +370,7 @@ defmodule FF3_1 do
   Minimum and maximum length of `plaintext` depend on radix (see `constraints/1`).
   """
   @spec encrypt!(ctx, tweak, plaintext) :: ciphertext
-        when plaintext: String.t(), ciphertext: String.t()
+        when plaintext: numerical_string, ciphertext: numerical_string
   def encrypt!(ctx, tweak, plaintext) do
     {:ok, ciphertext} = do_encrypt_or_decrypt(ctx, tweak, plaintext, _enc = true)
     ciphertext
@@ -312,7 +384,7 @@ defmodule FF3_1 do
   Minimum and maximum length of `ciphertext` depend on radix (see `constraints/1`).
   """
   @spec decrypt!(ctx, tweak, ciphertext) :: plaintext
-        when ciphertext: String.t(), plaintext: String.t()
+        when ciphertext: numerical_string, plaintext: numerical_string
   def decrypt!(ctx, tweak, ciphertext) do
     {:ok, plaintext} = do_encrypt_or_decrypt(ctx, tweak, ciphertext, _enc = false)
     plaintext
@@ -322,7 +394,7 @@ defmodule FF3_1 do
   Returns a `ctx`'s `FF3_1.FFX.Codec`, should you wish to further manipulate or
   prepare encryption and decryption inputs or outputs.
   """
-  @spec codec(ctx) :: FFX.codec()
+  @spec codec(ctx) :: codec
   def codec(fpe_ff3_1_ctx(codec: codec)), do: codec
 
   @doc """
@@ -348,6 +420,23 @@ defmodule FF3_1 do
     end
   end
 
+  defp validate_radix_or_alphabet(%{__struct__: _} = codec) do
+    alias FF3_1.FFX.Codec
+
+    radix = Codec.radix(codec)
+
+    cond do
+      radix < @min_radix ->
+        {:error, {:invalid_radix, {radix, :less_than_minimum, @min_radix}}}
+
+      radix > @max_radix ->
+        {:error, {:invalid_radix, {radix, :more_than_maximum, @max_radix}}}
+
+      true ->
+        {:ok, codec}
+    end
+  end
+
   defp validate_radix_or_alphabet(radix_or_alphabet) do
     alias FF3_1.FFX.Codec
 
@@ -365,7 +454,7 @@ defmodule FF3_1 do
     if radix < @min_radix do
       {:error, {:invalid_radix, {radix, :less_than_minimum, @min_radix}}}
     else
-      {:error, {:invalid_radix, {radix, :you_need_to_provide_the_alphabet}}}
+      {:error, {:invalid_radix, {radix, :you_need_to_provide_either_an_alphabet_or_a_codec}}}
     end
   end
 
@@ -415,11 +504,11 @@ defmodule FF3_1 do
   end
 
   defp do_encrypt_or_decrypt(ctx, t, vX, enc) do
-    with :ok <- validate_enc_or_dec_input_len(ctx, vX),
+    with {:ok, vX_length} <- validate_enc_or_dec_input(ctx, vX),
          :ok <- validate_tweak(t),
          fpe_ff3_1_ctx(key: key, codec: codec, iform_ctx: iform_ctx) = ctx,
          {:ok, even_m, odd_m, vA, vB, even_vW, odd_vW} <-
-           setup_encrypt_or_decrypt_vars(codec, t, vX) do
+           setup_encrypt_or_decrypt_vars(codec, t, vX, vX_length) do
       vY =
         if enc do
           do_encrypt_rounds!(
@@ -456,15 +545,20 @@ defmodule FF3_1 do
     end
   end
 
-  defp validate_enc_or_dec_input_len(ctx, vX) do
-    fpe_ff3_1_ctx(min_length: min_length, max_length: max_length) = ctx
+  defp validate_enc_or_dec_input(ctx, vX) do
+    alias FFX.Codec
 
-    case String.length(vX) do
-      valid_size when valid_size in min_length..max_length ->
-        :ok
+    fpe_ff3_1_ctx(codec: codec, min_length: min_length, max_length: max_length) = ctx
 
-      _invalid_size ->
+    case Codec.numerical_string_length(codec, vX) do
+      {:ok, valid_length} when valid_length in min_length..max_length ->
+        {:ok, valid_length}
+
+      {:ok, _invalid_length} ->
         {:error, "Invalid input not between #{min_length} and #{max_length} symbols long: #{inspect(vX)}"}
+
+      {:error, reason} ->
+        {:error, {:invalid_input, reason}}
     end
   end
 
@@ -481,21 +575,21 @@ defmodule FF3_1 do
     end
   end
 
-  defp setup_encrypt_or_decrypt_vars(codec, t, vX) do
+  defp setup_encrypt_or_decrypt_vars(codec, t, vX, vX_length) do
     alias FFX.Codec
     alias FFX.IntermediateForm
 
-    n = String.length(vX)
+    n = vX_length
 
     # 1. Let u = ceil(n/2); v = n - u
     u = div(n, 2) + (n &&& 1)
     v = n - u
 
     # 2. Let A = X[1..u]; B = X[u + 1..n]
-    {vA_str, vB_str} = String.split_at(vX, u)
+    {vA_str, vB_str} = Codec.split_numerical_string_at(codec, vX, u)
 
-    with {:ok, vA} <- Codec.string_to_int(codec, vA_str),
-         {:ok, vB} <- Codec.string_to_int(codec, vB_str) do
+    with {:ok, vA} <- Codec.numerical_string_to_int(codec, vA_str),
+         {:ok, vB} <- Codec.numerical_string_to_int(codec, vB_str) do
       # 3. Let T_L = T[0..27] || O⁴ and T_R = T[32..55] || T[28..31] || O⁴
       <<t_left::bits-size(28), t_middle::bits-size(4), t_right::bits-size(24)>> = t
       <<vT_L::bytes>> = <<t_left::bits, 0::4>>
@@ -568,9 +662,9 @@ defmodule FF3_1 do
     alias FFX.Codec
     alias FFX.IntermediateForm
     ## 5. Return A || B
-    vA_str = Codec.int_to_padded_string(codec, vA, m)
-    vB_str = Codec.int_to_padded_string(codec, vB, other_m)
-    <<vA_str::bytes, vB_str::bytes>>
+    vA_str = Codec.int_to_padded_numerical_string(codec, vA, m)
+    vB_str = Codec.int_to_padded_numerical_string(codec, vB, other_m)
+    Codec.concat_numerical_strings(codec, vA_str, vB_str)
   end
 
   defp do_decrypt_rounds!(i, key, codec, iform_ctx, m, other_m, vA, vB, vW, other_vW) when i >= 0 do
@@ -627,9 +721,9 @@ defmodule FF3_1 do
   defp do_decrypt_rounds!(-1 = _i, _key, codec, _iform_ctx, m, other_m, vA, vB, _vW, _other_vW) do
     alias FF3_1.FFX.Codec
     ## 5. Return A || B
-    vA_str = Codec.int_to_padded_string(codec, vA, other_m)
-    vB_str = Codec.int_to_padded_string(codec, vB, m)
-    <<vA_str::bytes, vB_str::bytes>>
+    vA_str = Codec.int_to_padded_numerical_string(codec, vA, other_m)
+    vB_str = Codec.int_to_padded_numerical_string(codec, vB, m)
+    Codec.concat_numerical_strings(codec, vA_str, vB_str)
   end
 
   defp ciph(key, input) do

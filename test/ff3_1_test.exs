@@ -1162,8 +1162,8 @@ defmodule FF3_1_Test do
     {:ok, ctx} = FF3_1.new_ctx(key, _radix = 10)
 
     codec = FF3_1.codec(ctx)
-    assert Codec.string_to_int(codec, "234234638") == {:ok, 234_234_638}
-    assert Codec.int_to_padded_string(codec, 234_234_638, _padding = 10) == "0234234638"
+    assert Codec.numerical_string_to_int(codec, "234234638") == {:ok, 234_234_638}
+    assert Codec.int_to_padded_numerical_string(codec, 234_234_638, _padding = 10) == "0234234638"
   end
 
   test "custom codec can be extracted and used" do
@@ -1173,8 +1173,8 @@ defmodule FF3_1_Test do
     {:ok, ctx} = FF3_1.new_ctx(key, _alphabet = "012345678x")
 
     codec = FF3_1.codec(ctx)
-    assert Codec.string_to_int(codec, "234234638x") == {:ok, 2_342_346_389}
-    assert Codec.int_to_padded_string(codec, 2_342_346_389, _padding = 12) == "00234234638x"
+    assert Codec.numerical_string_to_int(codec, "234234638x") == {:ok, 2_342_346_389}
+    assert Codec.int_to_padded_numerical_string(codec, 2_342_346_389, _padding = 12) == "00234234638x"
   end
 
   test "setup modules working fine" do
@@ -1232,6 +1232,41 @@ defmodule FF3_1_Test do
 
     assert FF3_1.Setup.Server.get_ctx(SetupModules.BuiltinBase10) ==
              {:error, {:ctx_not_found_for_module, SetupModules.BuiltinBase10}}
+  end
+
+  test "no symbols" do
+    alias FF3_1.FFX.Codec.NoSymbols
+
+    key = :crypto.strong_rand_bytes(32)
+    tweak = :crypto.strong_rand_bytes(7)
+
+    Enum.each(
+      1..100,
+      fn _ ->
+        radix = 1 + :rand.uniform(1000)
+
+        Enum.each(
+          1..100,
+          fn _ ->
+            {:ok, codec} = NoSymbols.new(radix)
+            {:ok, ctx} = FF3_1.new_ctx(key, codec)
+            %{min_length: min_length, max_length: max_length} = FF3_1.constraints(ctx)
+
+            input_length = min_length + :rand.uniform(max_length - min_length + 1) - 1
+            input_high = Integer.pow(radix, input_length - 1)
+            input_low = :rand.uniform(input_high) - 1
+            input = input_high + input_low
+
+            input_num_string = %NoSymbols.NumString{value: input, length: input_length}
+            ciphertext = FF3_1.encrypt!(ctx, tweak, input_num_string)
+            assert ciphertext.length == input_num_string.length
+
+            plaintext = FF3_1.decrypt!(ctx, tweak, ciphertext)
+            assert plaintext == input_num_string
+          end
+        )
+      end
+    )
   end
 
   ## Helpers

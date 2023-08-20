@@ -43,6 +43,8 @@ defmodule FF3_1.FFX.Codec.Custom do
     :amount_to_symbol
   ]
 
+  @type numerical_string :: String.t()
+
   @opaque t :: %__MODULE__{
             symbol_to_amount: %{String.grapheme() => non_neg_integer},
             amount_to_symbol: tuple()
@@ -201,7 +203,17 @@ defmodule FF3_1.FFX.Codec.Custom do
 
     def radix(codec), do: tuple_size(codec.amount_to_symbol)
 
-    def string_to_int(codec, string) when byte_size(string) !== 0 do
+    def numerical_string_length(_codec, string) when is_binary(string) do
+      {:ok, String.length(string)}
+    end
+
+    def numerical_string_length(_codec, string) do
+      {:error, {:not_a_numerical_string, string}}
+    end
+
+    def split_numerical_string_at(_codec, string, n), do: String.split_at(string, n)
+
+    def numerical_string_to_int(codec, string) do
       case Custom.normalize_string(string) do
         {:ok, canon_string} ->
           symbol_to_amount = codec.symbol_to_amount
@@ -213,7 +225,9 @@ defmodule FF3_1.FFX.Codec.Custom do
       end
     end
 
-    def int_to_padded_string(codec, int, pad_count) when is_integer(int) and int >= 0 do
+    def concat_numerical_strings(_codec, left, right), do: left <> right
+
+    def int_to_padded_numerical_string(codec, int, pad_count) when is_integer(int) and int >= 0 do
       amount_to_symbol = codec.amount_to_symbol
       radix = tuple_size(amount_to_symbol)
       zero_symbol = elem(amount_to_symbol, 0)
@@ -222,6 +236,8 @@ defmodule FF3_1.FFX.Codec.Custom do
       |> int_to_padded_string_recur(amount_to_symbol, radix, _acc0 = [])
       |> String.pad_leading(pad_count, zero_symbol)
     end
+
+    ## Internal
 
     defp string_to_int_recur(string, symbol_to_amount, radix, acc) do
       case String.next_grapheme(string) do
