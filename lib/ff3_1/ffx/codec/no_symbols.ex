@@ -16,6 +16,7 @@ defmodule FF3_1.FFX.Codec.NoSymbols do
   @type radix :: FF3_1.radix()
 
   defmodule NumString do
+    @moduledoc false
     @enforce_keys [:value, :length]
     defstruct [:value, :length]
 
