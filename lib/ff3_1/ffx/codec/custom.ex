@@ -50,10 +50,13 @@ defmodule FF3_1.FFX.Codec.Custom do
             amount_to_symbol: tuple()
           }
 
-  @spec new([String.grapheme(), ...]) :: {:ok, t()} | {:error, term}
-  @doc false
-  def new(ordered_graphemes) do
-    with {:ok, maybe_canon_graphemes} <- validate_norm(ordered_graphemes),
+  ## API
+
+  @spec new(String.t()) :: {:ok, t()} | {:error, term}
+  def new(alphabet) do
+    ordered_graphemes = String.graphemes(alphabet)
+    with :ok <- validate_uniqueness(ordered_graphemes),
+         {:ok, maybe_canon_graphemes} <- validate_norm(ordered_graphemes),
          :ok <- validate_ambiguity(maybe_canon_graphemes) do
       {:ok,
        %__MODULE__{
@@ -65,6 +68,8 @@ defmodule FF3_1.FFX.Codec.Custom do
         error
     end
   end
+
+  ## Internal
 
   @doc false
   def normalize_string!(string) do
@@ -93,6 +98,17 @@ defmodule FF3_1.FFX.Codec.Custom do
       {:error, ambiguous}
     else
       {:ok, canonized}
+    end
+  end
+
+  defp validate_uniqueness(graphemes) do
+    unique = Enum.uniq(graphemes)
+
+    if length(unique) != length(graphemes) do
+      repeated_symbols = graphemes -- unique
+      {:error, {:alphabet_has_repeated_symbols, repeated_symbols}}
+    else
+      :ok
     end
   end
 

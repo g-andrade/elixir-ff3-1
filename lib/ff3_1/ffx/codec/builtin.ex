@@ -32,7 +32,6 @@ defmodule FF3_1.FFX.Codec.Builtin do
   ## API Functions
 
   @spec maybe_new(non_neg_integer | String.t()) :: {:ok, t()} | nil
-  @doc false
   def maybe_new(radix) when is_integer(radix) do
     if radix in 2..36 do
       {:ok,

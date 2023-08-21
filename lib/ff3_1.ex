@@ -461,24 +461,23 @@ defmodule FF3_1 do
   defp validate_custom_alphabet(alphabet) when is_binary(alphabet) do
     alias FF3_1.FFX.Codec
 
-    ordered_graphemes = String.graphemes(alphabet)
-    unique_graphemes = Enum.uniq(ordered_graphemes)
-    nr_of_symbols = length(ordered_graphemes)
-    nr_of_unique_symbols = length(unique_graphemes)
+    case Codec.Custom.new(alphabet) do
+      {:ok, codec} ->
+        radix = Codec.radix(codec)
 
-    cond do
-      nr_of_unique_symbols < @min_radix ->
-        {:error, {:alphabet_smaller_than_min_radix, @min_radix}}
+        cond do
+          radix < @min_radix ->
+            {:error, {:alphabet_smaller_than_min_radix, @min_radix}}
 
-      nr_of_unique_symbols > @max_radix ->
-        {:error, {:alphabet_larger_than_max_radix, @max_radix}}
+          radix > @max_radix ->
+            {:error, {:alphabet_larger_than_max_radix, @max_radix}}
 
-      nr_of_symbols == nr_of_unique_symbols ->
-        Codec.Custom.new(ordered_graphemes)
+          true ->
+            {:ok, codec}
+        end
 
-      nr_of_symbols > nr_of_unique_symbols ->
-        repeated_symbols = ordered_graphemes -- unique_graphemes
-        {:error, {:alphabet_has_repeated_symbols, repeated_symbols}}
+      {:error, _} = error ->
+        error
     end
   end
 
