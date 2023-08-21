@@ -55,6 +55,7 @@ defmodule FF3_1.FFX.Codec.Custom do
   @spec new(String.t()) :: {:ok, t()} | {:error, term}
   def new(alphabet) do
     ordered_graphemes = String.graphemes(alphabet)
+
     with :ok <- validate_uniqueness(ordered_graphemes),
          {:ok, maybe_canon_graphemes} <- validate_norm(ordered_graphemes),
          :ok <- validate_ambiguity(maybe_canon_graphemes) do
