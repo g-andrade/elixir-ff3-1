@@ -67,7 +67,7 @@ defmodule FF3_1.Setup do
       Returns this setup's `FF3_1.FFX.Codec`, should you wish to further manipulate or
       prepare encryption and decryption inputs or outputs.
       """
-      @spec codec :: FFX.codec()
+      @spec codec :: FF3_1.codec()
       def codec do
         FF3_1.codec(ctx())
       end
