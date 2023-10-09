@@ -37,7 +37,7 @@ defmodule FF3_1.Setup do
       Minimum and maximum length of `plaintext` depend on radix (see `constraints/0`).
       """
       @spec encrypt!(tweak, plaintext) :: ciphertext
-            when tweak: FF3_1.tweak(), plaintext: String.t(), ciphertext: String.t()
+            when tweak: FF3_1.tweak(), plaintext: FF3_1.numerical_string(), ciphertext: FF3_1.numerical_string()
       def encrypt!(tweak, plaintext) do
         FF3_1.encrypt!(ctx(), tweak, plaintext)
       end
@@ -50,7 +50,7 @@ defmodule FF3_1.Setup do
       Minimum and maximum length of `ciphertext` depend on radix (see `constraints/0`).
       """
       @spec decrypt!(tweak, ciphertext) :: plaintext
-            when tweak: FF3_1.tweak(), ciphertext: String.t(), plaintext: String.t()
+            when tweak: FF3_1.tweak(), ciphertext: FF3_1.numerical_string(), plaintext: FF3_1.numerical_string()
       def decrypt!(tweak, ciphertext) do
         FF3_1.decrypt!(ctx(), tweak, ciphertext)
       end
