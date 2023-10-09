@@ -25,7 +25,13 @@ defmodule FF3_1.FFX.Codec.NoSymbols do
 
   @type numerical_string :: NumString.t()
 
-  @spec new(radix) :: {:ok, t()} | {:error, term}
+  @spec new!(term) :: t()
+  def new!(radix) do
+    {:ok, codec} = new(radix)
+    codec
+  end
+
+  @spec new(term) :: {:ok, t()} | {:error, term}
   def new(radix) when is_integer(radix) and radix >= 2 do
     {:ok, %__MODULE__{radix: radix}}
   end
