@@ -10,12 +10,12 @@ defmodule FF3_1.Setup.Server do
 
   defmodule Args do
     @moduledoc false
-    defstruct [:module, :key, :radix_or_alphabet]
+    defstruct [:module, :key, :radix_or_alphabet_or_codec]
 
     @type t :: %__MODULE__{
             module: module,
             key: FF3_1.key(),
-            radix_or_alphabet: FF3_1.radix() | FF3_1.alphabet()
+            radix_or_alphabet_or_codec: FF3_1.radix() | FF3_1.alphabet() | FF3_1.codec()
           }
   end
 
@@ -72,7 +72,7 @@ defmodule FF3_1.Setup.Server do
 
   @impl true
   def init([args]) do
-    case FF3_1.new_ctx(args.key, args.radix_or_alphabet) do
+    case FF3_1.new_ctx(args.key, args.radix_or_alphabet_or_codec) do
       {:ok, ctx} ->
         # always invoke terminate/2
         _ = Process.flag(:trap_exit, true)

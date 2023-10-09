@@ -11,6 +11,10 @@ defmodule FF3_1.Setup do
               key: FF3_1.key(),
               alphabet: FF3_1.alphabet()
             ]
+          | [
+              key: FF3_1.key(),
+              codec: FF3_1.codec()
+            ]
 
   @doc false
   defmacro __using__(opts) do
@@ -85,7 +89,7 @@ defmodule FF3_1.Setup do
         %FF3_1.Setup.Server.Args{
           module: __MODULE__,
           key: opts[:key],
-          radix_or_alphabet: opts[:radix] || opts[:alphabet]
+          radix_or_alphabet_or_codec: opts[:radix] || opts[:alphabet] || opts[:codec]
         }
       end
     end
