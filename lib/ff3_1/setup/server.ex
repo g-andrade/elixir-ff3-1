@@ -4,8 +4,6 @@ defmodule FF3_1.Setup.Server do
 
   use GenServer
 
-  require Record
-
   ## Types
 
   defmodule Args do
