@@ -32,7 +32,7 @@ defmodule FF3_1.FFX.Codec.Custom do
 
   # require Logger
 
-  @max_radix_we_will_validate_by_brute_force 500
+  @unicode_combining_class_not_reordered 0
 
   @enforce_keys [
     :symbol_to_amount,
@@ -46,7 +46,7 @@ defmodule FF3_1.FFX.Codec.Custom do
   @type numerical_string :: String.t()
 
   @opaque t :: %__MODULE__{
-            symbol_to_amount: %{String.grapheme() => non_neg_integer},
+            symbol_to_amount: %{char() => non_neg_integer},
             amount_to_symbol: tuple()
           }
 
@@ -54,15 +54,14 @@ defmodule FF3_1.FFX.Codec.Custom do
 
   @spec new(String.t()) :: {:ok, t()} | {:error, term}
   def new(alphabet) do
-    ordered_graphemes = String.graphemes(alphabet)
-
-    with :ok <- validate_uniqueness(ordered_graphemes),
-         {:ok, maybe_canon_graphemes} <- validate_norm(ordered_graphemes),
-         :ok <- validate_ambiguity(maybe_canon_graphemes) do
+    with :ok <- validate_string(alphabet),
+         codepoints = String.to_charlist(alphabet),
+         :ok <- validate_codepoints(codepoints),
+         :ok <- validate_uniqueness(codepoints) do
       {:ok,
        %__MODULE__{
-         symbol_to_amount: maybe_canon_graphemes |> Enum.with_index() |> Map.new(),
-         amount_to_symbol: List.to_tuple(ordered_graphemes)
+         symbol_to_amount: codepoints |> Enum.with_index() |> Map.new(),
+         amount_to_symbol: List.to_tuple(codepoints)
        }}
     else
       {:error, _} = error ->
@@ -71,135 +70,6 @@ defmodule FF3_1.FFX.Codec.Custom do
   end
 
   ## Internal
-
-  @doc false
-  def normalize_string!(string) do
-    {:ok, normalized} = normalize_string(string)
-    normalized
-  end
-
-  defp validate_norm(graphemes) do
-    case validate_canonicalization(graphemes, &normalize_string!/1) do
-      {:ok, _} = success ->
-        success
-
-      {:error, ambiguous_symbols} ->
-        {:error, {:alphabet_has_ambiguous_symbols, ambiguous_symbols}}
-    end
-  end
-
-  defp validate_canonicalization(graphemes, canonize_fun) do
-    canonized = Enum.map(graphemes, canonize_fun)
-    canonized_len = length(canonized)
-    uniq = Enum.uniq(canonized)
-    uniq_len = length(uniq)
-
-    if uniq_len == canonized_len do
-      {:ok, canonized}
-    else
-      ambiguous = canonized -- uniq
-      {:error, ambiguous}
-    end
-  end
-
-  defp validate_uniqueness(graphemes) do
-    unique = Enum.uniq(graphemes)
-
-    if length(unique) == length(graphemes) do
-      :ok
-    else
-      repeated_symbols = graphemes -- unique
-      {:error, {:alphabet_has_repeated_symbols, repeated_symbols}}
-    end
-  end
-
-  defp validate_ambiguity(graphemes) do
-    case potentially_problematic_graphemes(graphemes) do
-      {:ok, potentially_problematic} ->
-        validate_ambiguity(graphemes, potentially_problematic)
-
-      {:error, _} = error ->
-        error
-    end
-  end
-
-  defp validate_ambiguity(graphemes, potentially_problematic) do
-    potentially_problematic_set = MapSet.new(potentially_problematic)
-
-    case Enum.find_value(
-           potentially_problematic,
-           &find_symbol_ambiguity(&1, potentially_problematic_set, graphemes)
-         ) do
-      nil ->
-        :ok
-
-      {first, second, reclustered} ->
-        {:error,
-         {:alphabet_has_symbols_reclustering_when_next_to_each_other,
-          [
-            first: first,
-            second: second,
-            reclustered_into: reclustered
-          ]}}
-    end
-  end
-
-  defp potentially_problematic_graphemes(graphemes) do
-    Enum.filter(
-      graphemes,
-      &(Kernel.apply(Unicode.GraphemeClusterBreak, :grapheme_break, [&1]) != [:other])
-    )
-  catch
-    :error, :undef when length(graphemes) <= @max_radix_we_will_validate_by_brute_force ->
-      false = Kernel.function_exported?(Unicode.GraphemeClusterBreak, :module_info, 0)
-      {:ok, graphemes}
-
-    :error, :undef ->
-      # Brute-force comparison would take too long
-      {:error, "You need the optional Unicode dep for such a large alphabet"}
-  else
-    potentially_problematic ->
-      {:ok, potentially_problematic}
-  end
-
-  defp find_symbol_ambiguity(grapheme, potentially_problematic_set, [other | next]) do
-    case find_reclustering(grapheme, potentially_problematic_set, other) do
-      nil ->
-        find_symbol_ambiguity(grapheme, potentially_problematic_set, next)
-
-      ambiguity ->
-        ambiguity
-    end
-  end
-
-  defp find_symbol_ambiguity(_grapheme, _potentially_problematic_set, []), do: nil
-
-  defp find_reclustering(grapheme, potentially_problematic_set, other) do
-    if MapSet.member?(potentially_problematic_set, other) do
-      # We'll do reverse comparison later
-      case String.graphemes(grapheme <> other) do
-        [^grapheme, ^other] ->
-          nil
-
-        reclustered ->
-          {grapheme, other, reclustered}
-      end
-    else
-      case {
-        String.graphemes(grapheme <> other),
-        String.graphemes(other <> grapheme)
-      } do
-        {[^grapheme, ^other], [^other, ^grapheme]} ->
-          nil
-
-        {[^grapheme, ^other], reclustered} ->
-          {other, grapheme, reclustered}
-
-        {reclustered, _} ->
-          {grapheme, other, reclustered}
-      end
-    end
-  end
 
   @doc false
   def normalize_string(string) do
@@ -212,9 +82,116 @@ defmodule FF3_1.FFX.Codec.Custom do
     end
   end
 
+  defp validate_string(alphabet) do
+    if String.valid?(alphabet) do
+      :ok
+    else
+      {:error, {:alphabet_not_valid_utf8, alphabet}}
+    end
+  end
+
+  defp validate_codepoints(ordered_codepoints) do
+    case :lists.filtermap(&filtermap_codepoint_rejection/1, ordered_codepoints) do
+      [] ->
+        :ok
+
+      invalid_entries ->
+        {:error, {:invalid_codepoints, invalid_entries}}
+    end
+  end
+
+  # `:unicode.category/1` type (OTP 29):
+  #
+  #          {letter, uppercase | lowercase | titlecase | modifier | other} |
+  #          {mark, non_spacing | spacing_combining | enclosing} |
+  #          {number, decimal | letter | other} |
+  #          {separator, space | line | paragraph} |
+  #          {other, control | format | surrogate | private | not_assigned} |
+  #          {punctuation, connector | dash | open | close | initial | final | other} |
+  #          {symbol, math | currency | modifier | other}.
+  #
+
+  defp filtermap_codepoint_rejection(codepoint) do
+    reason = codepoint_rejection_reason(codepoint)
+
+    if reason === nil do
+      false
+    else
+      codepoint_string = <<codepoint::utf8>>
+      {true, {codepoint_string, reason}}
+    end
+  end
+
+  defp codepoint_rejection_reason(codepoint) do
+    # - 3a. No invisible/undefined category. Reject if Unicode.category(cp) is
+    # in {:Cn, :Cc, :Cf, :Cs, :Co} — unassigned, control, format (this is what
+    # kills ZWJ/ZWNJ/BOM/bidi controls), surrogate, private-use. This subsumes
+    # the "assigned?" check we discussed and closes the ZWJ hole from your old
+    # reclustering test.
+
+    # - 3b. Starter only (combining class 0). Reject if combining_class(cp) !=
+    # 0. A trailing combining mark would otherwise compose leftward onto the
+    # previous symbol under NFC and break the round-trip — the scalar-level
+    # version of reclustering.
+
+    # - 3c. Not a conjoining Hangul jamo. Reject if Hangul_Syllable_Type(cp) ∈
+    # {L, V, T}. These are the only ccc-0 characters that canonically compose
+    # starter-onto-starter (V onto L, T onto LV). Precomposed syllables (LV,
+    # LVT) stay allowed and are safe once the jamo are gone.
+
+    # - 3d. NFC-stable in isolation. Reject if
+    # :unicode.characters_to_nfc_binary(<<cp::utf8>>) != <<cp::utf8>>.
+
+    %{
+      category: {principal_category, _} = category,
+      ccc: combining_class
+    } = :unicode_util.lookup(codepoint)
+
+    cond do
+      principal_category === :other ->
+        {:invalid_category, category}
+
+      combining_class !== @unicode_combining_class_not_reordered ->
+        {:invalid_combining_class, combining_class}
+
+      conjoining_jamo?(codepoint) ->
+        :conjoining_hangul_jamo
+
+      :unicode.characters_to_nfc_list([codepoint]) !== [codepoint] ->
+        :not_in_nfc_norm
+
+      true ->
+        nil
+    end
+  end
+
+  # Conjoining Hangul jamo (Hangul_Syllable_Type L/V/T) compose
+  # starter-onto-starter under NFC (L+V→LV, LV+T→LVT), so a pair of
+  # them as separate symbols would merge and break round-tripping.
+  # These blocks are frozen by the Unicode stability policy.
+  defp conjoining_jamo?(cp) do
+    # Hangul Jamo            (L, V, T)
+    # Hangul Jamo Extended-A (L)
+    # Hangul Jamo Extended-B (V, T)
+    cp in 0x1100..0x11FF or
+      cp in 0xA960..0xA97F or
+      cp in 0xD7B0..0xD7FF
+  end
+
+  defp validate_uniqueness(ordered_codepoints) do
+    unique = Enum.uniq(ordered_codepoints)
+
+    if length(unique) === length(ordered_codepoints) do
+      :ok
+    else
+      repeated_symbols = ordered_codepoints -- unique
+      repeated_symbol_strings = Enum.map(repeated_symbols, &(<<&1::utf8>>))
+      {:error, {:alphabet_has_repeated_symbols, repeated_symbol_strings}}
+    end
+  end
+
   defimpl Codec, for: __MODULE__ do
     @moduledoc false
-    alias FF3_1.FFX.Codec.Custom
 
     ## API
 
@@ -228,17 +205,22 @@ defmodule FF3_1.FFX.Codec.Custom do
       {:error, {:not_a_numerical_string, string}}
     end
 
-    def split_numerical_string_at(_codec, string, n), do: String.split_at(string, n)
+    def split_numerical_string_at(_codec, string, n) do
+      tail_size = string_split_codepoints_tail_size(string, n)
+      prefix_size = byte_size(string) - tail_size
+      <<prefix::bytes-size(^prefix_size), tail::bytes>> = string
+      {prefix, tail}
+    end
 
     def numerical_string_to_int(codec, string) do
-      case Custom.normalize_string(string) do
-        {:ok, canon_string} ->
+      case :unicode.characters_to_nfc_list(string) do
+        codepoints when is_list(codepoints) ->
           symbol_to_amount = codec.symbol_to_amount
           radix = map_size(symbol_to_amount)
-          string_to_int_recur(canon_string, symbol_to_amount, radix, _acc0 = 0)
+          string_to_int_recur(codepoints, symbol_to_amount, radix, _acc0 = 0)
 
-        {:error, reason} ->
-          {:error, {:invalid_encoding, reason}}
+        {:error, codepoints, rest} ->
+          {:error, {:invalid_encoding, {codepoints, rest}}}
       end
     end
 
@@ -250,45 +232,61 @@ defmodule FF3_1.FFX.Codec.Custom do
       zero_symbol = elem(amount_to_symbol, 0)
 
       int
-      |> int_to_padded_string_recur(amount_to_symbol, radix, _acc0 = [])
-      |> String.pad_leading(pad_count, zero_symbol)
+      |> int_to_charlist_recur(amount_to_symbol, radix, _acc0 = [])
+      |> charlist_pad_leading(pad_count, zero_symbol)
+      |> List.to_string()
     end
 
     ## Internal
 
-    defp string_to_int_recur(string, symbol_to_amount, radix, acc) do
-      case String.next_grapheme(string) do
-        {symbol, remaining_string} ->
-          string_to_int_step(symbol, remaining_string, symbol_to_amount, radix, acc)
-
-        nil ->
-          {:ok, acc}
-      end
+    defp string_split_codepoints_tail_size(<<_::utf8, next::bytes>>, n) when n > 0 do
+      string_split_codepoints_tail_size(next, n - 1)
     end
 
-    defp string_to_int_step(symbol, remaining_string, symbol_to_amount, radix, acc) do
-      Map.fetch!(symbol_to_amount, symbol)
+    defp string_split_codepoints_tail_size(<<tail::bytes>>, 0) do
+      byte_size(tail)
+    end
+
+    defp string_to_int_recur([codepoint | next], symbol_to_amount, radix, acc) do
+      Map.fetch!(symbol_to_amount, codepoint)
     rescue
       KeyError ->
-        {:error, {:unknown_symbol, symbol}}
+        {:error, {:unknown_symbol, <<codepoint::utf8>>}}
     else
       amount ->
         acc = acc * radix + amount
-        string_to_int_recur(remaining_string, symbol_to_amount, radix, acc)
+        string_to_int_recur(next, symbol_to_amount, radix, acc)
     end
 
-    defp int_to_padded_string_recur(int, amount_to_symbol, radix, acc) do
+    defp string_to_int_recur([], _symbol_to_amount, _radix, acc) do
+      {:ok, acc}
+    end
+
+    defp int_to_charlist_recur(int, amount_to_symbol, radix, acc) do
       remainder = rem(int, radix)
       symbol = elem(amount_to_symbol, remainder)
       acc = [symbol | acc]
 
       case div(int, radix) do
         0 ->
-          List.to_string(acc)
+          acc
 
         int ->
-          int_to_padded_string_recur(int, amount_to_symbol, radix, acc)
+          int_to_charlist_recur(int, amount_to_symbol, radix, acc)
       end
+    end
+
+    defp charlist_pad_leading(charlist, pad_count, zero_symbol) do
+      pad_size = pad_count - length(charlist)
+      charlist_pad_leading_recur(charlist, pad_size, zero_symbol)
+    end
+
+    defp charlist_pad_leading_recur(charlist, pad_size, zero_symbol) when pad_size > 0 do
+      [zero_symbol | charlist_pad_leading_recur(charlist, pad_size - 1, zero_symbol)]
+    end
+
+    defp charlist_pad_leading_recur(charlist, 0, _zero_symbol) do
+      charlist
     end
   end
 end
