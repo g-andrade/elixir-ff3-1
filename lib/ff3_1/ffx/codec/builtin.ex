@@ -18,12 +18,12 @@ defmodule FF3_1.FFX.Codec.Builtin do
 
   ## Types
 
-  @enforce_keys [:radix, :lower_case]
-  defstruct [:radix, :lower_case]
+  @enforce_keys [:radix, :lower_case?]
+  defstruct [:radix, :lower_case?]
 
   @type numerical_string :: String.t()
 
-  @opaque t :: %__MODULE__{radix: radix, lower_case: boolean}
+  @opaque t :: %__MODULE__{radix: radix, lower_case?: boolean}
   @type radix :: 2..36
 
   @broadest_upper_version "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ"
@@ -37,7 +37,7 @@ defmodule FF3_1.FFX.Codec.Builtin do
       {:ok,
        %__MODULE__{
          radix: radix,
-         lower_case: false
+         lower_case?: false
        }}
     end
   end
@@ -52,7 +52,7 @@ defmodule FF3_1.FFX.Codec.Builtin do
       {:ok,
        %__MODULE__{
          radix: radix,
-         lower_case: matches_lower
+         lower_case?: matches_lower
        }}
     end
   end
@@ -84,7 +84,7 @@ defmodule FF3_1.FFX.Codec.Builtin do
       encoded = :erlang.integer_to_binary(int, codec.radix)
 
       case_result =
-        if codec.lower_case do
+        if codec.lower_case? do
           String.downcase(encoded, :ascii)
         else
           encoded
