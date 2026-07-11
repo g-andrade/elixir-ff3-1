@@ -1050,6 +1050,15 @@ defmodule FF3_1_Test do
     {:ok, _ctx} = FF3_1.new_ctx(key, _radix = 2)
   end
 
+  ##
+
+  integer_otp_release = :otp_release |> :erlang.system_info() |> List.to_integer()
+
+  if integer_otp_release < 28 do
+    # Missing Unicode metadata
+    @tag :skip
+  end
+
   test "large alphabets" do
     key = :crypto.strong_rand_bytes(24)
 
