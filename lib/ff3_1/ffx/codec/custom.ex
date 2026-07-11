@@ -4,15 +4,33 @@ defmodule FF3_1.FFX.Codec.Custom do
   An implementation of `FF3_1.FFX.Codec` that handles alphabets other than the
   ones supported by `FF3_1.FFX.Codec.Builtin`.
 
-  Each [grapheme
-  cluster](https://hexdocs.pm/elixir/1.15/String.html#module-grapheme-clusters)
-  represents a visual symbol.
+  Each symbol is a single Unicode scalar (codepoint) that is guaranteed to
+  stand on its own as one visual unit — a [grapheme
+  cluster](https://hexdocs.pm/elixir/1.20/String.html#module-grapheme-clusters).
+  Alphabets are restricted at construction so this holds: codepoints that are
+  unassigned, control/format/surrogate/private-use, combining marks, conjoining
+  Hangul jamo, not in NFC form, or that would merge with an adjacent symbol
+  (emoji modifiers, regional indicators, prepending marks, ...) are rejected.
+
+  This buys two guarantees of different strength:
+
+  * **Round-tripping** is ensured for any accepted alphabet, forever. Input is
+    tokenized by codepoint and matched after NFC normalization, and NFC is
+    frozen for assigned characters by the Unicode stability policy — so
+    ciphertext stays decryptable across Unicode/OTP upgrades.
+  * **Visual-unit preservation** (visual units out = visual units in) holds
+    under any given Unicode version, because every symbol occupies exactly one
+    grapheme cluster. Unlike normalization, grapheme segmentation has no formal
+    stability policy; a future Unicode version could in principle re-segment an
+    exotic symbol. If that ever happened the data would still decrypt (the
+    round-trip guarantee is independent of segmentation) — only the visual
+    count could drift. Restrict to ASCII for a formally frozen visual guarantee.
 
   It's **case sensitive** (unlike `FF3_1.FFX.Codec.Builtin`), but [norm
-  insensitive](https://hexdocs.pm/elixir/1.15/String.html#normalize/2). This is
+  insensitive](https://hexdocs.pm/elixir/1.20/String.html#normalize/2). This is
   because:
   * There are
-  [multiple](https://hexdocs.pm/elixir/1.15/String.html#downcase/2),
+  [multiple](https://hexdocs.pm/elixir/1.20/String.html#downcase/2),
   [ways](https://www.erlang.org/doc/man/string#casefold-1) of making a string
   case agnostic;
   * Case sensitivity makes sense in some cases (think base64) but not in
@@ -33,6 +51,12 @@ defmodule FF3_1.FFX.Codec.Custom do
   # require Logger
 
   @unicode_combining_class_not_reordered 0
+
+  # Representative neighbors covering every grapheme-cluster-joining vector:
+  # a plain base (Extend/SpacingMark), a pictographic (emoji modifier/ZWJ/VS16),
+  # and a regional indicator (flag pairing). Prepend/Hangul-L are caught by the
+  # reverse-order probe in `standalone_grapheme?/1`.
+  @grapheme_probe_neighbors [?a, 0x1F64C, 0x1F1E6]
 
   @enforce_keys [
     :symbol_to_amount,
@@ -70,17 +94,6 @@ defmodule FF3_1.FFX.Codec.Custom do
   end
 
   ## Internal
-
-  @doc false
-  def normalize_string(string) do
-    case :unicode.characters_to_nfc_binary(string) do
-      <<normalized::bytes>> ->
-        {:ok, normalized}
-
-      {:error, string, rest} ->
-        {:error, {string, rest}}
-    end
-  end
 
   defp validate_string(alphabet) do
     if String.valid?(alphabet) do
@@ -142,6 +155,14 @@ defmodule FF3_1.FFX.Codec.Custom do
     # - 3d. NFC-stable in isolation. Reject if
     # :unicode.characters_to_nfc_binary(<<cp::utf8>>) != <<cp::utf8>>.
 
+    # - 3e. Stands alone as a grapheme cluster. Reject if the codepoint would
+    # merge with an adjacent symbol under Unicode segmentation (emoji modifiers,
+    # regional indicators, prepending marks, ...). This is what guarantees
+    # "visual units out = visual units in". It subsumes 3b (combining marks
+    # always merge with a preceding base), but 3b is kept as a cheaper, more
+    # specific pre-filter, and 3c is still needed because the probe neighbors
+    # don't include a Hangul V/T.
+
     %{
       category: {principal_category, _} = category,
       ccc: combining_class
@@ -160,8 +181,35 @@ defmodule FF3_1.FFX.Codec.Custom do
       :unicode.characters_to_nfc_list([codepoint]) !== [codepoint] ->
         :not_in_nfc_norm
 
+      not standalone_grapheme?(codepoint) ->
+        :merges_with_adjacent_symbols
+
       true ->
         nil
+    end
+  end
+
+  # A symbol stands alone iff it never merges with a representative neighbor on
+  # either side. Since every *other* accepted symbol is itself standalone, a
+  # merge can only occur if this codepoint is a joiner — so probing a fixed set
+  # of neighbors is sufficient to rule out merging against any accepted symbol.
+  defp standalone_grapheme?(codepoint) do
+    Enum.all?(@grapheme_probe_neighbors, fn neighbor ->
+      not grapheme_merges?(neighbor, codepoint) and
+        not grapheme_merges?(codepoint, neighbor)
+    end)
+  end
+
+  # `:unicode_util.gc/1` returns `[grapheme_cluster | rest]`; a cluster spanning
+  # more than one codepoint comes back as a list head, a lone codepoint as an
+  # integer head. A list head therefore means the two codepoints merged.
+  defp grapheme_merges?(left, right) do
+    case :unicode_util.gc([left, right]) do
+      [first | _] when is_list(first) ->
+        true
+
+      _ ->
+        false
     end
   end
 
@@ -185,7 +233,7 @@ defmodule FF3_1.FFX.Codec.Custom do
       :ok
     else
       repeated_symbols = ordered_codepoints -- unique
-      repeated_symbol_strings = Enum.map(repeated_symbols, &(<<&1::utf8>>))
+      repeated_symbol_strings = Enum.map(repeated_symbols, &<<&1::utf8>>)
       {:error, {:alphabet_has_repeated_symbols, repeated_symbol_strings}}
     end
   end
@@ -197,34 +245,32 @@ defmodule FF3_1.FFX.Codec.Custom do
 
     def radix(codec), do: tuple_size(codec.amount_to_symbol)
 
-    def numerical_string_length(_codec, string) when is_binary(string) do
-      {:ok, String.length(string)}
-    end
-
-    def numerical_string_length(_codec, string) do
-      {:error, {:not_a_numerical_string, string}}
-    end
-
-    def split_numerical_string_at(_codec, string, n) do
-      tail_size = string_split_codepoints_tail_size(string, n)
-      prefix_size = byte_size(string) - tail_size
-      <<prefix::bytes-size(^prefix_size), tail::bytes>> = string
-      {prefix, tail}
-    end
-
-    def numerical_string_to_int(codec, string) do
+    def normalize_input(_codec, string) when is_binary(string) do
       case :unicode.characters_to_nfc_list(string) do
-        codepoints when is_list(codepoints) ->
-          symbol_to_amount = codec.symbol_to_amount
-          radix = map_size(symbol_to_amount)
-          string_to_int_recur(codepoints, symbol_to_amount, radix, _acc0 = 0)
+        normalized when is_list(normalized) ->
+          len = length(normalized)
+          {:ok, len, normalized}
 
-        {:error, codepoints, rest} ->
-          {:error, {:invalid_encoding, {codepoints, rest}}}
+        {:error, codepoints, chardata} ->
+          {:error, {:bad_utf8, codepoints, chardata}}
       end
     end
 
-    def concat_numerical_strings(_codec, left, right), do: left <> right
+    def normalize_input(_codec, string) do
+      {:error, {:not_a_numerical_string, string}}
+    end
+
+    def split_numerical_string_at(_codec, codepoints, n) do
+      :lists.split(n, codepoints)
+    end
+
+    def numerical_string_to_int(codec, codepoints) do
+      symbol_to_amount = codec.symbol_to_amount
+      radix = map_size(symbol_to_amount)
+      string_to_int_recur(codepoints, symbol_to_amount, radix, _acc0 = 0)
+    end
+
+    def concat_numerical_strings(_codec, left, right), do: :unicode.characters_to_binary([left, right])
 
     def int_to_padded_numerical_string(codec, int, pad_count) when is_integer(int) and int >= 0 do
       amount_to_symbol = codec.amount_to_symbol
@@ -234,18 +280,9 @@ defmodule FF3_1.FFX.Codec.Custom do
       int
       |> int_to_charlist_recur(amount_to_symbol, radix, _acc0 = [])
       |> charlist_pad_leading(pad_count, zero_symbol)
-      |> List.to_string()
     end
 
     ## Internal
-
-    defp string_split_codepoints_tail_size(<<_::utf8, next::bytes>>, n) when n > 0 do
-      string_split_codepoints_tail_size(next, n - 1)
-    end
-
-    defp string_split_codepoints_tail_size(<<tail::bytes>>, 0) do
-      byte_size(tail)
-    end
 
     defp string_to_int_recur([codepoint | next], symbol_to_amount, radix, acc) do
       Map.fetch!(symbol_to_amount, codepoint)

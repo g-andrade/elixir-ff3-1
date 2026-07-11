@@ -41,7 +41,6 @@ defmodule FF3_1.MixProject do
       {:benchee, "~> 1.0", only: :dev, runtime: false},
       {:ex_doc, "~> 0.40", only: :dev, runtime: false},
       {:recon, "~> 2.5", only: [:dev, :test], runtime: false},
-      {:unicode, "~> 1.16", optional: true},
       maybe_credo_dep(),
       maybe_dialyxir_dep(),
       maybe_styler_dep()

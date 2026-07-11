@@ -1,74 +1,44 @@
 #!/usr/bin/env elixir
+# Regenerate a fixture alphabet of N valid symbols:
+#
+#     mix run test/data/generate_alphabet.exs <count> <output_path>
+#
+# Each symbol is a single Unicode codepoint that the Custom codec accepts on its
+# own. We gate candidates through `Custom.new/1` itself so the fixtures can never
+# drift from the codec's actual acceptance rules. Separators are additionally
+# skipped so the file has no whitespace that `String.trim/1` could eat at a
+# boundary.
+
+alias FF3_1.FFX.Codec.Custom
 
 require Logger
 
-# credo:disable-for-this-file Credo.Check.Refactor.Nesting
-# credo:disable-for-this-file Credo.Check.Refactor.CyclomaticComplexity
 defmodule AlphabetGenerator do
   @moduledoc false
-  def generate(length) do
-    generate_recur(
-      _n = length,
-      _current = "0",
-      _codepoint = ?0,
-      _acc = [],
-      _acc_n = 0
-    )
+
+  @max_codepoint 0x10FFFF
+  @surrogates 0xD800..0xDFFF
+
+  def generate(count) do
+    ?0
+    |> Stream.iterate(&(&1 + 1))
+    |> Stream.take_while(&(&1 <= @max_codepoint))
+    |> Stream.filter(&acceptable?/1)
+    |> Enum.take(count)
+    |> List.to_string()
   end
 
-  defp generate_recur(n, current, codepoint, acc, acc_n) do
-    codepoint_after = calc_codepoint_after(codepoint)
-    current = :unicode.characters_to_nfc_binary([current, codepoint_after])
-
-    case String.graphemes(current) do
-      [current] ->
-        generate_recur(n, current, codepoint_after, acc, acc_n)
-
-      [cluster, current] ->
-        is_printable = String.printable?(cluster)
-        is_safe = Unicode.GraphemeClusterBreak.grapheme_break(cluster) == [:other]
-
-        case acc_n + String.length(cluster) do
-          less when less < n and is_printable and is_safe ->
-            acc = [cluster, acc]
-            acc_n = less
-            generate_recur(n, current, codepoint_after, acc, acc_n)
-
-          equal when equal === n and is_printable and is_safe ->
-            what_we_have =
-              [cluster, acc]
-              |> :unicode.characters_to_nfc_binary()
-              |> String.graphemes()
-              |> :lists.usort()
-              |> :unicode.characters_to_nfc_binary()
-
-            case String.length(what_we_have) do
-              still_not_enough when still_not_enough < n ->
-                # Some clusters got merged?
-                generate_recur(n, current, codepoint_after, what_we_have, still_not_enough)
-
-              _plenty ->
-                String.slice(what_we_have, 0, n)
-            end
-
-          other when other > n or not is_printable or not is_safe ->
-            generate_recur(n, current, codepoint_after, acc, acc_n)
-        end
-    end
+  defp acceptable?(codepoint) do
+    codepoint not in @surrogates and
+      not separator?(codepoint) and
+      match?({:ok, _}, Custom.new(<<codepoint::utf8>>))
   end
 
-  defp calc_codepoint_after(codepoint) do
-    if codepoint in (0xD800 - 1)..0xDFFF do
-      # UTF-16 surrogate range
-      0xDFFF + 1
-    else
-      codepoint + 1
-    end
+  defp separator?(codepoint) do
+    {principal_category, _} = :unicode_util.lookup(codepoint).category
+    principal_category === :separator
   end
 end
-
-Logger.info("Installing and compiling `unicode` library (this could a while)")
-Mix.install([:unicode])
 
 Logger.info("Generating alphabet")
 [amount_str, output_filepath] = System.argv()

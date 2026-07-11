@@ -63,21 +63,20 @@ defmodule FF3_1.FFX.Codec.Builtin do
     @moduledoc false
     def radix(codec), do: codec.radix
 
-    def numerical_string_length(_codec, string) when is_binary(string) do
-      {:ok, String.length(string)}
+    def normalize_input(_codec, string) when byte_size(string) !== 0 do
+      normalized = string
+      len = byte_size(normalized)
+      {:ok, len, normalized}
     end
 
-    def numerical_string_length(_codec, string) do
+    def normalize_input(_codec, string) do
       {:error, {:not_a_numerical_string, string}}
     end
 
     def split_numerical_string_at(_codec, string, n), do: String.split_at(string, n)
 
-    def numerical_string_to_int(codec, string) when byte_size(string) !== 0 do
+    def numerical_string_to_int(codec, string) do
       {:ok, String.to_integer(string, codec.radix)}
-    rescue
-      ArgumentError ->
-        {:error, :unknown_symbol}
     end
 
     def int_to_padded_numerical_string(codec, int, pad_count) when int >= 0 do

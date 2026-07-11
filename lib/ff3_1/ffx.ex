@@ -26,7 +26,7 @@ defmodule FF3_1.FFX do
   @spec num(vX) :: x
         when vX: byte_string, x: non_neg_integer
   def num(vX) do
-    <<x::integer-size(byte_size(vX))-unit(8)>> = vX
+    <<x::integer-size(byte_size(^vX))-unit(8)>> = vX
     x
   end
 
@@ -37,7 +37,7 @@ defmodule FF3_1.FFX do
         when vX: byte_string, vY: byte_string
   def revb(vX) do
     size = byte_size(vX)
-    <<integer::big-integer-size(size)-unit(8)>> = vX
+    <<integer::big-integer-size(^size)-unit(8)>> = vX
     <<integer::little-integer-size(size)-unit(8)>>
   end
 
@@ -52,9 +52,9 @@ defmodule FF3_1.FFX do
     @spec radix(t()) :: FFX.radix()
     def radix(codec)
 
-    @spec numerical_string_length(t(), vX) :: {:ok, non_neg_integer} | {:error, term}
-          when vX: FFX.numerical_string()
-    def numerical_string_length(codec, vX)
+    @spec normalize_input(t(), vX) :: {:ok, numerical_string_length, vX}
+          when vX: FFX.numerical_string(), numerical_string_length: non_neg_integer
+    def normalize_input(codec, s)
 
     @spec split_numerical_string_at(t(), vX, pos_integer) :: {vA, vB}
           when vX: FFX.numerical_string(), vA: FFX.numerical_string(), vB: FFX.numerical_string()
@@ -75,7 +75,7 @@ defmodule FF3_1.FFX do
     def int_to_padded_numerical_string(codec, int, pad_count)
 
     @spec concat_numerical_strings(t(), vA, vB) :: vX
-          when vA: FFX.numerical_string(), vB: FFX.numerical_string(), vX: FFX.numerical_string()
+          when vA: FFX.numerical_string(), vB: FFX.numerical_string(), vX: FFX.numerical_string() | String.t()
     def concat_numerical_strings(codec, left, right)
   end
 end

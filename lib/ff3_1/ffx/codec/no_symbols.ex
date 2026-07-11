@@ -47,7 +47,7 @@ defmodule FF3_1.FFX.Codec.NoSymbols do
 
     def radix(codec), do: codec.radix
 
-    def numerical_string_length(codec, %NumString{value: value, length: length}) do
+    def normalize_input(codec, %NumString{value: value, length: length} = input) do
       max_value = Integer.pow(codec.radix, length) - 1
 
       cond do
@@ -58,11 +58,12 @@ defmodule FF3_1.FFX.Codec.NoSymbols do
           {:error, {:value_is_larger_than_declared_length}}
 
         true ->
-          {:ok, length}
+          normalized = input
+          {:ok, length, normalized}
       end
     end
 
-    def numerical_string_length(_codec, invalid) do
+    def normalize_input(_codec, invalid) do
       {:error, {:not_a_numerical_string, invalid}}
     end
 

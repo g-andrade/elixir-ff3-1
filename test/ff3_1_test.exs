@@ -3,6 +3,7 @@
 defmodule FF3_1_Test do
   use ExUnit.Case, async: true
 
+  alias FF3_1.FFX.Codec.Custom
   alias FF3_1.Setup.Server
 
   require Logger
@@ -11,8 +12,6 @@ defmodule FF3_1_Test do
 
   # has different representations under different norms
   @letter_a_with_ring_above "Å"
-
-  @zero_width_joiner <<8205::utf8>>
 
   ## I didn't find any official test vectors, so I copied the ones from ubiq-go:
   ## * https://github.com/ubiqsecurity/ubiq-fpe-go/blob/63af101126699b7438045844d0f25120e424789d/ff3_1_test.go
@@ -905,14 +904,20 @@ defmodule FF3_1_Test do
     )
   end
 
-  test "multibyte custom alphabet" do
-    check_test_vector(
-      <<63, 89, 255, 222, 188, 211, 44, 18, 129, 227, 228, 6, 210, 23, 145, 98, 144, 216, 104, 61, 203, 144, 121, 251>>,
-      <<10, 154, 124, 214, 232, 247, 151>>,
-      "🙌🙌🙌🙌🙌🙌🙌🙌",
-      "🙌🏿🙌🏼🙌🏿🙌🏾🙌🙌🏼🙌🏾🙌🏽",
-      "🙌🙌🏻🙌🏼🙌🏽🙌🏾🙌🏿"
-    )
+  test "alphabet with mergeable codepoints is rejected" do
+    key =
+      <<63, 89, 255, 222, 188, 211, 44, 18, 129, 227, 228, 6, 210, 23, 145, 98, 144, 216, 104, 61, 203, 144, 121, 251>>
+
+    assert FF3_1.new_ctx(key, "🙌🙌🏻🙌🏼🙌🏽🙌🏾🙌🏿") ===
+             {:error,
+              {:invalid_codepoints,
+               [
+                 {"🏻", :merges_with_adjacent_symbols},
+                 {"🏼", :merges_with_adjacent_symbols},
+                 {"🏽", :merges_with_adjacent_symbols},
+                 {"🏾", :merges_with_adjacent_symbols},
+                 {"🏿", :merges_with_adjacent_symbols}
+               ]}}
   end
 
   test "builtin alphabet is case insensitive" do
@@ -1086,30 +1091,119 @@ defmodule FF3_1_Test do
     assert catch_error(FF3_1.decrypt!(ctx, tweak, "abcdefgzzzz"))
   end
 
-  test "custom alphabet: ambiguous symbols are rejected" do
-    key = :crypto.strong_rand_bytes(24)
-    variant1 = :unicode.characters_to_nfc_binary(@letter_a_with_ring_above)
-    variant2 = :unicode.characters_to_nfd_binary(@letter_a_with_ring_above)
+  describe "Custom.new/1 accepts" do
+    test "plain ASCII digits and letters" do
+      assert {:ok, _} = Custom.new("0123456789")
+      assert {:ok, _} = Custom.new("abcXYZ")
+    end
 
-    alphabet = "a#{variant1}b"
-    {:ok, _ctx} = FF3_1.new_ctx(key, alphabet)
+    test "single-codepoint symbols across scripts, incl. precomposed and standalone emoji" do
+      # \u00E9, \u00C5, \uD83E\uDEA9, \uD83D\uDE4C, \uAC00 (precomposed Hangul syllable), \u4E00 (CJK),
+      # \u03B1 (Greek), \u0431 (Cyrillic), \u20AC (currency)
+      for codepoint <- [0x00E9, 0x00C5, 0x1FAA9, 0x1F64C, 0xAC00, 0x4E00, 0x03B1, 0x0431, 0x20AC] do
+        assert {:ok, _} = Custom.new(<<codepoint::utf8>>),
+               "expected U+#{Integer.to_string(codepoint, 16)} to be accepted"
+      end
+    end
 
-    alphabet = "a#{variant2}b"
-    {:ok, _ctx} = FF3_1.new_ctx(key, alphabet)
+    test "separators such as the space character are valid symbols" do
+      assert {:ok, _} = Custom.new("a b")
+    end
 
-    alphabet = "a#{variant1}b#{variant2}"
-    {:error, {:alphabet_has_ambiguous_symbols, [@letter_a_with_ring_above]}} = FF3_1.new_ctx(key, alphabet)
+    test "Custom.new/1 itself does not enforce a minimum radix (FF3_1.new_ctx does)" do
+      # radix 0 and 1 are accepted here; the 2..0xFFFF bound lives in new_ctx.
+      assert {:ok, _} = Custom.new("")
+      assert {:ok, _} = Custom.new("x")
+    end
+  end
 
-    alphabet = "#{@zero_width_joiner}abcd"
-    assert String.length(alphabet) == 5
+  describe "Custom.new/1 rejects" do
+    test "unassigned, control, format and private-use codepoints (category :other)" do
+      assert reason_for(0x0378) == {:invalid_category, {:other, :not_assigned}}
+      assert reason_for(0x0007) == {:invalid_category, {:other, :control}}
+      assert reason_for(0x200D) == {:invalid_category, {:other, :format}}
+      assert reason_for(0xE000) == {:invalid_category, {:other, :private}}
+    end
 
-    {:error,
-     {:alphabet_has_symbols_reclustering_when_next_to_each_other,
-      [
-        first: @zero_width_joiner,
-        second: @zero_width_joiner,
-        reclustered_into: ["#{@zero_width_joiner}#{@zero_width_joiner}"]
-      ]}} = FF3_1.new_ctx(key, alphabet)
+    test "combining marks with a nonzero combining class" do
+      assert reason_for(0x0301) == {:invalid_combining_class, 230}
+      assert reason_for(0x030A) == {:invalid_combining_class, 230}
+    end
+
+    test "conjoining Hangul jamo across all three blocks" do
+      # L, V, T in Hangul Jamo; L in Extended-A; V in Extended-B
+      for codepoint <- [0x1100, 0x1161, 0x11A8, 0xA960, 0xD7B0] do
+        assert reason_for(codepoint) == :conjoining_hangul_jamo
+      end
+    end
+
+    test "codepoints that are not already in NFC form" do
+      assert reason_for(0x2126) == :not_in_nfc_norm
+      assert reason_for(0x212B) == :not_in_nfc_norm
+    end
+
+    test "the decomposed (NFD) form of an otherwise-valid symbol" do
+      # Å is fine supplied precomposed (U+00C5) but not decomposed as
+      # A + combining ring: the combining mark is rejected on its own.
+      precomposed = :unicode.characters_to_nfc_binary(@letter_a_with_ring_above)
+      decomposed = :unicode.characters_to_nfd_binary(@letter_a_with_ring_above)
+
+      assert {:ok, _} = Custom.new("a#{precomposed}b")
+
+      [_a, combining_ring] = String.codepoints(decomposed)
+
+      assert Custom.new("a#{decomposed}b") ==
+               {:error, {:invalid_codepoints, [{combining_ring, {:invalid_combining_class, 230}}]}}
+    end
+
+    test "codepoints that would merge with an adjacent symbol" do
+      # emoji modifier and regional indicator (join via emoji rules), a prepend
+      # letter (joins the following symbol), and combining-class-0 marks (VS16,
+      # enclosing keycap, spacing mark) that slip the combining-class check but
+      # are caught here.
+      for codepoint <- [0x1F3FB, 0x1F1E6, 0x0D4E, 0xFE0F, 0x20E3, 0x093E] do
+        assert reason_for(codepoint) == :merges_with_adjacent_symbols
+      end
+    end
+
+    test "and collects every invalid codepoint, in order, each with its reason" do
+      alphabet = "a" <> <<0x0301::utf8>> <> "b" <> <<0x200D::utf8>> <> "c"
+
+      assert Custom.new(alphabet) ==
+               {:error,
+                {:invalid_codepoints,
+                 [
+                   {<<0x0301::utf8>>, {:invalid_combining_class, 230}},
+                   {<<0x200D::utf8>>, {:invalid_category, {:other, :format}}}
+                 ]}}
+    end
+
+    test "invalid UTF-8, before any per-codepoint check" do
+      assert Custom.new(<<0xFF, 0xFE>>) == {:error, {:alphabet_not_valid_utf8, <<0xFF, 0xFE>>}}
+    end
+
+    test "repeated symbols" do
+      assert Custom.new("abca") == {:error, {:alphabet_has_repeated_symbols, ["a"]}}
+
+      raising_hands = <<0x1F64C::utf8>>
+
+      assert Custom.new("ab" <> raising_hands <> raising_hands) ==
+               {:error, {:alphabet_has_repeated_symbols, [raising_hands]}}
+    end
+
+    test "an invalid codepoint in preference to a repeat (codepoint validation runs first)" do
+      # 'a' is repeated, but the combining mark fails before uniqueness is checked.
+      assert Custom.new("ab" <> <<0x0301::utf8>> <> "a") ==
+               {:error, {:invalid_codepoints, [{<<0x0301::utf8>>, {:invalid_combining_class, 230}}]}}
+    end
+  end
+
+  test "the undocumented :unicode_util.lookup/1 shape the codec relies on is intact" do
+    # We depend on OTP internals for category/combining-class; pin the shape so
+    # an OTP change fails loudly here rather than silently in validation.
+    assert %{category: {:mark, :non_spacing}, ccc: 230} = :unicode_util.lookup(0x0301)
+    assert %{category: {:letter, :lowercase}, ccc: 0} = :unicode_util.lookup(?a)
+    assert %{category: {:other, :not_assigned}} = :unicode_util.lookup(0x0378)
   end
 
   test "badly sized strings are rejected" do
@@ -1175,8 +1269,8 @@ defmodule FF3_1_Test do
     {:ok, ctx} = FF3_1.new_ctx(key, _alphabet = "012345678x")
 
     codec = FF3_1.codec(ctx)
-    assert Codec.numerical_string_to_int(codec, "234234638x") == {:ok, 2_342_346_389}
-    assert Codec.int_to_padded_numerical_string(codec, 2_342_346_389, _padding = 12) == "00234234638x"
+    assert Codec.numerical_string_to_int(codec, ~c"234234638x") == {:ok, 2_342_346_389}
+    assert Codec.int_to_padded_numerical_string(codec, 2_342_346_389, _padding = 12) == ~c"00234234638x"
   end
 
   test "setup modules working fine" do
@@ -1272,6 +1366,13 @@ defmodule FF3_1_Test do
   end
 
   ## Helpers
+
+  # The rejection reason for a single-codepoint alphabet, so per-codepoint
+  # validation edge cases read as `assert reason_for(cp) == ...`.
+  defp reason_for(codepoint) do
+    {:error, {:invalid_codepoints, [{_symbol, reason}]}} = Custom.new(<<codepoint::utf8>>)
+    reason
+  end
 
   defp check_test_vector(key, tweak, plaintext, ciphertext, radix_or_alphabet) do
     {:ok, ctx} = FF3_1.new_ctx(key, radix_or_alphabet)

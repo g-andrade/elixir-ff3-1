@@ -503,7 +503,7 @@ defmodule FF3_1 do
   end
 
   defp do_encrypt_or_decrypt(ctx, t, vX, enc) do
-    with {:ok, vX_length} <- validate_enc_or_dec_input(ctx, vX),
+    with {:ok, vX_length, vX} <- validate_enc_or_dec_input(ctx, vX),
          :ok <- validate_tweak(t),
          fpe_ff3_1_ctx(key: key, codec: codec, iform_ctx: iform_ctx) = ctx,
          {:ok, even_m, odd_m, vA, vB, even_vW, odd_vW} <-
@@ -549,11 +549,11 @@ defmodule FF3_1 do
 
     fpe_ff3_1_ctx(codec: codec, min_length: min_length, max_length: max_length) = ctx
 
-    case Codec.numerical_string_length(codec, vX) do
-      {:ok, valid_length} when valid_length in min_length..max_length ->
-        {:ok, valid_length}
+    case Codec.normalize_input(codec, vX) do
+      {:ok, valid_length, normalized_vX} when valid_length in min_length..max_length ->
+        {:ok, valid_length, normalized_vX}
 
-      {:ok, _invalid_length} ->
+      {:ok, _invalid_length, _} ->
         {:error, "Invalid input not between #{min_length} and #{max_length} symbols long: #{inspect(vX)}"}
 
       {:error, reason} ->
