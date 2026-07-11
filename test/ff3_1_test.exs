@@ -13,6 +13,8 @@ defmodule FF3_1_Test do
   # has different representations under different norms
   @letter_a_with_ring_above "Å"
 
+  integer_otp_release = :otp_release |> :erlang.system_info() |> List.to_integer()
+
   ## I didn't find any official test vectors, so I copied the ones from ubiq-go:
   ## * https://github.com/ubiqsecurity/ubiq-fpe-go/blob/63af101126699b7438045844d0f25120e424789d/ff3_1_test.go
 
@@ -753,6 +755,13 @@ defmodule FF3_1_Test do
     )
   end
 
+  ##
+
+  if integer_otp_release < 27 do
+    # Missing Unicode metadata
+    @tag :skip
+  end
+
   test "ubiq-go TestFF3_1UTF8" do
     check_test_vector(
       <<
@@ -1051,8 +1060,6 @@ defmodule FF3_1_Test do
   end
 
   ##
-
-  integer_otp_release = :otp_release |> :erlang.system_info() |> List.to_integer()
 
   if integer_otp_release < 28 do
     # Missing Unicode metadata
