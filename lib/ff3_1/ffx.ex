@@ -26,7 +26,8 @@ defmodule FF3_1.FFX do
   @spec num(vX) :: x
         when vX: byte_string, x: non_neg_integer
   def num(vX) do
-    <<x::integer-size(byte_size(^vX))-unit(8)>> = vX
+    size = byte_size(vX)
+    <<x::integer-size(^size)-unit(8)>> = vX
     x
   end
 
