@@ -629,7 +629,7 @@ defmodule FF3_1 do
     ## 4.v. Let c = (NUM_radix(REV(A)) + y) mod (radix**m)
     c_num_radix_rev_A = IntermediateForm.left_pad_and_revert(iform_ctx, vA, m)
     c_num_radix_rev_A_plus_y = c_num_radix_rev_A + y
-    c = rem(c_num_radix_rev_A_plus_y, Integer.pow(radix, m))
+    c = rem(c_num_radix_rev_A_plus_y, radix ** m)
 
     ## 4.vi. Let C = REV(STR_m_radix(c))
     vC = IntermediateForm.left_pad_and_revert(iform_ctx, c, m)
@@ -689,7 +689,7 @@ defmodule FF3_1 do
     ## 4.v. Let c = (NUM_radix(REV(B)) - y) mod (radix**m)
     c_num_radix_rev_B = IntermediateForm.left_pad_and_revert(iform_ctx, vB, m)
     c_num_radix_rev_B_minus_y = c_num_radix_rev_B - y
-    c = Integer.mod(c_num_radix_rev_B_minus_y, Integer.pow(radix, m))
+    c = Integer.mod(c_num_radix_rev_B_minus_y, radix ** m)
 
     ## 4.vi. Let C = REV(STR_m_radix(c))
     vC = IntermediateForm.left_pad_and_revert(iform_ctx, c, m)

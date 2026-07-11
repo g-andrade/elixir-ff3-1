@@ -1358,7 +1358,7 @@ defmodule FF3_1_Test do
             %{min_length: min_length, max_length: max_length} = FF3_1.constraints(ctx)
 
             input_length = min_length + :rand.uniform(max_length - min_length + 1) - 1
-            input_high = Integer.pow(radix, input_length - 1)
+            input_high = radix ** (input_length - 1)
             input_low = :rand.uniform(input_high) - 1
             input = input_high + input_low
 
