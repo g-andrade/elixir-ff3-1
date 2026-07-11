@@ -27,7 +27,7 @@ on:
 
 env:
   ELIXIR_VERSION_ON_WHICH_TO_CHECK_STYLE: '1.20' # Should be highest in matrix
-  ELIXIR_VERSIONS_ON_WHICH_TO_RUN_DIALYZER: "['1.12', '1.13', '1.14', '1.15', '1.16', '1.17', '1.18', '1.19', '1.20']"
+  ELIXIR_VERSIONS_ON_WHICH_TO_RUN_DIALYZER: "['1.14', '1.15', '1.16', '1.17', '1.18', '1.19', '1.20']"
 
 jobs:
   ci:
@@ -37,8 +37,6 @@ jobs:
     strategy:
       matrix:
         elixir_vsn: [
-          '1.12',
-          '1.13',
           '1.14',
           '1.15',
           '1.16',
