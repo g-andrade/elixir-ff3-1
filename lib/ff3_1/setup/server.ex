@@ -89,7 +89,7 @@ defmodule FF3_1.Setup.Server do
 
   @impl true
   def terminate(reason, state) do
-    if is_termination_wholesome(reason) do
+    if termination_wholesome?(reason) do
       pterm_key = shared_state_key(state.args.module)
       _ = :persistent_term.erase(pterm_key)
     end
@@ -105,7 +105,7 @@ defmodule FF3_1.Setup.Server do
     {__MODULE__, module}
   end
 
-  defp is_termination_wholesome(reason) do
+  defp termination_wholesome?(reason) do
     case reason do
       :normal -> true
       :shutdown -> true

@@ -606,6 +606,7 @@ defmodule FF3_1 do
     end
   end
 
+  # credo:disable-for-next-line Credo.Check.Refactor.FunctionArity
   defp do_encrypt_rounds!(i, key, codec, iform_ctx, m, other_m, vA, vB, vW, other_vW) when i < 8 do
     alias FFX.Codec
     alias FFX.IntermediateForm
@@ -666,6 +667,7 @@ defmodule FF3_1 do
     Codec.concat_numerical_strings(codec, vA_str, vB_str)
   end
 
+  # credo:disable-for-next-line Credo.Check.Refactor.FunctionArity
   defp do_decrypt_rounds!(i, key, codec, iform_ctx, m, other_m, vA, vB, vW, other_vW) when i >= 0 do
     alias FFX.Codec
     alias FFX.IntermediateForm
