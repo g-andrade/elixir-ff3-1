@@ -26,9 +26,7 @@ defmodule FF3_1.FFX do
   @spec num(vX) :: x
         when vX: byte_string, x: non_neg_integer
   def num(vX) do
-    size = byte_size(vX)
-    <<x::integer-size(^size)-unit(8)>> = vX
-    x
+    :binary.decode_unsigned(vX)
   end
 
   @doc """
@@ -38,7 +36,7 @@ defmodule FF3_1.FFX do
         when vX: byte_string, vY: byte_string
   def revb(vX) do
     size = byte_size(vX)
-    <<integer::big-integer-size(^size)-unit(8)>> = vX
+    integer = :binary.decode_unsigned(vX)
     <<integer::little-integer-size(size)-unit(8)>>
   end
 
