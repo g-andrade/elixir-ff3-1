@@ -550,7 +550,7 @@ defmodule FF3_1 do
     fpe_ff3_1_ctx(codec: codec, min_length: min_length, max_length: max_length) = ctx
 
     case Codec.normalize_input(codec, vX) do
-      {:ok, valid_length, normalized_vX} when valid_length in min_length..max_length ->
+      {:ok, valid_length, normalized_vX} when valid_length in min_length..max_length//1 ->
         {:ok, valid_length, normalized_vX}
 
       {:ok, _invalid_length, _} ->
