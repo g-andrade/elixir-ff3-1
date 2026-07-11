@@ -48,7 +48,7 @@ defmodule FF3_1.FFX.Codec.NoSymbols do
     def radix(codec), do: codec.radix
 
     def normalize_input(codec, %NumString{value: value, length: length} = input) do
-      max_value = codec.radix ** length - 1
+      max_value = Integer.pow(codec.radix, length) - 1
 
       cond do
         value < 0 ->
@@ -72,7 +72,7 @@ defmodule FF3_1.FFX.Codec.NoSymbols do
 
       left_length = n
       right_length = length - n
-      left_multiplier = codec.radix ** right_length
+      left_multiplier = Integer.pow(codec.radix, right_length)
       left_value = div(value, left_multiplier)
       right_value = rem(value, left_multiplier)
 
@@ -91,7 +91,7 @@ defmodule FF3_1.FFX.Codec.NoSymbols do
       %NumString{value: left_value, length: left_length} = left
       %NumString{value: right_value, length: right_length} = right
 
-      left_multiplier = codec.radix ** right_length
+      left_multiplier = Integer.pow(codec.radix, right_length)
       concat_value = left_value * left_multiplier + right_value
       concat_length = left_length + right_length
       %NumString{value: concat_value, length: concat_length}

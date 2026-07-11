@@ -60,7 +60,7 @@ defmodule FF3_1.FFX.IntermediateForm do
   defp imperfect_lpr_recur(radix, tail_padding, number, acc, iter) do
     if number == 0 do
       padding_needed = max(0, tail_padding - iter)
-      acc * radix ** padding_needed
+      acc * Integer.pow(radix, padding_needed)
     else
       weight = rem(number, radix)
       number = div(number, radix)
