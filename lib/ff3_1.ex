@@ -24,7 +24,7 @@ defmodule FF3_1 do
 
   ## Context
 
-  We start by creating a context with `:new_ctx/2`, passing it a cryptographic
+  We start by creating a context with `new_ctx/2`, passing it a cryptographic
   key and a radix.
 
       iex> key = :crypto.strong_rand_bytes(32)
@@ -40,7 +40,7 @@ defmodule FF3_1 do
 
   ## Encryption and decryption
 
-  We're going to `:encrypt!/3` our `plaintext` numerical string, in base 10,
+  We're going to `encrypt!/3` our `plaintext` numerical string, in base 10,
   and get another of equal length, `ciphertext`, which we can `decrypt!/3`
   to get the `plaintext` back.
 
@@ -87,7 +87,7 @@ defmodule FF3_1 do
       iex> %{min_length: 20, max_length: 192} = FF3_1.constraints(ctx)
 
   `min_length` is required because, for any given radix, short enough numerical
-  strings encompass too few possible values, rending encryption ineffective
+  strings encompass too few possible values, rendering encryption ineffective
   under adversarial conditions. In other words: their domain is too small.
 
   `max_length` may be there - pure layman speculation - as an incentive for people
@@ -118,8 +118,8 @@ defmodule FF3_1 do
 
   ## Built-in alphabet
 
-  For radix values between 2 and 36, if what `String.to_integer/2` is good
-  enough, you only need to specify the `radix` when building your `ctx`.
+  For radix values between 2 and 36, if what `String.to_integer/2` produces is
+  good enough, you only need to specify the `radix` when building your `ctx`.
 
   Both `plaintext` and `ciphertext` will be encoded in the chosen base.
 
@@ -152,7 +152,7 @@ defmodule FF3_1 do
 
   ### Built-in alphabet: case insensitivity to input
 
-  Even though the output of either `:encrypt!/3` or `:decrypt!` is
+  Even though the output of either `encrypt!/3` or `decrypt!/3` is
   upper case, any case is accepted as input.
 
       iex> key = :crypto.strong_rand_bytes(32)
@@ -163,7 +163,7 @@ defmodule FF3_1 do
       iex> _ciphertext = FF3_1.encrypt!(ctx, tweak, input)
       iex> _plaintext = FF3_1.decrypt!(ctx, tweak, input)
 
-  ### Builtin-alphabet: lower case
+  ### Built-in alphabet: lower case
 
   If you want to use the built-in alphabet but desire lower case outputs, you
   can do it by declaring the alphabet when creating `ctx`.
@@ -187,8 +187,9 @@ defmodule FF3_1 do
   Note that custom alphabets are **case sensitive** but norm insensitive.
   The reasoning behind this can be found under `FF3_1.FFX.Codec.Custom`.
 
-  The optional `Unicode` dependency is required for large radixes (> 500 as of
-  moment of writing) since validating the alphabets takes too long otherwise.
+  Each symbol must be a single Unicode scalar that stands on its own as one
+  visual unit; alphabets are validated at construction. See
+  `FF3_1.FFX.Codec.Custom` for the exact rules and the guarantees they buy.
 
   #### Base 20 with custom alphabet
 
@@ -379,7 +380,7 @@ defmodule FF3_1 do
   @doc """
   Decrypts numerical string `ciphertext` using `ctx` and 7-byte `tweak`.
 
-  Returns numerical string `plaintext` of length equal to `ciphertext`**.
+  Returns numerical string `plaintext` of length equal to `ciphertext`.
 
   Minimum and maximum length of `ciphertext` depend on radix (see `constraints/1`).
   """
