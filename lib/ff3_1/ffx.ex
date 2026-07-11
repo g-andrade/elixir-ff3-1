@@ -51,8 +51,8 @@ defmodule FF3_1.FFX do
     @spec radix(t()) :: FFX.radix()
     def radix(codec)
 
-    @spec normalize_input(t(), vX) :: {:ok, numerical_string_length, vX}
-          when vX: FFX.numerical_string(), numerical_string_length: non_neg_integer
+    @spec normalize_input(t(), vX) :: {:ok, numerical_string_length, vX} | {:error, reason}
+          when vX: FFX.numerical_string(), numerical_string_length: non_neg_integer, reason: term
     def normalize_input(codec, s)
 
     @spec split_numerical_string_at(t(), vX, pos_integer) :: {vA, vB}
