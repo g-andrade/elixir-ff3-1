@@ -81,8 +81,7 @@ defmodule FF3_1.MixProject do
 
   defp elixirc_options(env) do
     if env in [:dev, :test] do
-      # FIXME
-      [warnings_as_errors: false]
+      [warnings_as_errors: true]
     else
       []
     end
