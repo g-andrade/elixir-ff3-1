@@ -36,17 +36,40 @@ defmodule FF3_1.MixProject do
     ]
   end
 
-  # Run "mix help deps" to learn about dependencies.
   defp deps do
-    [
-      {:credo, "~> 1.7", only: :dev, runtime: false},
+    List.flatten([
       {:benchee, "~> 1.0", only: :dev, runtime: false},
-      {:dialyxir, "~> 1.3", only: :dev, runtime: false},
-      {:ex_doc, "~> 0.27", only: :dev, runtime: false},
-      {:recon, "~> 2.3", only: :dev, runtime: false},
-      {:styler, "~> 0.8", only: [:dev, :test], runtime: false},
-      {:unicode, "~> 1.16", optional: true}
-    ]
+      {:ex_doc, "~> 0.40", only: :dev, runtime: false},
+      {:recon, "~> 2.5", only: [:dev, :test], runtime: false},
+      {:unicode, "~> 1.16", optional: true},
+      maybe_credo_dep(),
+      maybe_dialyxir_dep(),
+      maybe_styler_dep()
+    ])
+  end
+
+  defp maybe_credo_dep do
+    if elixir_vsn_match?("~> 1.12") do
+      {:credo, "~> 1.7", only: [:dev, :test], runtime: false}
+    else
+      []
+    end
+  end
+
+  defp maybe_dialyxir_dep do
+    if elixir_vsn_match?("~> 1.12") do
+      {:dialyxir, "~> 1.4", only: [:dev, :test], runtime: false}
+    else
+      []
+    end
+  end
+
+  defp maybe_styler_dep do
+    if elixir_vsn_match?("~> 1.14") do
+      {:styler, "~> 1.1", only: [:dev, :test], runtime: false}
+    else
+      []
+    end
   end
 
   defp elixirc_paths(env) do
@@ -64,4 +87,6 @@ defmodule FF3_1.MixProject do
       []
     end
   end
+
+  defp elixir_vsn_match?(requirement), do: Version.match?(System.version(), requirement)
 end
