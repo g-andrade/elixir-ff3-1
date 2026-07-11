@@ -94,22 +94,22 @@ defmodule FF3_1.FFX.Codec.Custom do
     uniq = Enum.uniq(canonized)
     uniq_len = length(uniq)
 
-    if uniq_len != canonized_len do
+    if uniq_len == canonized_len do
+      {:ok, canonized}
+    else
       ambiguous = canonized -- uniq
       {:error, ambiguous}
-    else
-      {:ok, canonized}
     end
   end
 
   defp validate_uniqueness(graphemes) do
     unique = Enum.uniq(graphemes)
 
-    if length(unique) != length(graphemes) do
+    if length(unique) == length(graphemes) do
+      :ok
+    else
       repeated_symbols = graphemes -- unique
       {:error, {:alphabet_has_repeated_symbols, repeated_symbols}}
-    else
-      :ok
     end
   end
 

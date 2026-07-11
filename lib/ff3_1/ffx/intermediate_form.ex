@@ -58,28 +58,28 @@ defmodule FF3_1.FFX.IntermediateForm do
   ## Internal
 
   defp imperfect_lpr_recur(radix, tail_padding, number, acc, iter) do
-    if number != 0 do
+    if number == 0 do
+      padding_needed = max(0, tail_padding - iter)
+      acc * Integer.pow(radix, padding_needed)
+    else
       weight = rem(number, radix)
       number = div(number, radix)
       acc = acc * radix + weight
       iter = iter + 1
       imperfect_lpr_recur(radix, tail_padding, number, acc, iter)
-    else
-      padding_needed = max(0, tail_padding - iter)
-      acc * Integer.pow(radix, padding_needed)
     end
   end
 
   defp perfect_lpr_recur(mask, bits_per_symbol, tail_padding, number, acc, iter) do
-    if number != 0 do
+    if number == 0 do
+      padding_needed = max(0, tail_padding - iter)
+      acc <<< (padding_needed * bits_per_symbol)
+    else
       weight = number &&& mask
       number = number >>> bits_per_symbol
       acc = bor(acc <<< bits_per_symbol, weight)
       iter = iter + 1
       perfect_lpr_recur(mask, bits_per_symbol, tail_padding, number, acc, iter)
-    else
-      padding_needed = max(0, tail_padding - iter)
-      acc <<< (padding_needed * bits_per_symbol)
     end
   end
 end

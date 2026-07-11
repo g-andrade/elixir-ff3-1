@@ -3,6 +3,8 @@
 defmodule FF3_1_Test do
   use ExUnit.Case, async: true
 
+  alias FF3_1.Setup.Server
+
   require Logger
 
   doctest FF3_1
@@ -955,10 +957,10 @@ defmodule FF3_1_Test do
       fn _attempt_nr ->
         modified_plaintext = randomly_change_case(plaintext)
 
-        if modified_plaintext != plaintext do
-          assert catch_error(FF3_1.encrypt!(ctx, tweak, modified_plaintext))
-        else
+        if modified_plaintext == plaintext do
           assert FF3_1.encrypt!(ctx, tweak, modified_plaintext) == ciphertext
+        else
+          assert catch_error(FF3_1.encrypt!(ctx, tweak, modified_plaintext))
         end
       end
     )
@@ -971,10 +973,10 @@ defmodule FF3_1_Test do
       fn _attempt_nr ->
         modified_ciphertext = randomly_change_case(ciphertext)
 
-        if modified_ciphertext != ciphertext do
-          assert catch_error(FF3_1.decrypt!(ctx, tweak, modified_ciphertext))
-        else
+        if modified_ciphertext == ciphertext do
           assert FF3_1.decrypt!(ctx, tweak, modified_ciphertext) == plaintext
+        else
+          assert catch_error(FF3_1.decrypt!(ctx, tweak, modified_ciphertext))
         end
       end
     )
@@ -1217,20 +1219,20 @@ defmodule FF3_1_Test do
     _ = Process.flag(:trap_exit, true)
 
     {:ok, pid} = SetupModules.BuiltinBase10.start_link()
-    assert match?({:ok, _ctx}, FF3_1.Setup.Server.get_ctx(SetupModules.BuiltinBase10))
-    FF3_1.Setup.Server.stop(pid, :"everything's crashing")
-    assert match?({:ok, _ctx}, FF3_1.Setup.Server.get_ctx(SetupModules.BuiltinBase10))
+    assert match?({:ok, _ctx}, Server.get_ctx(SetupModules.BuiltinBase10))
+    Server.stop(pid, :"everything's crashing")
+    assert match?({:ok, _ctx}, Server.get_ctx(SetupModules.BuiltinBase10))
 
     {:ok, pid} = SetupModules.BuiltinBase10.start_link()
-    FF3_1.Setup.Server.stop(pid, :shutdown)
+    Server.stop(pid, :shutdown)
 
-    assert FF3_1.Setup.Server.get_ctx(SetupModules.BuiltinBase10) ==
+    assert Server.get_ctx(SetupModules.BuiltinBase10) ==
              {:error, {:ctx_not_found_for_module, SetupModules.BuiltinBase10}}
 
     {:ok, pid} = SetupModules.BuiltinBase10.start_link()
-    FF3_1.Setup.Server.stop(pid, {:shutdown, :detailed_reason})
+    Server.stop(pid, {:shutdown, :detailed_reason})
 
-    assert FF3_1.Setup.Server.get_ctx(SetupModules.BuiltinBase10) ==
+    assert Server.get_ctx(SetupModules.BuiltinBase10) ==
              {:error, {:ctx_not_found_for_module, SetupModules.BuiltinBase10}}
   end
 
@@ -1320,10 +1322,10 @@ defmodule FF3_1_Test do
   end
 
   defp test_setup_module(module, plaintext) do
-    assert FF3_1.Setup.Server.get_ctx(module) == {:error, {:ctx_not_found_for_module, module}}
+    assert Server.get_ctx(module) == {:error, {:ctx_not_found_for_module, module}}
 
     {:ok, pid} = module.start_link()
-    {:ok, ctx} = FF3_1.Setup.Server.get_ctx(module)
+    {:ok, ctx} = Server.get_ctx(module)
 
     tweak = :crypto.strong_rand_bytes(7)
     ciphertext = module.encrypt!(tweak, plaintext)
@@ -1333,7 +1335,7 @@ defmodule FF3_1_Test do
     assert module.constraints() == FF3_1.constraints(ctx)
     assert module.codec() == FF3_1.codec(ctx)
 
-    :ok = FF3_1.Setup.Server.stop(pid)
-    assert FF3_1.Setup.Server.get_ctx(module) == {:error, {:ctx_not_found_for_module, module}}
+    :ok = Server.stop(pid)
+    assert Server.get_ctx(module) == {:error, {:ctx_not_found_for_module, module}}
   end
 end
