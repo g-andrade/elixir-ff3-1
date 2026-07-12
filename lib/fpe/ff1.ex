@@ -48,16 +48,6 @@ defmodule FPE.FF1 do
 
   ## API
 
-  def new_ctx!(key, radix_or_alphabet_or_codec) do
-    case new_ctx(key, radix_or_alphabet_or_codec) do
-      {:ok, ctx} ->
-        ctx
-
-      {:error, reason} ->
-        raise "TODO: #{inspect(reason)}"
-    end
-  end
-
   @doc """
   Validates arguments and creates a context used for both encryption and decryption.
   """
