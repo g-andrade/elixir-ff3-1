@@ -28,14 +28,12 @@ defmodule FPE.FF1 do
   @enforce_keys [
     :key,
     :codec,
-    :iform_ctx,
     :min_length,
     :max_length
   ]
   defstruct [
     :key,
     :codec,
-    :iform_ctx,
     :min_length,
     :max_length
   ]
@@ -44,7 +42,6 @@ defmodule FPE.FF1 do
           %__MODULE__{
             key: key,
             codec: codec,
-            iform_ctx: FFX.IntermediateForm.ctx(),
             min_length: pos_integer,
             max_length: pos_integer
           }
@@ -67,19 +64,16 @@ defmodule FPE.FF1 do
   @spec new_ctx(key, radix | alphabet | codec) :: {:ok, ctx} | {:error, term}
   def new_ctx(key, radix_or_alphabet_or_codec) do
     alias FFX.Codec
-    alias FFX.IntermediateForm
 
     with :ok <- validate_key(key),
          {:ok, codec} <- validate_radix_or_alphabet(radix_or_alphabet_or_codec),
          radix = Codec.radix(codec),
-         iform_ctx = IntermediateForm.new_ctx(radix),
          {:ok, min_length} <- calculate_min_length(radix),
          {:ok, max_length} <- calculate_max_length(min_length) do
       {:ok,
        %__MODULE__{
          key: key,
          codec: codec,
-         iform_ctx: iform_ctx,
          min_length: min_length,
          max_length: max_length
        }}
@@ -185,7 +179,7 @@ defmodule FPE.FF1 do
     def do_encrypt_or_decrypt(ctx, tweak, vX, enc) do
       with {:ok, vX_length, vX} <- validate_enc_or_dec_input(ctx, vX),
            :ok <- validate_tweak(ctx, tweak),
-           %FPE.FF1{key: key, codec: codec, iform_ctx: iform_ctx} = ctx,
+           %FPE.FF1{key: key, codec: codec} = ctx,
            {:ok, u, v, vA, vB, b, d, vP} <- setup_encrypt_or_decrypt_vars(codec, tweak, vX, vX_length) do
         vY =
           if enc do
@@ -193,7 +187,6 @@ defmodule FPE.FF1 do
               _i = 0,
               key,
               codec,
-              iform_ctx,
               tweak,
               #
               u,
@@ -209,7 +202,6 @@ defmodule FPE.FF1 do
               _i = 9,
               key,
               codec,
-              iform_ctx,
               tweak,
               #
               u,
@@ -261,7 +253,6 @@ defmodule FPE.FF1 do
 
     defp setup_encrypt_or_decrypt_vars(codec, tweak, vX, vX_length) do
       alias FFX.Codec
-      alias FFX.IntermediateForm
 
       n = vX_length
       t = byte_size(tweak)
@@ -302,9 +293,8 @@ defmodule FPE.FF1 do
     end
 
     # credo:disable-for-next-line Credo.Check.Refactor.FunctionArity
-    defp do_encrypt_rounds!(i, key, codec, iform_ctx, tweak, u, v, vA, vB, b, d, vP) when i < 10 do
+    defp do_encrypt_rounds!(i, key, codec, tweak, u, v, vA, vB, b, d, vP) when i < 10 do
       alias FFX.Codec
-      alias FFX.IntermediateForm
 
       radix = Codec.radix(codec)
       t = byte_size(tweak)
@@ -348,13 +338,12 @@ defmodule FPE.FF1 do
       vA = vB
       vB = vC
 
-      do_encrypt_rounds!(i + 1, key, codec, iform_ctx, tweak, u, v, vA, vB, b, d, vP)
+      do_encrypt_rounds!(i + 1, key, codec, tweak, u, v, vA, vB, b, d, vP)
     end
 
     # credo:disable-for-next-line Credo.Check.Refactor.FunctionArity
-    defp do_encrypt_rounds!(10, _key, codec, _iform_ctx, _tweak, u, v, vA, vB, _b, _d, _vP) do
+    defp do_encrypt_rounds!(10, _key, codec, _tweak, u, v, vA, vB, _b, _d, _vP) do
       alias FFX.Codec
-      alias FFX.IntermediateForm
       ## 5. Return A || B
       vA_str = Codec.int_to_padded_numerical_string(codec, vA, u)
       vB_str = Codec.int_to_padded_numerical_string(codec, vB, v)
@@ -364,9 +353,8 @@ defmodule FPE.FF1 do
     #################
 
     # credo:disable-for-next-line Credo.Check.Refactor.FunctionArity
-    defp do_decrypt_rounds!(i, key, codec, iform_ctx, tweak, u, v, vA, vB, b, d, vP) when i >= 0 do
+    defp do_decrypt_rounds!(i, key, codec, tweak, u, v, vA, vB, b, d, vP) when i >= 0 do
       alias FFX.Codec
-      alias FFX.IntermediateForm
 
       radix = Codec.radix(codec)
       t = byte_size(tweak)
@@ -410,13 +398,12 @@ defmodule FPE.FF1 do
       vB = vA
       vA = vC
 
-      do_decrypt_rounds!(i - 1, key, codec, iform_ctx, tweak, u, v, vA, vB, b, d, vP)
+      do_decrypt_rounds!(i - 1, key, codec, tweak, u, v, vA, vB, b, d, vP)
     end
 
     # credo:disable-for-next-line Credo.Check.Refactor.FunctionArity
-    defp do_decrypt_rounds!(-1, _key, codec, _iform_ctx, _tweak, u, v, vA, vB, _b, _d, _vP) do
+    defp do_decrypt_rounds!(-1, _key, codec, _tweak, u, v, vA, vB, _b, _d, _vP) do
       alias FFX.Codec
-      alias FFX.IntermediateForm
       ## 5. Return A || B
       vA_str = Codec.int_to_padded_numerical_string(codec, vA, u)
       vB_str = Codec.int_to_padded_numerical_string(codec, vB, v)
