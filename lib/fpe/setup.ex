@@ -41,7 +41,7 @@ defmodule FPE.FF3_1.Setup do
                  plaintext: FPE.FF3_1.numerical_string(),
                  ciphertext: FPE.FF3_1.numerical_string()
       def encrypt!(tweak, plaintext) do
-        FPE.FF3_1.encrypt!(ctx(), tweak, plaintext)
+        FPE.encrypt!(fpe(), tweak, plaintext)
       end
 
       @doc """
@@ -56,7 +56,7 @@ defmodule FPE.FF3_1.Setup do
                  ciphertext: FPE.FF3_1.numerical_string(),
                  plaintext: FPE.FF3_1.numerical_string()
       def decrypt!(tweak, ciphertext) do
-        FPE.FF3_1.decrypt!(ctx(), tweak, ciphertext)
+        FPE.decrypt!(fpe(), tweak, ciphertext)
       end
 
       @doc """
@@ -64,25 +64,25 @@ defmodule FPE.FF3_1.Setup do
       """
       @spec constraints :: FPE.FF3_1.constraints()
       def constraints do
-        FPE.FF3_1.constraints(ctx())
+        FPE.FF3_1.constraints(fpe().algorithm)
       end
 
       @doc """
-      Returns this setup's `FPE.FPE.FFX.Codec`, should you wish to further manipulate or
+      Returns this setup's `FPE.FFX.Codec`, should you wish to further manipulate or
       prepare encryption and decryption inputs or outputs.
       """
       @spec codec :: FPE.FF3_1.codec()
       def codec do
-        FPE.FF3_1.codec(ctx())
+        FPE.FF3_1.codec(fpe().algorithm)
       end
 
       @doc """
-      Returns this setup's `FPE.FF3_1.ctx`.
+      Returns this setup's `FPE.t`.
       """
-      @spec ctx :: FPE.FF3_1.ctx()
-      def ctx do
-        {:ok, ctx} = FPE.FF3_1.Setup.Server.get_ctx(__MODULE__)
-        ctx
+      @spec fpe :: FPE.t()
+      def fpe do
+        {:ok, fpe} = FPE.FF3_1.Setup.Server.get_ctx(__MODULE__)
+        fpe
       end
 
       ## Internal Functions

@@ -40,18 +40,18 @@ defmodule FPE.FF3_1 do
 
   ## Encryption and decryption
 
-  We're going to `encrypt!/3` our `plaintext` numerical string, in base 10,
-  and get another of equal length, `ciphertext`, which we can `decrypt!/3`
+  We're going to `FPE.encrypt!/3` our `plaintext` numerical string, in base 10,
+  and get another of equal length, `ciphertext`, which we can `FPE.decrypt!/3`
   to get the `plaintext` back.
 
   A 7-byte `tweak` is required, which we'll handwave for now.
 
       iex> key = :crypto.strong_rand_bytes(32)
-      iex> {:ok, ctx} = FPE.FF3_1.new_ctx(key, _radix = 10)
+      iex> {:ok, ctx} = FPE.new(key, FPE.FF3_1, _radix = 10)
       iex> tweak = <<0::56>>
       iex> plaintext = "34436524"
-      iex> ciphertext = FPE.FF3_1.encrypt!(ctx, tweak, plaintext)
-      iex> ^plaintext = FPE.FF3_1.decrypt!(ctx, tweak, ciphertext)
+      iex> ciphertext = FPE.encrypt!(ctx, tweak, plaintext)
+      iex> ^plaintext = FPE.decrypt!(ctx, tweak, ciphertext)
 
   ## Leading zeroes matter
 
@@ -59,12 +59,12 @@ defmodule FPE.FF3_1 do
   of equal length to their respective plaintexts, and vice-versa.
 
       iex> key = :crypto.strong_rand_bytes(32)
-      iex> {:ok, ctx} = FPE.FF3_1.new_ctx(key, _radix = 10)
+      iex> {:ok, ctx} = FPE.new(key, FPE.FF3_1, _radix = 10)
       iex> tweak = <<0::56>>
       iex> plaintext1 =   "34436524"
       iex> plaintext2 = "0034436524"
-      iex> ciphertext1 = FPE.FF3_1.encrypt!(ctx, tweak, plaintext1)
-      iex> ciphertext2 = FPE.FF3_1.encrypt!(ctx, tweak, plaintext2)
+      iex> ciphertext1 = FPE.encrypt!(ctx, tweak, plaintext1)
+      iex> ciphertext2 = FPE.encrypt!(ctx, tweak, plaintext2)
       iex> false = (ciphertext2 == ciphertext1)
       iex> true = (String.length(ciphertext1) == String.length(plaintext1))
       iex> true = (String.length(ciphertext2) == String.length(plaintext2))
@@ -104,12 +104,12 @@ defmodule FPE.FF3_1 do
   the tweak should vary with each instance of the encryption whenever possible.
 
       iex> key = :crypto.strong_rand_bytes(32)
-      iex> {:ok, ctx} = FPE.FF3_1.new_ctx(key, _radix = 10)
+      iex> {:ok, ctx} = FPE.new(key, FPE.FF3_1, _radix = 10)
       iex> plaintext= "135522432"
       iex> tweak1 = <<"dev.env">>
       iex> tweak2 = <<"prodenv">>
-      iex> ciphertext1 = FPE.FF3_1.encrypt!(ctx, tweak1, plaintext)
-      iex> ciphertext2 = FPE.FF3_1.encrypt!(ctx, tweak2, plaintext)
+      iex> ciphertext1 = FPE.encrypt!(ctx, tweak1, plaintext)
+      iex> ciphertext2 = FPE.encrypt!(ctx, tweak2, plaintext)
       iex> ciphertext2 != ciphertext1
 
   For an explanation and further examples, refer to Appendix C (page 20) of
@@ -126,42 +126,42 @@ defmodule FPE.FF3_1 do
   #### Base 8
 
       iex> key = :crypto.strong_rand_bytes(32)
-      iex> {:ok, ctx} = FPE.FF3_1.new_ctx(key, _radix = 8)
+      iex> {:ok, ctx} = FPE.new(key, FPE.FF3_1, _radix = 8)
       iex> tweak = <<0::56>>
       iex> plaintext = "34436524"
-      iex> ciphertext = FPE.FF3_1.encrypt!(ctx, tweak, plaintext)
-      iex> ^plaintext = FPE.FF3_1.decrypt!(ctx, tweak, ciphertext)
+      iex> ciphertext = FPE.encrypt!(ctx, tweak, plaintext)
+      iex> ^plaintext = FPE.decrypt!(ctx, tweak, ciphertext)
 
   #### Base 16
 
       iex> key = :crypto.strong_rand_bytes(32)
-      iex> {:ok, ctx} = FPE.FF3_1.new_ctx(key, _radix = 16)
+      iex> {:ok, ctx} = FPE.new(key, FPE.FF3_1, _radix = 16)
       iex> tweak = <<0::56>>
       iex> plaintext = "AFD093902C"
-      iex> ciphertext = FPE.FF3_1.encrypt!(ctx, tweak, plaintext)
-      iex> ^plaintext = FPE.FF3_1.decrypt!(ctx, tweak, ciphertext)
+      iex> ciphertext = FPE.encrypt!(ctx, tweak, plaintext)
+      iex> ^plaintext = FPE.decrypt!(ctx, tweak, ciphertext)
 
   #### Base 36
 
       iex> key = :crypto.strong_rand_bytes(32)
-      iex> {:ok, ctx} = FPE.FF3_1.new_ctx(key, _radix = 36)
+      iex> {:ok, ctx} = FPE.new(key, FPE.FF3_1, _radix = 36)
       iex> tweak = <<0::56>>
       iex> plaintext = "ZZZAFD093902CBZDE"
-      iex> ciphertext = FPE.FF3_1.encrypt!(ctx, tweak, plaintext)
-      iex> ^plaintext = FPE.FF3_1.decrypt!(ctx, tweak, ciphertext)
+      iex> ciphertext = FPE.encrypt!(ctx, tweak, plaintext)
+      iex> ^plaintext = FPE.decrypt!(ctx, tweak, ciphertext)
 
   ### Built-in alphabet: case insensitivity to input
 
-  Even though the output of either `encrypt!/3` or `decrypt!/3` is
+  Even though the output of either `FPE.encrypt!/3` or `FPE.decrypt!/3` is
   upper case, any case is accepted as input.
 
       iex> key = :crypto.strong_rand_bytes(32)
       iex> radix = 16
-      iex> {:ok, ctx} = FPE.FF3_1.new_ctx(key, radix)
+      iex> {:ok, ctx} = FPE.new(key, FPE.FF3_1, radix)
       iex> tweak = <<0::56>>
       iex> input = "aBcDDFF01234eeEee"
-      iex> _ciphertext = FPE.FF3_1.encrypt!(ctx, tweak, input)
-      iex> _plaintext = FPE.FF3_1.decrypt!(ctx, tweak, input)
+      iex> _ciphertext = FPE.encrypt!(ctx, tweak, input)
+      iex> _plaintext = FPE.decrypt!(ctx, tweak, input)
 
   ### Built-in alphabet: lower case
 
@@ -170,11 +170,11 @@ defmodule FPE.FF3_1 do
 
       iex> key = :crypto.strong_rand_bytes(32)
       iex> alphabet = "0123456789abcdef" # radix 16
-      iex> {:ok, ctx} = FPE.FF3_1.new_ctx(key, alphabet)
+      iex> {:ok, ctx} = FPE.new(key, FPE.FF3_1, alphabet)
       iex> tweak = <<0::56>>
       iex> input = "aBcDDFF01234eeEee"
-      iex> ciphertext = FPE.FF3_1.encrypt!(ctx, tweak, input)
-      iex> plaintext = FPE.FF3_1.decrypt!(ctx, tweak, input)
+      iex> ciphertext = FPE.encrypt!(ctx, tweak, input)
+      iex> plaintext = FPE.decrypt!(ctx, tweak, input)
       iex> ^ciphertext = String.downcase(ciphertext)
       iex> ^plaintext = String.downcase(plaintext)
 
@@ -195,31 +195,31 @@ defmodule FPE.FF3_1 do
 
       iex> key = :crypto.strong_rand_bytes(32)
       iex> alphabet = "abcdefghij0123456789"
-      iex> {:ok, ctx} = FPE.FF3_1.new_ctx(key, alphabet)
+      iex> {:ok, ctx} = FPE.new(key, FPE.FF3_1, alphabet)
       iex> tweak = <<0::56>>
       iex> plaintext = "34534abcd32235"
-      iex> ciphertext = FPE.FF3_1.encrypt!(ctx, tweak, plaintext)
-      iex> ^plaintext = FPE.FF3_1.decrypt!(ctx, tweak, ciphertext)
+      iex> ciphertext = FPE.encrypt!(ctx, tweak, plaintext)
+      iex> ^plaintext = FPE.decrypt!(ctx, tweak, ciphertext)
 
   #### Base 40 with custom alphabet
 
       iex> key = :crypto.strong_rand_bytes(32)
       iex> alphabet = "0123456789abcdefghijklmnopqrstuvwxyz@#/*"
-      iex> {:ok, ctx} = FPE.FF3_1.new_ctx(key, alphabet)
+      iex> {:ok, ctx} = FPE.new(key, FPE.FF3_1, alphabet)
       iex> tweak = <<0::56>>
       iex> plaintext = "34534ab@@@@@/cd32235"
-      iex> ciphertext = FPE.FF3_1.encrypt!(ctx, tweak, plaintext)
-      iex> ^plaintext = FPE.FF3_1.decrypt!(ctx, tweak, ciphertext)
+      iex> ciphertext = FPE.encrypt!(ctx, tweak, plaintext)
+      iex> ^plaintext = FPE.decrypt!(ctx, tweak, ciphertext)
 
   #### Unicode support
 
       iex> key = :crypto.strong_rand_bytes(32)
       iex> alphabet = "🌕🌖🌗🌘🌑🌒🌓🌔"
-      iex> {:ok, ctx} = FPE.FF3_1.new_ctx(key, alphabet)
+      iex> {:ok, ctx} = FPE.new(key, FPE.FF3_1, alphabet)
       iex> tweak = <<0::56>>
       iex> plaintext = "🌖🌕🌘🌑🌓🌗🌔🌒🌒🌒🌒"
-      iex> ciphertext = FPE.FF3_1.encrypt!(ctx, tweak, plaintext)
-      iex> ^plaintext = FPE.FF3_1.decrypt!(ctx, tweak, ciphertext)
+      iex> ciphertext = FPE.encrypt!(ctx, tweak, plaintext)
+      iex> ^plaintext = FPE.decrypt!(ctx, tweak, ciphertext)
 
   ### No alphabet
 
@@ -233,15 +233,15 @@ defmodule FPE.FF3_1 do
       iex> key = :crypto.strong_rand_bytes(32)
       iex> radix = 10
       iex> {:ok, codec} = NoSymbols.new(radix)
-      iex> {:ok, ctx} = FPE.FF3_1.new_ctx(key, codec)
+      iex> {:ok, ctx} = FPE.new(key, FPE.FF3_1, codec)
       iex> tweak = <<0::56>>
       iex> input = 1234567
       iex> input_length = 10
       iex>
       iex> plaintext = %NoSymbols.NumString{value: input, length: input_length}
-      iex> ciphertext = FPE.FF3_1.encrypt!(ctx, tweak, plaintext)
+      iex> ciphertext = FPE.encrypt!(ctx, tweak, plaintext)
       iex> %NoSymbols.NumString{length: ^input_length} = ciphertext
-      iex> ^plaintext = FPE.FF3_1.decrypt!(ctx, tweak, ciphertext)
+      iex> ^plaintext = FPE.decrypt!(ctx, tweak, ciphertext)
 
   #### Radix 40
 
@@ -249,15 +249,15 @@ defmodule FPE.FF3_1 do
       iex> key = :crypto.strong_rand_bytes(32)
       iex> radix = 40
       iex> {:ok, codec} = NoSymbols.new(radix)
-      iex> {:ok, ctx} = FPE.FF3_1.new_ctx(key, codec)
+      iex> {:ok, ctx} = FPE.new(key, FPE.FF3_1, codec)
       iex> tweak = <<0::56>>
       iex> input = 1234567
       iex> input_length = 10
       iex>
       iex> plaintext = %NoSymbols.NumString{value: input, length: input_length}
-      iex> ciphertext = FPE.FF3_1.encrypt!(ctx, tweak, plaintext)
+      iex> ciphertext = FPE.encrypt!(ctx, tweak, plaintext)
       iex> %NoSymbols.NumString{length: ^input_length} = ciphertext
-      iex> ^plaintext = FPE.FF3_1.decrypt!(ctx, tweak, ciphertext)
+      iex> ^plaintext = FPE.decrypt!(ctx, tweak, ciphertext)
 
   #### Radix 500
 
@@ -265,15 +265,15 @@ defmodule FPE.FF3_1 do
       iex> key = :crypto.strong_rand_bytes(32)
       iex> radix = 500
       iex> {:ok, codec} = NoSymbols.new(radix)
-      iex> {:ok, ctx} = FPE.FF3_1.new_ctx(key, codec)
+      iex> {:ok, ctx} = FPE.new(key, FPE.FF3_1, codec)
       iex> tweak = <<0::56>>
       iex> input = 1234567
       iex> input_length = 10
       iex>
       iex> plaintext = %NoSymbols.NumString{value: input, length: input_length}
-      iex> ciphertext = FPE.FF3_1.encrypt!(ctx, tweak, plaintext)
+      iex> ciphertext = FPE.encrypt!(ctx, tweak, plaintext)
       iex> %NoSymbols.NumString{length: ^input_length} = ciphertext
-      iex> ^plaintext = FPE.FF3_1.decrypt!(ctx, tweak, ciphertext)
+      iex> ^plaintext = FPE.decrypt!(ctx, tweak, ciphertext)
 
   #### Radix 65535
 
@@ -281,23 +281,20 @@ defmodule FPE.FF3_1 do
       iex> key = :crypto.strong_rand_bytes(32)
       iex> radix = 65535
       iex> {:ok, codec} = NoSymbols.new(radix)
-      iex> {:ok, ctx} = FPE.FF3_1.new_ctx(key, codec)
+      iex> {:ok, ctx} = FPE.new(key, FPE.FF3_1, codec)
       iex> tweak = <<0::56>>
       iex> input = 1234567
       iex> input_length = 10
       iex>
       iex> plaintext = %NoSymbols.NumString{value: input, length: input_length}
-      iex> ciphertext = FPE.FF3_1.encrypt!(ctx, tweak, plaintext)
+      iex> ciphertext = FPE.encrypt!(ctx, tweak, plaintext)
       iex> %NoSymbols.NumString{length: ^input_length} = ciphertext
-      iex> ^plaintext = FPE.FF3_1.decrypt!(ctx, tweak, ciphertext)
+      iex> ^plaintext = FPE.decrypt!(ctx, tweak, ciphertext)
 
   """
 
-  import Bitwise
-
+  alias FPE.Algorithm
   alias FPE.FFX
-
-  require Record
 
   ## API Types
 
@@ -316,22 +313,29 @@ defmodule FPE.FF3_1 do
 
   @type constraints :: %{min_length: pos_integer, max_length: pos_integer}
 
-  Record.defrecordp(:fpe_ff3_1_ctx, [
+  @enforce_keys [
     :key,
     :codec,
     :iform_ctx,
     :min_length,
     :max_length
-  ])
+  ]
+  defstruct [
+    :key,
+    :codec,
+    :iform_ctx,
+    :min_length,
+    :max_length
+  ]
 
-  @opaque ctx ::
-            record(:fpe_ff3_1_ctx,
-              key: key,
-              codec: codec,
-              iform_ctx: FFX.IntermediateForm.ctx(),
-              min_length: pos_integer,
-              max_length: pos_integer
-            )
+  @type ctx ::
+          %__MODULE__{
+            key: key,
+            codec: codec,
+            iform_ctx: FFX.IntermediateForm.ctx(),
+            min_length: pos_integer,
+            max_length: pos_integer
+          }
 
   ## API
 
@@ -350,13 +354,13 @@ defmodule FPE.FF3_1 do
          {:ok, min_length} <- calculate_min_length(radix),
          {:ok, max_length} <- calculate_max_length(min_length, radix) do
       {:ok,
-       fpe_ff3_1_ctx(
+       %__MODULE__{
          key: key,
          codec: codec,
          iform_ctx: iform_ctx,
          min_length: min_length,
          max_length: max_length
-       )}
+       }}
     else
       {:error, _} = error ->
         error
@@ -364,45 +368,17 @@ defmodule FPE.FF3_1 do
   end
 
   @doc """
-  Encrypts numerical string `plaintext` using `ctx` and 7-byte `tweak`.
-
-  Returns numerical string `ciphertext` of length equal to `plaintext`.
-
-  Minimum and maximum length of `plaintext` depend on radix (see `constraints/1`).
-  """
-  @spec encrypt!(ctx, tweak, plaintext) :: ciphertext
-        when plaintext: numerical_string, ciphertext: numerical_string
-  def encrypt!(ctx, tweak, plaintext) do
-    {:ok, ciphertext} = do_encrypt_or_decrypt(ctx, tweak, plaintext, _enc = true)
-    ciphertext
-  end
-
-  @doc """
-  Decrypts numerical string `ciphertext` using `ctx` and 7-byte `tweak`.
-
-  Returns numerical string `plaintext` of length equal to `ciphertext`.
-
-  Minimum and maximum length of `ciphertext` depend on radix (see `constraints/1`).
-  """
-  @spec decrypt!(ctx, tweak, ciphertext) :: plaintext
-        when ciphertext: numerical_string, plaintext: numerical_string
-  def decrypt!(ctx, tweak, ciphertext) do
-    {:ok, plaintext} = do_encrypt_or_decrypt(ctx, tweak, ciphertext, _enc = false)
-    plaintext
-  end
-
-  @doc """
   Returns a `ctx`'s `FPE.FFX.Codec`, should you wish to further manipulate or
   prepare encryption and decryption inputs or outputs.
   """
   @spec codec(ctx) :: codec
-  def codec(fpe_ff3_1_ctx(codec: codec)), do: codec
+  def codec(%__MODULE__{codec: codec}), do: codec
 
   @doc """
   Returns a `ctx`'s [constraints](#module-length-constraints).
   """
   @spec constraints(ctx) :: %{min_length: pos_integer, max_length: pos_integer}
-  def constraints(fpe_ff3_1_ctx(min_length: min_length, max_length: max_length)) do
+  def constraints(%__MODULE__{min_length: min_length, max_length: max_length}) do
     %{min_length: min_length, max_length: max_length}
   end
 
@@ -503,238 +479,240 @@ defmodule FPE.FF3_1 do
     end
   end
 
-  defp do_encrypt_or_decrypt(ctx, t, vX, enc) do
-    with {:ok, vX_length, vX} <- validate_enc_or_dec_input(ctx, vX),
-         :ok <- validate_tweak(t),
-         fpe_ff3_1_ctx(key: key, codec: codec, iform_ctx: iform_ctx) = ctx,
-         {:ok, even_m, odd_m, vA, vB, even_vW, odd_vW} <-
-           setup_encrypt_or_decrypt_vars(codec, t, vX, vX_length) do
-      vY =
-        if enc do
-          do_encrypt_rounds!(
-            _i = 0,
-            key,
-            codec,
-            iform_ctx,
-            even_m,
-            odd_m,
-            vA,
-            vB,
-            even_vW,
-            odd_vW
-          )
-        else
-          do_decrypt_rounds!(
-            _i = 7,
-            key,
-            codec,
-            iform_ctx,
-            odd_m,
-            even_m,
-            vA,
-            vB,
-            odd_vW,
-            even_vW
-          )
-        end
+  defimpl Algorithm, for: __MODULE__ do
+    def do_encrypt_or_decrypt(ctx, t, vX, enc) do
+      with {:ok, vX_length, vX} <- validate_enc_or_dec_input(ctx, vX),
+           :ok <- validate_tweak(t),
+           %FPE.FF3_1{key: key, codec: codec, iform_ctx: iform_ctx} = ctx,
+           {:ok, even_m, odd_m, vA, vB, even_vW, odd_vW} <-
+             setup_encrypt_or_decrypt_vars(codec, t, vX, vX_length) do
+        vY =
+          if enc do
+            do_encrypt_rounds!(
+              _i = 0,
+              key,
+              codec,
+              iform_ctx,
+              even_m,
+              odd_m,
+              vA,
+              vB,
+              even_vW,
+              odd_vW
+            )
+          else
+            do_decrypt_rounds!(
+              _i = 7,
+              key,
+              codec,
+              iform_ctx,
+              odd_m,
+              even_m,
+              vA,
+              vB,
+              odd_vW,
+              even_vW
+            )
+          end
 
-      {:ok, vY}
-    else
-      {:error, _} = error ->
-        error
+        {:ok, vY}
+      else
+        {:error, _} = error ->
+          error
+      end
     end
-  end
 
-  defp validate_enc_or_dec_input(ctx, vX) do
-    alias FFX.Codec
+    defp validate_enc_or_dec_input(ctx, vX) do
+      alias FFX.Codec
 
-    fpe_ff3_1_ctx(codec: codec, min_length: min_length, max_length: max_length) = ctx
+      %FPE.FF3_1{codec: codec, min_length: min_length, max_length: max_length} = ctx
 
-    case Codec.normalize_input(codec, vX) do
-      {:ok, valid_length, normalized_vX} when valid_length in min_length..max_length//1 ->
-        {:ok, valid_length, normalized_vX}
+      case Codec.normalize_input(codec, vX) do
+        {:ok, valid_length, normalized_vX} when valid_length in min_length..max_length//1 ->
+          {:ok, valid_length, normalized_vX}
 
-      {:ok, _invalid_length, _} ->
-        {:error, "Invalid input not between #{min_length} and #{max_length} symbols long: #{inspect(vX)}"}
+        {:ok, _invalid_length, _} ->
+          {:error, "Invalid input not between #{min_length} and #{max_length} symbols long: #{inspect(vX)}"}
 
-      {:error, reason} ->
-        {:error, {:invalid_input, reason}}
+        {:error, reason} ->
+          {:error, {:invalid_input, reason}}
+      end
     end
-  end
 
-  defp validate_tweak(tweak) do
-    case tweak do
-      valid_size when bit_size(valid_size) == 56 ->
-        :ok
+    defp validate_tweak(tweak) do
+      case tweak do
+        valid_size when bit_size(valid_size) == 56 ->
+          :ok
 
-      invalid_size when is_bitstring(invalid_size) ->
-        {:error, "Invalid tweak not 56 bits long: #{inspect(invalid_size)}"}
+        invalid_size when is_bitstring(invalid_size) ->
+          {:error, "Invalid tweak not 56 bits long: #{inspect(invalid_size)}"}
 
-      not_a_bitstring ->
-        {:error, "Invalid tweak not a bitstring #{inspect(not_a_bitstring)}"}
+        not_a_bitstring ->
+          {:error, "Invalid tweak not a bitstring #{inspect(not_a_bitstring)}"}
+      end
     end
-  end
 
-  defp setup_encrypt_or_decrypt_vars(codec, t, vX, vX_length) do
-    alias FFX.Codec
-    alias FFX.IntermediateForm
+    defp setup_encrypt_or_decrypt_vars(codec, t, vX, vX_length) do
+      alias FFX.Codec
+      alias FFX.IntermediateForm
 
-    n = vX_length
+      n = vX_length
 
-    # 1. Let u = ceil(n/2); v = n - u
-    u = div(n, 2) + (n &&& 1)
-    v = n - u
+      # 1. Let u = ceil(n/2); v = n - u
+      u = div(n + 1, 2)
+      v = n - u
 
-    # 2. Let A = X[1..u]; B = X[u + 1..n]
-    {vA_str, vB_str} = Codec.split_numerical_string_at(codec, vX, u)
+      # 2. Let A = X[1..u]; B = X[u + 1..n]
+      {vA_str, vB_str} = Codec.split_numerical_string_at(codec, vX, u)
 
-    with {:ok, vA} <- Codec.numerical_string_to_int(codec, vA_str),
-         {:ok, vB} <- Codec.numerical_string_to_int(codec, vB_str) do
-      # 3. Let T_L = T[0..27] || O⁴ and T_R = T[32..55] || T[28..31] || O⁴
-      <<t_left::bits-size(28), t_middle::bits-size(4), t_right::bits-size(24)>> = t
-      <<vT_L::bytes>> = <<t_left::bits, 0::4>>
-      <<vT_R::bytes>> = <<t_right::bits, t_middle::bits, 0::4>>
+      with {:ok, vA} <- Codec.numerical_string_to_int(codec, vA_str),
+           {:ok, vB} <- Codec.numerical_string_to_int(codec, vB_str) do
+        # 3. Let T_L = T[0..27] || O⁴ and T_R = T[32..55] || T[28..31] || O⁴
+        <<t_left::bits-size(28), t_middle::bits-size(4), t_right::bits-size(24)>> = t
+        <<vT_L::bytes>> = <<t_left::bits, 0::4>>
+        <<vT_R::bytes>> = <<t_right::bits, t_middle::bits, 0::4>>
 
-      # 4.i. If i is even, let m = u and W = T_R, else let m = v and W = T_L
-      even_m = u
-      odd_m = v
-      even_vW = vT_R
-      odd_vW = vT_L
-      {:ok, even_m, odd_m, vA, vB, even_vW, odd_vW}
-    else
-      {:error, reason} ->
-        {:error, {:invalid_input, vX, reason}}
+        # 4.i. If i is even, let m = u and W = T_R, else let m = v and W = T_L
+        even_m = u
+        odd_m = v
+        even_vW = vT_R
+        odd_vW = vT_L
+        {:ok, even_m, odd_m, vA, vB, even_vW, odd_vW}
+      else
+        {:error, reason} ->
+          {:error, {:invalid_input, vX, reason}}
+      end
     end
-  end
 
-  # credo:disable-for-next-line Credo.Check.Refactor.FunctionArity
-  defp do_encrypt_rounds!(i, key, codec, iform_ctx, m, other_m, vA, vB, vW, other_vW) when i < 8 do
-    alias FFX.Codec
-    alias FFX.IntermediateForm
+    # credo:disable-for-next-line Credo.Check.Refactor.FunctionArity
+    defp do_encrypt_rounds!(i, key, codec, iform_ctx, m, other_m, vA, vB, vW, other_vW) when i < 8 do
+      alias FFX.Codec
+      alias FFX.IntermediateForm
 
-    radix = Codec.radix(codec)
+      radix = Codec.radix(codec)
 
-    # 4.ii. Let P = W ⊕ [i]⁴ || [NUM_radix(REV(B))]¹²
-    vP_W_xor_i = :crypto.exor(vW, <<i::unsigned-size(4)-unit(8)>>)
-    vP_num_radix_rev_B = IntermediateForm.left_pad_and_revert(iform_ctx, vB, other_m)
-    vP = <<vP_W_xor_i::bytes, vP_num_radix_rev_B::unsigned-size(12)-unit(8)>>
+      # 4.ii. Let P = W ⊕ [i]⁴ || [NUM_radix(REV(B))]¹²
+      vP_W_xor_i = :crypto.exor(vW, <<i::unsigned-size(4)-unit(8)>>)
+      vP_num_radix_rev_B = IntermediateForm.left_pad_and_revert(iform_ctx, vB, other_m)
+      vP = <<vP_W_xor_i::bytes, vP_num_radix_rev_B::unsigned-size(12)-unit(8)>>
 
-    ## 4.iii. Let S = REVB(CIPH_REVB(K)(REVB(P)))
-    vS_revb_P = FFX.revb(vP)
-    vS_revb_K = FFX.revb(key)
-    vS_ciph_etc = ciph(vS_revb_K, vS_revb_P)
-    vS = FFX.revb(vS_ciph_etc)
+      ## 4.iii. Let S = REVB(CIPH_REVB(K)(REVB(P)))
+      vS_revb_P = FFX.revb(vP)
+      vS_revb_K = FFX.revb(key)
+      vS_ciph_etc = ciph(vS_revb_K, vS_revb_P)
+      vS = FFX.revb(vS_ciph_etc)
 
-    ## 4.iv. Let y = NUM(S)
-    y = FFX.num(vS)
+      ## 4.iv. Let y = NUM(S)
+      y = FFX.num(vS)
 
-    ## 4.v. Let c = (NUM_radix(REV(A)) + y) mod (radix**m)
-    c_num_radix_rev_A = IntermediateForm.left_pad_and_revert(iform_ctx, vA, m)
-    c_num_radix_rev_A_plus_y = c_num_radix_rev_A + y
-    c = rem(c_num_radix_rev_A_plus_y, Integer.pow(radix, m))
+      ## 4.v. Let c = (NUM_radix(REV(A)) + y) mod (radix**m)
+      c_num_radix_rev_A = IntermediateForm.left_pad_and_revert(iform_ctx, vA, m)
+      c_num_radix_rev_A_plus_y = c_num_radix_rev_A + y
+      c = rem(c_num_radix_rev_A_plus_y, Integer.pow(radix, m))
 
-    ## 4.vi. Let C = REV(STR_m_radix(c))
-    vC = IntermediateForm.left_pad_and_revert(iform_ctx, c, m)
+      ## 4.vi. Let C = REV(STR_m_radix(c))
+      vC = IntermediateForm.left_pad_and_revert(iform_ctx, c, m)
 
-    ## 4.vii. Let A = B
-    vA = vB
+      ## 4.vii. Let A = B
+      vA = vB
 
-    ## 4.viii. let B = C
-    vB = vC
+      ## 4.viii. let B = C
+      vB = vC
 
-    do_encrypt_rounds!(
-      i + 1,
-      key,
-      codec,
-      iform_ctx,
-      # swap odd with even
-      _m = other_m,
-      _other_m = m,
-      vA,
-      vB,
-      # swap odd with even
-      _vW = other_vW,
-      _other_vW = vW
-    )
-  end
+      do_encrypt_rounds!(
+        i + 1,
+        key,
+        codec,
+        iform_ctx,
+        # swap odd with even
+        _m = other_m,
+        _other_m = m,
+        vA,
+        vB,
+        # swap odd with even
+        _vW = other_vW,
+        _other_vW = vW
+      )
+    end
 
-  # credo:disable-for-next-line Credo.Check.Refactor.FunctionArity
-  defp do_encrypt_rounds!(8 = _i, _key, codec, _iform_ctx, m, other_m, vA, vB, _vW, _other_vW) do
-    alias FFX.Codec
-    alias FFX.IntermediateForm
-    ## 5. Return A || B
-    vA_str = Codec.int_to_padded_numerical_string(codec, vA, m)
-    vB_str = Codec.int_to_padded_numerical_string(codec, vB, other_m)
-    Codec.concat_numerical_strings(codec, vA_str, vB_str)
-  end
+    # credo:disable-for-next-line Credo.Check.Refactor.FunctionArity
+    defp do_encrypt_rounds!(8 = _i, _key, codec, _iform_ctx, m, other_m, vA, vB, _vW, _other_vW) do
+      alias FFX.Codec
+      alias FFX.IntermediateForm
+      ## 5. Return A || B
+      vA_str = Codec.int_to_padded_numerical_string(codec, vA, m)
+      vB_str = Codec.int_to_padded_numerical_string(codec, vB, other_m)
+      Codec.concat_numerical_strings(codec, vA_str, vB_str)
+    end
 
-  # credo:disable-for-next-line Credo.Check.Refactor.FunctionArity
-  defp do_decrypt_rounds!(i, key, codec, iform_ctx, m, other_m, vA, vB, vW, other_vW) when i >= 0 do
-    alias FFX.Codec
-    alias FFX.IntermediateForm
+    # credo:disable-for-next-line Credo.Check.Refactor.FunctionArity
+    defp do_decrypt_rounds!(i, key, codec, iform_ctx, m, other_m, vA, vB, vW, other_vW) when i >= 0 do
+      alias FFX.Codec
+      alias FFX.IntermediateForm
 
-    radix = Codec.radix(codec)
+      radix = Codec.radix(codec)
 
-    ## 4.ii. Let P = W ⊕ [i]⁴ || [NUM_radix(REV(A))]¹²
-    vP_W_xor_i = :crypto.exor(vW, <<i::unsigned-size(4)-unit(8)>>)
-    vP_num_radix_rev_A = IntermediateForm.left_pad_and_revert(iform_ctx, vA, other_m)
-    vP = <<vP_W_xor_i::bytes, vP_num_radix_rev_A::unsigned-size(12)-unit(8)>>
+      ## 4.ii. Let P = W ⊕ [i]⁴ || [NUM_radix(REV(A))]¹²
+      vP_W_xor_i = :crypto.exor(vW, <<i::unsigned-size(4)-unit(8)>>)
+      vP_num_radix_rev_A = IntermediateForm.left_pad_and_revert(iform_ctx, vA, other_m)
+      vP = <<vP_W_xor_i::bytes, vP_num_radix_rev_A::unsigned-size(12)-unit(8)>>
 
-    ## 4.iii. Let S = REVB(CIPH_REVB(K)(REVB(P)))
-    vS_revb_P = FFX.revb(vP)
-    vS_revb_K = FFX.revb(key)
-    vS_ciph_etc = ciph(vS_revb_K, vS_revb_P)
-    vS = FFX.revb(vS_ciph_etc)
+      ## 4.iii. Let S = REVB(CIPH_REVB(K)(REVB(P)))
+      vS_revb_P = FFX.revb(vP)
+      vS_revb_K = FFX.revb(key)
+      vS_ciph_etc = ciph(vS_revb_K, vS_revb_P)
+      vS = FFX.revb(vS_ciph_etc)
 
-    ## 4.iv. Let y = NUM(S)
-    y = FFX.num(vS)
+      ## 4.iv. Let y = NUM(S)
+      y = FFX.num(vS)
 
-    ## 4.v. Let c = (NUM_radix(REV(B)) - y) mod (radix**m)
-    c_num_radix_rev_B = IntermediateForm.left_pad_and_revert(iform_ctx, vB, m)
-    c_num_radix_rev_B_minus_y = c_num_radix_rev_B - y
-    c = Integer.mod(c_num_radix_rev_B_minus_y, Integer.pow(radix, m))
+      ## 4.v. Let c = (NUM_radix(REV(B)) - y) mod (radix**m)
+      c_num_radix_rev_B = IntermediateForm.left_pad_and_revert(iform_ctx, vB, m)
+      c_num_radix_rev_B_minus_y = c_num_radix_rev_B - y
+      c = Integer.mod(c_num_radix_rev_B_minus_y, Integer.pow(radix, m))
 
-    ## 4.vi. Let C = REV(STR_m_radix(c))
-    vC = IntermediateForm.left_pad_and_revert(iform_ctx, c, m)
+      ## 4.vi. Let C = REV(STR_m_radix(c))
+      vC = IntermediateForm.left_pad_and_revert(iform_ctx, c, m)
 
-    ## 4.vii. Let B = A
-    vB = vA
+      ## 4.vii. Let B = A
+      vB = vA
 
-    ## 4.viii. Let A = C
-    vA = vC
+      ## 4.viii. Let A = C
+      vA = vC
 
-    do_decrypt_rounds!(
-      i - 1,
-      key,
-      codec,
-      iform_ctx,
-      # swap odd with even
-      _m = other_m,
-      _other_m = m,
-      vA,
-      vB,
-      # swap odd with even
-      _vW = other_vW,
-      _other_vW = vW
-    )
-  end
+      do_decrypt_rounds!(
+        i - 1,
+        key,
+        codec,
+        iform_ctx,
+        # swap odd with even
+        _m = other_m,
+        _other_m = m,
+        vA,
+        vB,
+        # swap odd with even
+        _vW = other_vW,
+        _other_vW = vW
+      )
+    end
 
-  # credo:disable-for-next-line Credo.Check.Refactor.FunctionArity
-  defp do_decrypt_rounds!(-1 = _i, _key, codec, _iform_ctx, m, other_m, vA, vB, _vW, _other_vW) do
-    alias FPE.FFX.Codec
-    ## 5. Return A || B
-    vA_str = Codec.int_to_padded_numerical_string(codec, vA, other_m)
-    vB_str = Codec.int_to_padded_numerical_string(codec, vB, m)
-    Codec.concat_numerical_strings(codec, vA_str, vB_str)
-  end
+    # credo:disable-for-next-line Credo.Check.Refactor.FunctionArity
+    defp do_decrypt_rounds!(-1 = _i, _key, codec, _iform_ctx, m, other_m, vA, vB, _vW, _other_vW) do
+      alias FPE.FFX.Codec
+      ## 5. Return A || B
+      vA_str = Codec.int_to_padded_numerical_string(codec, vA, other_m)
+      vB_str = Codec.int_to_padded_numerical_string(codec, vB, m)
+      Codec.concat_numerical_strings(codec, vA_str, vB_str)
+    end
 
-  defp ciph(key, input) do
-    %{
-      128 => :aes_128_ecb,
-      192 => :aes_192_ecb,
-      256 => :aes_256_ecb
-    }
-    |> Map.fetch!(bit_size(key))
-    |> :crypto.crypto_one_time(key, input, _enc = true)
+    defp ciph(key, input) do
+      %{
+        128 => :aes_128_ecb,
+        192 => :aes_192_ecb,
+        256 => :aes_256_ecb
+      }
+      |> Map.fetch!(bit_size(key))
+      |> :crypto.crypto_one_time(key, input, _enc = true)
+    end
   end
 end

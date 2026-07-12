@@ -31,7 +31,7 @@ defmodule FPE.FF3_1.Setup.Server do
     defstruct [:ctx]
 
     @type t :: %__MODULE__{
-            ctx: FPE.FF3_1.ctx()
+            ctx: FPE.t()
           }
   end
 
@@ -70,7 +70,7 @@ defmodule FPE.FF3_1.Setup.Server do
 
   @impl true
   def init([args]) do
-    case FPE.FF3_1.new_ctx(args.key, args.radix_or_alphabet_or_codec) do
+    case FPE.new(args.key, FPE.FF3_1, args.radix_or_alphabet_or_codec) do
       {:ok, ctx} ->
         # always invoke terminate/2
         _ = Process.flag(:trap_exit, true)

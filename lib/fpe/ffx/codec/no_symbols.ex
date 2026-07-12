@@ -13,7 +13,7 @@ defmodule FPE.FFX.Codec.NoSymbols do
   defstruct [:radix]
 
   @opaque t :: %__MODULE__{radix: radix}
-  @type radix :: FF3_1.radix()
+  @type radix :: FPE.FF3_1.radix()
 
   defmodule NumString do
     @moduledoc false
