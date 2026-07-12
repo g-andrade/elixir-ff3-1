@@ -6,8 +6,6 @@ defmodule FF3_1_Test do
   alias FPE.FF3_1.Setup.Server
   alias FPE.FFX.Codec.Custom
 
-  require Logger
-
   doctest FPE.FF3_1
 
   # has different representations under different norms
