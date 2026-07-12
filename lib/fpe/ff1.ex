@@ -404,7 +404,8 @@ defmodule FPE.FF1 do
 
     defp compute_vS_blocks(key, d, vR) do
       last_index = ceil(d / 16) - 1
-      IO.iodata_to_binary([vR | compute_vS_blocks_recur(key, d, vR, 1, last_index)])
+      acc_size = byte_size(vR)
+      IO.iodata_to_binary([vR | compute_vS_blocks_recur(key, d, vR, acc_size, 1, last_index)])
       # <<
       #  vR::bytes,
       #  #
@@ -414,14 +415,14 @@ defmodule FPE.FF1 do
       # >>
     end
 
-    defp compute_vS_blocks_recur(key, d, vR, index, last_index) when index <= last_index do
+    defp compute_vS_blocks_recur(key, d, vR, acc_size, index, last_index) when index <= last_index and acc_size < d do
       [
         ciph(key, :crypto.exor(vR, <<index::unsigned-size(16)-unit(8)>>))
-        | compute_vS_blocks_recur(key, d, vR, index + 1, last_index)
+        | compute_vS_blocks_recur(key, d, vR, acc_size + 16, index + 1, last_index)
       ]
     end
 
-    defp compute_vS_blocks_recur(_key, _d, _vR, _index, _last_index) do
+    defp compute_vS_blocks_recur(_key, _d, _vR, _acc_size, _index, _last_index) do
       []
     end
 
