@@ -1,19 +1,19 @@
 # credo:disable-for-this-file Credo.Check.Design.AliasUsage
 # credo:disable-for-this-file Credo.Check.Readability.ModuleNames
-defmodule FF3_1.Setup do
+defmodule FPE.FF3_1.Setup do
   @moduledoc false
   @type opts ::
           [
-            key: FF3_1.key(),
-            radix: FF3_1.radix()
+            key: FPE.FF3_1.key(),
+            radix: FPE.FF3_1.radix()
           ]
           | [
-              key: FF3_1.key(),
-              alphabet: FF3_1.alphabet()
+              key: FPE.FF3_1.key(),
+              alphabet: FPE.FF3_1.alphabet()
             ]
           | [
-              key: FF3_1.key(),
-              codec: FF3_1.codec()
+              key: FPE.FF3_1.key(),
+              codec: FPE.FF3_1.codec()
             ]
 
   @doc false
@@ -22,11 +22,11 @@ defmodule FF3_1.Setup do
       ## API
 
       def child_spec do
-        FF3_1.Setup.Server.child_spec(server_args())
+        FPE.FF3_1.Setup.Server.child_spec(server_args())
       end
 
       def start_link do
-        FF3_1.Setup.Server.start_link(server_args())
+        FPE.FF3_1.Setup.Server.start_link(server_args())
       end
 
       @doc """
@@ -37,9 +37,11 @@ defmodule FF3_1.Setup do
       Minimum and maximum length of `plaintext` depend on radix (see `constraints/0`).
       """
       @spec encrypt!(tweak, plaintext) :: ciphertext
-            when tweak: FF3_1.tweak(), plaintext: FF3_1.numerical_string(), ciphertext: FF3_1.numerical_string()
+            when tweak: FPE.FF3_1.tweak(),
+                 plaintext: FPE.FF3_1.numerical_string(),
+                 ciphertext: FPE.FF3_1.numerical_string()
       def encrypt!(tweak, plaintext) do
-        FF3_1.encrypt!(ctx(), tweak, plaintext)
+        FPE.FF3_1.encrypt!(ctx(), tweak, plaintext)
       end
 
       @doc """
@@ -50,34 +52,36 @@ defmodule FF3_1.Setup do
       Minimum and maximum length of `ciphertext` depend on radix (see `constraints/0`).
       """
       @spec decrypt!(tweak, ciphertext) :: plaintext
-            when tweak: FF3_1.tweak(), ciphertext: FF3_1.numerical_string(), plaintext: FF3_1.numerical_string()
+            when tweak: FPE.FF3_1.tweak(),
+                 ciphertext: FPE.FF3_1.numerical_string(),
+                 plaintext: FPE.FF3_1.numerical_string()
       def decrypt!(tweak, ciphertext) do
-        FF3_1.decrypt!(ctx(), tweak, ciphertext)
+        FPE.FF3_1.decrypt!(ctx(), tweak, ciphertext)
       end
 
       @doc """
       Returns this setup's constraints.
       """
-      @spec constraints :: FF3_1.constraints()
+      @spec constraints :: FPE.FF3_1.constraints()
       def constraints do
-        FF3_1.constraints(ctx())
+        FPE.FF3_1.constraints(ctx())
       end
 
       @doc """
-      Returns this setup's `FF3_1.FFX.Codec`, should you wish to further manipulate or
+      Returns this setup's `FPE.FPE.FFX.Codec`, should you wish to further manipulate or
       prepare encryption and decryption inputs or outputs.
       """
-      @spec codec :: FF3_1.codec()
+      @spec codec :: FPE.FF3_1.codec()
       def codec do
-        FF3_1.codec(ctx())
+        FPE.FF3_1.codec(ctx())
       end
 
       @doc """
-      Returns this setup's `FF3_1.ctx`.
+      Returns this setup's `FPE.FF3_1.ctx`.
       """
-      @spec ctx :: FF3_1.ctx()
+      @spec ctx :: FPE.FF3_1.ctx()
       def ctx do
-        {:ok, ctx} = FF3_1.Setup.Server.get_ctx(__MODULE__)
+        {:ok, ctx} = FPE.FF3_1.Setup.Server.get_ctx(__MODULE__)
         ctx
       end
 
@@ -86,7 +90,7 @@ defmodule FF3_1.Setup do
       defp server_args do
         opts = unquote(opts)
 
-        %FF3_1.Setup.Server.Args{
+        %FPE.FF3_1.Setup.Server.Args{
           module: __MODULE__,
           key: opts[:key],
           radix_or_alphabet_or_codec: opts[:radix] || opts[:alphabet] || opts[:codec]

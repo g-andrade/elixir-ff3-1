@@ -1,8 +1,8 @@
 # credo:disable-for-this-file Credo.Check.Readability.ModuleNames
-defmodule FF3_1.FFX.Codec.Custom do
+defmodule FPE.FFX.Codec.Custom do
   @moduledoc """
-  An implementation of `FF3_1.FFX.Codec` that handles alphabets other than the
-  ones supported by `FF3_1.FFX.Codec.Builtin`.
+  An implementation of `FPE.FFX.Codec` that handles alphabets other than the
+  ones supported by `FPE.FFX.Codec.Builtin`.
 
   Each symbol is a single Unicode scalar (codepoint) that is guaranteed to
   stand on its own as one visual unit — a [grapheme
@@ -36,7 +36,7 @@ defmodule FF3_1.FFX.Codec.Custom do
     round-trip guarantee is independent of segmentation) — only the visual
     count could drift. Restrict to ASCII for a formally frozen visual guarantee.
 
-  It's **case sensitive** (unlike `FF3_1.FFX.Codec.Builtin`), but [norm
+  It's **case sensitive** (unlike `FPE.FFX.Codec.Builtin`), but [norm
   insensitive](https://hexdocs.pm/elixir/1.20/String.html#normalize/2). This is
   because:
   * There are
@@ -89,7 +89,7 @@ defmodule FF3_1.FFX.Codec.Custom do
   is rejected loudly instead, so the caller declares a clean one.
   """
 
-  alias FF3_1.FFX.Codec
+  alias FPE.FFX.Codec
 
   # require Logger
 

@@ -4,7 +4,7 @@ Guidance for AI agents working in this repo. Keep it current when structure or c
 
 ## Overview
 
-`ff3_1` is an Elixir library implementing **FF3-1 format-preserving encryption**
+`fpe` is an Elixir library implementing **FF3-1 format-preserving encryption**
 ([NIST SP 800-38G Rev. 1 draft](https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-38Gr1-draft.pdf)).
 It encrypts a string over a given alphabet into another string of the **same length over the same alphabet**.
 
@@ -29,24 +29,24 @@ CI (`.github/workflows/ci.yml`) runs: `format --check-formatted`, `credo --stric
 
 Public API → algorithm → per-alphabet codec:
 
-- **`FF3_1`** (`lib/ff3_1.ex`) — public API: `new_ctx/2`, `encrypt!/3`, `decrypt!/3`, etc.
+- **`FPE.FF3_1`** (`lib/fpe/ff3_1.ex`) — public API: `new_ctx/2`, `encrypt!/3`, `decrypt!/3`, etc.
   Holds the ctx record and dispatches a radix / alphabet / codec into a concrete codec.
-- **`FF3_1.FFX`** (`lib/ff3_1/ffx.ex`) — the FF3-1/FFX reference algorithm, and the
-  **`FF3_1.FFX.Codec` protocol**: `radix/1`, `normalize_input/2`,
+- **`FPE.FFX`** (`lib/fpe/ffx.ex`) — the FF3-1/FFX reference algorithm, and the
+  **`FPE.FFX.Codec` protocol**: `radix/1`, `normalize_input/2`,
   `split_numerical_string_at/3`, `numerical_string_to_int/2`,
   `int_to_padded_numerical_string/3`, `concat_numerical_strings/3`.
-- **Codec implementations** (`lib/ff3_1/ffx/codec/`):
+- **Codec implementations** (`lib/fpe/ffx/codec/`):
   - `Builtin` — radix 2..36 over ASCII `0-9a-z`, case-insensitive. Numerical string = binary.
   - `Custom` — arbitrary alphabets, **one Unicode scalar per symbol**, heavily validated.
     Numerical string = NFC codepoint list. Most recent work lives here.
   - `NoSymbols` — integers tagged with a length (`%NumString{}`), no string alphabet.
-- **`FF3_1.FFX.IntermediateForm`** (private) — record with radix/mask/bits-per-symbol for the arithmetic.
-- **`FF3_1.Setup` / `FF3_1.Setup.Server`** — macro + GenServer for reusable named ctx setups
+- **`FPE.FFX.IntermediateForm`** (private) — record with radix/mask/bits-per-symbol for the arithmetic.
+- **`FPE.FF3_1.Setup` / `FPE.FF3_1.Setup.Server`** — macro + GenServer for reusable named ctx setups
   (used by tests via `test/helper/setup_modules.ex`).
 
 ## The Custom codec (read its moduledoc first)
 
-`lib/ff3_1/ffx/codec/custom.ex` is the subtle part. Each symbol is a single Unicode scalar
+`lib/fpe/ffx/codec/custom.ex` is the subtle part. Each symbol is a single Unicode scalar
 that is validated to **stand alone as exactly one grapheme cluster**. This yields two guarantees:
 
 - **Round-trip**: ensured forever for any accepted alphabet (codepoint tokenization + NFC, which
@@ -63,7 +63,7 @@ there is a pin test guarding the `lookup/1` map shape.
 
 ## Conventions
 
-- **Module names** in the `FF3_1`/`FFX` namespace trip Credo's `Readability.ModuleNames`; every
+- **Module names** in the `FPE.FF3_1`/`FFX` namespace trip Credo's `Readability.ModuleNames`; every
   file disables it with a leading `# credo:disable-for-this-file Credo.Check.Readability.ModuleNames`.
   Match that in new files.
 - **Return shapes**: `{:ok, _} | {:error, reason}` with structured reason tuples; `!` variants raise.

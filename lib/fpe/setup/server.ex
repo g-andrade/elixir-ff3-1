@@ -1,5 +1,5 @@
 # credo:disable-for-this-file Credo.Check.Readability.ModuleNames
-defmodule FF3_1.Setup.Server do
+defmodule FPE.FF3_1.Setup.Server do
   @moduledoc false
 
   use GenServer
@@ -12,8 +12,8 @@ defmodule FF3_1.Setup.Server do
 
     @type t :: %__MODULE__{
             module: module,
-            key: FF3_1.key(),
-            radix_or_alphabet_or_codec: FF3_1.radix() | FF3_1.alphabet() | FF3_1.codec()
+            key: FPE.FF3_1.key(),
+            radix_or_alphabet_or_codec: FPE.FF3_1.radix() | FPE.FF3_1.alphabet() | FPE.FF3_1.codec()
           }
   end
 
@@ -31,7 +31,7 @@ defmodule FF3_1.Setup.Server do
     defstruct [:ctx]
 
     @type t :: %__MODULE__{
-            ctx: FF3_1.ctx()
+            ctx: FPE.FF3_1.ctx()
           }
   end
 
@@ -70,7 +70,7 @@ defmodule FF3_1.Setup.Server do
 
   @impl true
   def init([args]) do
-    case FF3_1.new_ctx(args.key, args.radix_or_alphabet_or_codec) do
+    case FPE.FF3_1.new_ctx(args.key, args.radix_or_alphabet_or_codec) do
       {:ok, ctx} ->
         # always invoke terminate/2
         _ = Process.flag(:trap_exit, true)
@@ -96,7 +96,7 @@ defmodule FF3_1.Setup.Server do
   ## Internal Functions
 
   defp server_name(module) do
-    String.to_atom("ff3_1.setup.server.#{module}")
+    String.to_atom("fpe.setup.server.#{module}")
   end
 
   defp shared_state_key(module) do

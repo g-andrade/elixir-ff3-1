@@ -1,11 +1,11 @@
 # credo:disable-for-this-file Credo.Check.Readability.ModuleNames
-defmodule FF3_1.FFX.Codec.NoSymbols do
+defmodule FPE.FFX.Codec.NoSymbols do
   @moduledoc """
-  An implementation of `FF3_1.FFX.Codec` that handles numerical tagged
+  An implementation of `FPE.FFX.Codec` that handles numerical tagged
   integers, the tag being the value length.
   """
 
-  alias FF3_1.FFX.Codec
+  alias FPE.FFX.Codec
 
   ## Types
 

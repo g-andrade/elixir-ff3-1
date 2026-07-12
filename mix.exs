@@ -1,9 +1,9 @@
-defmodule FF3_1.MixProject do
+defmodule FPE.MixProject do
   use Mix.Project
 
   def project do
     [
-      app: :ff3_1,
+      app: :fpe,
       version: "0.1.0",
       elixir: "~> 1.14",
       start_permanent: Mix.env() == :prod,
@@ -11,7 +11,7 @@ defmodule FF3_1.MixProject do
       elixirc_paths: elixirc_paths(Mix.env()),
       elixirc_options: elixirc_options(Mix.env()),
       docs: [
-        main: "FF3_1",
+        # main: "FPE.FF3_1",
         extras: [
           "CHANGELOG.md",
           "LICENSE"
