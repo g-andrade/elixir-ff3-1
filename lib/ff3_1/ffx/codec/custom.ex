@@ -44,6 +44,39 @@ defmodule FF3_1.FFX.Codec.Custom do
   If you wish to handle case agnostically, you'll need to pick what best fits
   your use case, and handle it before invoking `FF3_1` encryption and
   decryption functions.
+
+  ## Why alphabets must already be in NFC, while inputs need not be
+
+  Encryption and decryption inputs are normalized *toward* the alphabet: an
+  input symbol is NFC-normalized and then looked up among the alphabet's
+  symbols. That lookup only works if the alphabet is itself in NFC, so
+  requiring it isn't an arbitrary parallel to the input rule — it's the
+  precondition that makes forgiving input normalization possible in the first
+  place. You can't normalize toward a target that is itself un-normalized.
+
+  We *reject* a non-NFC alphabet rather than normalizing it, because
+  normalizing a symbol can silently change either its cardinality or its
+  identity, breaking invariants this codec depends on:
+
+  * **One codepoint can become several.** `U+0344` (◌̈́, combining
+    greek dialytika tonos) normalizes to `U+0308 U+0301` (◌̈ then
+    ◌́, combining diaeresis then combining acute accent, shown on
+    ◌ dotted-circle placeholders). A symbol is meant to be exactly one
+    scalar (`#codepoints = #symbols = #grapheme clusters`); a two-codepoint
+    symbol breaks splitting, length, and round-tripping.
+  * **One codepoint can become a different one** — a Unicode *singleton*.
+    `U+212B` (Å, the Ångström sign — itself a starter) normalizes to
+    `U+00C5` (Å, latin capital letter A with ring above). Normalizing would
+    substitute a symbol the caller never declared, and if `U+00C5` is already
+    in the alphabet the two entries collapse into one, corrupting the radix
+    and the symbol/amount mapping.
+
+  Inputs are safe to normalize because there it's only a lookup: the raw input
+  form is never stored or emitted (output is always built from the alphabet's
+  own symbols), so a normalized input either resolves to an existing symbol or
+  is rejected as unknown — no invariant can break. The alphabet, being the
+  source of truth for the radix, symbol ordering, and symbol/amount bijection,
+  is rejected loudly instead, so the caller declares a clean one.
   """
 
   alias FF3_1.FFX.Codec
