@@ -7,11 +7,12 @@ defmodule FPE.FF1 do
 
   alias FPE.Algorithm
   alias FPE.FFX
+  alias FPE.FFX.Codec
 
   ## API Types
 
   @type key :: FFX.key()
-  @type codec :: FFX.Codec.t()
+  @type codec :: Codec.t()
   @type numerical_string :: FFX.numerical_string()
 
   # 5.2, FF3-1 requirements
@@ -51,13 +52,11 @@ defmodule FPE.FF1 do
   @doc """
   Validates arguments and creates a context used for both encryption and decryption.
   """
-  @spec new_ctx(key, radix | alphabet | codec) :: {:ok, ctx} | {:error, term}
-  def new_ctx(key, radix_or_alphabet_or_codec) do
-    alias FFX.Codec
-
+  @spec new_ctx(key, Codec.t()) :: {:ok, ctx} | {:error, term}
+  def new_ctx(key, codec) do
     with :ok <- validate_key(key),
-         {:ok, codec} <- validate_radix_or_alphabet(radix_or_alphabet_or_codec),
          radix = Codec.radix(codec),
+         :ok <- validate_radix(radix),
          {:ok, min_length} <- calculate_min_length(radix),
          {:ok, max_length} <- calculate_max_length(min_length) do
       {:ok,
@@ -88,11 +87,7 @@ defmodule FPE.FF1 do
     end
   end
 
-  defp validate_radix_or_alphabet(%{__struct__: _} = codec) do
-    alias FPE.FFX.Codec
-
-    radix = Codec.radix(codec)
-
+  defp validate_radix(radix) do
     cond do
       radix < @min_radix ->
         {:error, {:invalid_radix, {radix, :less_than_minimum, @min_radix}}}
@@ -101,51 +96,7 @@ defmodule FPE.FF1 do
         {:error, {:invalid_radix, {radix, :more_than_maximum, @max_radix}}}
 
       true ->
-        {:ok, codec}
-    end
-  end
-
-  defp validate_radix_or_alphabet(radix_or_alphabet) do
-    alias FPE.FFX.Codec
-
-    case Codec.Builtin.maybe_new(radix_or_alphabet) do
-      {:ok, codec} ->
-        {:ok, codec}
-
-      nil ->
-        validate_custom_alphabet(radix_or_alphabet)
-    end
-  end
-
-  defp validate_custom_alphabet(radix) when is_integer(radix) do
-    # largest than builtin
-    if radix < @min_radix do
-      {:error, {:invalid_radix, {radix, :less_than_minimum, @min_radix}}}
-    else
-      {:error, {:invalid_radix, {radix, :you_need_to_provide_either_an_alphabet_or_a_codec}}}
-    end
-  end
-
-  defp validate_custom_alphabet(alphabet) when is_binary(alphabet) do
-    alias FPE.FFX.Codec
-
-    case Codec.Custom.new(alphabet) do
-      {:ok, codec} ->
-        radix = Codec.radix(codec)
-
-        cond do
-          radix < @min_radix ->
-            {:error, {:alphabet_smaller_than_min_radix, @min_radix}}
-
-          radix > @max_radix ->
-            {:error, {:alphabet_larger_than_max_radix, @max_radix}}
-
-          true ->
-            {:ok, codec}
-        end
-
-      {:error, _} = error ->
-        error
+        :ok
     end
   end
 
@@ -212,8 +163,6 @@ defmodule FPE.FF1 do
     end
 
     defp validate_enc_or_dec_input(ctx, vX) do
-      alias FFX.Codec
-
       %FPE.FF1{codec: codec, min_length: min_length, max_length: max_length} = ctx
 
       case Codec.normalize_input(codec, vX) do
@@ -242,8 +191,6 @@ defmodule FPE.FF1 do
     end
 
     defp setup_encrypt_or_decrypt_vars(codec, tweak, vX, vX_length) do
-      alias FFX.Codec
-
       n = vX_length
       t = byte_size(tweak)
 
@@ -284,8 +231,6 @@ defmodule FPE.FF1 do
 
     # credo:disable-for-next-line Credo.Check.Refactor.FunctionArity
     defp do_encrypt_rounds!(i, key, codec, tweak, u, v, vA, vB, b, d, vP) when i < 10 do
-      alias FFX.Codec
-
       radix = Codec.radix(codec)
       t = byte_size(tweak)
 
@@ -333,7 +278,6 @@ defmodule FPE.FF1 do
 
     # credo:disable-for-next-line Credo.Check.Refactor.FunctionArity
     defp do_encrypt_rounds!(10, _key, codec, _tweak, u, v, vA, vB, _b, _d, _vP) do
-      alias FFX.Codec
       ## 5. Return A || B
       vA_str = Codec.int_to_padded_numerical_string(codec, vA, u)
       vB_str = Codec.int_to_padded_numerical_string(codec, vB, v)
@@ -344,8 +288,6 @@ defmodule FPE.FF1 do
 
     # credo:disable-for-next-line Credo.Check.Refactor.FunctionArity
     defp do_decrypt_rounds!(i, key, codec, tweak, u, v, vA, vB, b, d, vP) when i >= 0 do
-      alias FFX.Codec
-
       radix = Codec.radix(codec)
       t = byte_size(tweak)
 
@@ -393,7 +335,6 @@ defmodule FPE.FF1 do
 
     # credo:disable-for-next-line Credo.Check.Refactor.FunctionArity
     defp do_decrypt_rounds!(-1, _key, codec, _tweak, u, v, vA, vB, _b, _d, _vP) do
-      alias FFX.Codec
       ## 5. Return A || B
       vA_str = Codec.int_to_padded_numerical_string(codec, vA, u)
       vB_str = Codec.int_to_padded_numerical_string(codec, vB, v)
