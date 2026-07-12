@@ -12,6 +12,16 @@ defmodule FF3_1.FFX.Codec.Custom do
   Hangul jamo, not in NFC form, or that would merge with an adjacent symbol
   (emoji modifiers, regional indicators, prepending marks, ...) are rejected.
 
+  Whitespace and separators (space, no-break space, line/paragraph separators,
+  ...) are rejected too — not because they'd break the grapheme invariant (a
+  space stands alone just fine), but on practical grounds: since encryption
+  permutes over the whole domain, a separator can surface anywhere in the
+  ciphertext, including as an invisible leading or trailing symbol (and length
+  is significant). Whitespace is exactly what the storage and transport layers
+  ciphertext must survive tend to mangle — trimming, collapsing, CRLF/line
+  normalization — so admitting it would quietly undermine round-tripping
+  outside this codec's control.
+
   This buys two guarantees of different strength:
 
   * **Round-tripping** is ensured for any accepted alphabet, forever. Input is
@@ -203,6 +213,18 @@ defmodule FF3_1.FFX.Codec.Custom do
 
     cond do
       principal_category === :other ->
+        {:invalid_category, category}
+
+      # - 3a-bis. No whitespace/separators (Zs/Zl/Zp). These pass every other
+      # check — a space is a lone, NFC-stable, standalone starter — but they're
+      # rejected anyway on practical grounds: since FF3-1 permutes over the whole
+      # domain, a separator symbol can surface anywhere in the ciphertext,
+      # including leading/trailing (and length is significant). Whitespace is
+      # exactly what the storage/transport layers ciphertext must survive tend to
+      # mangle (trimming, collapsing, CRLF/line normalization), and it's
+      # invisible, which clashes with the visual-unit guarantee. Line/paragraph
+      # separators would even let ciphertext sprout line breaks.
+      principal_category === :separator ->
         {:invalid_category, category}
 
       combining_class !== @unicode_combining_class_not_reordered ->

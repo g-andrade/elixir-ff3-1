@@ -1122,10 +1122,6 @@ defmodule FF3_1_Test do
       end
     end
 
-    test "separators such as the space character are valid symbols" do
-      assert {:ok, _} = Custom.new("a b")
-    end
-
     test "Custom.new/1 itself does not enforce a minimum radix (FF3_1.new_ctx does)" do
       # radix 0 and 1 are accepted here; the 2..0xFFFF bound lives in new_ctx.
       assert {:ok, _} = Custom.new("")
@@ -1139,6 +1135,17 @@ defmodule FF3_1_Test do
       assert reason_for(0x0007) == {:invalid_category, {:other, :control}}
       assert reason_for(0x200D) == {:invalid_category, {:other, :format}}
       assert reason_for(0xE000) == {:invalid_category, {:other, :private}}
+    end
+
+    test "whitespace and separators (categories Zs/Zl/Zp)" do
+      # space, no-break space, ideographic space (Zs); line and paragraph
+      # separators (Zl/Zp). All are lone, NFC-stable, standalone starters that
+      # pass every other check but are rejected on practical grounds.
+      assert reason_for(0x0020) == {:invalid_category, {:separator, :space}}
+      assert reason_for(0x00A0) == {:invalid_category, {:separator, :space}}
+      assert reason_for(0x3000) == {:invalid_category, {:separator, :space}}
+      assert reason_for(0x2028) == {:invalid_category, {:separator, :line}}
+      assert reason_for(0x2029) == {:invalid_category, {:separator, :paragraph}}
     end
 
     test "combining marks with a nonzero combining class" do
@@ -1220,6 +1227,7 @@ defmodule FF3_1_Test do
     assert %{category: {:mark, :non_spacing}, ccc: 230} = :unicode_util.lookup(0x0301)
     assert %{category: {:letter, :lowercase}, ccc: 0} = :unicode_util.lookup(?a)
     assert %{category: {:other, :not_assigned}} = :unicode_util.lookup(0x0378)
+    assert %{category: {:separator, :space}} = :unicode_util.lookup(0x0020)
   end
 
   test "badly sized strings are rejected" do
