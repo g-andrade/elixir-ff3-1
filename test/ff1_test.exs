@@ -5,6 +5,8 @@ defmodule FF1_Test do
 
   doctest ExFPE.FF1
 
+  integer_otp_release = :otp_release |> :erlang.system_info() |> List.to_integer()
+
   ## Official NIST FF1 sample vectors, from the "Examples with Intermediate
   ## Values" published for SP 800-38G:
   ## https://csrc.nist.gov/CSRC/media/Projects/Cryptographic-Standards-and-Guidelines/documents/examples/FF1samples.pdf
@@ -102,6 +104,11 @@ defmodule FF1_Test do
       String.upcase("xs8a0azh2avyalyzuwd"),
       36
     )
+  end
+
+  if integer_otp_release < 27 do
+    # Outdated Unicode metadata
+    @tag :skip
   end
 
   test "very large alphabet" do

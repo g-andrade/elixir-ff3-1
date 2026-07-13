@@ -756,7 +756,7 @@ defmodule FF3_1_Test do
   ##
 
   if integer_otp_release < 27 do
-    # Missing Unicode metadata
+    # Outdated Unicode metadata
     @tag :skip
   end
 
@@ -1061,7 +1061,7 @@ defmodule FF3_1_Test do
   ##
 
   if integer_otp_release < 28 do
-    # Missing Unicode metadata
+    # Outdated Unicode metadata
     @tag :skip
   end
 
