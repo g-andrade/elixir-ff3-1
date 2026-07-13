@@ -15,7 +15,7 @@ defmodule ExFPE.MixProject do
         extras: [
           "README.md": [title: "ExFPE"],
           "CHANGELOG.md": [],
-          "LICENSE": []
+          LICENSE: []
         ]
       ],
       test_coverage: [

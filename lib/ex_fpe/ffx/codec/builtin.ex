@@ -31,8 +31,20 @@ defmodule ExFPE.FFX.Codec.Builtin do
 
   ## API Functions
 
+  @doc """
+  Succeeds if the radix or alphabet can be handled by `Integer.to_string/2`.
+
+  Returns `{:ok, t()}` if `term` is either:
+  * a valid radix;
+  * an upper case alphabet matching that of `Integer.to_string/1`;
+  * a lower case alphabet matching that of `Integer.to_string/1` + `String.downcase/1`.
+
+  Returns `nil` otherwise.
+  """
   @spec maybe_new(term) :: {:ok, t()} | nil
-  def maybe_new(radix) when is_integer(radix) do
+  def maybe_new(radix_or_alphabet) when is_integer(radix_or_alphabet) do
+    radix = radix_or_alphabet
+
     if radix in 2..36 do
       {:ok,
        %__MODULE__{
@@ -42,7 +54,8 @@ defmodule ExFPE.FFX.Codec.Builtin do
     end
   end
 
-  def maybe_new(alphabet) when byte_size(alphabet) >= 2 do
+  def maybe_new(radix_or_alphabet) when byte_size(radix_or_alphabet) >= 2 do
+    alphabet = radix_or_alphabet
     matches_upper = String.starts_with?(@broadest_upper_version, alphabet)
     matches_lower = not matches_upper and String.starts_with?(@broadest_lower_version, alphabet)
 

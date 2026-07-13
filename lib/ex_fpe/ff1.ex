@@ -52,19 +52,15 @@ defmodule ExFPE.FF1 do
 
   ## API Types
 
-  @type key :: FFX.key()
-  @type codec :: Codec.t()
-  @type numerical_string :: FFX.numerical_string()
-
   # §4 FF1 requirements: radix ∈ [2 .. 2**16]
   @min_radix 2
   @max_radix 0x10_000
   @type radix :: 2..0x10_000
-  @type alphabet :: <<_::16, _::_*8>>
 
   # FF1 takes a variable-length byte-string tweak (0 .. maxTlen bytes)
   @type tweak :: binary()
 
+  @typedoc false
   @type constraints :: %{min_length: pos_integer, max_length: pos_integer}
 
   @enforce_keys [
@@ -80,20 +76,18 @@ defmodule ExFPE.FF1 do
     :max_length
   ]
 
-  @type ctx ::
-          %__MODULE__{
-            key: key,
-            codec: codec,
-            min_length: pos_integer,
-            max_length: pos_integer
-          }
+  @typep ctx ::
+           %__MODULE__{
+             key: FFX.key(),
+             codec: Codec.t(),
+             min_length: pos_integer,
+             max_length: pos_integer
+           }
 
   ## API
 
-  @doc """
-  Validates arguments and creates a context used for both encryption and decryption.
-  """
-  @spec new_ctx(key, Codec.t()) :: {:ok, ctx} | {:error, term}
+  @doc false
+  @spec new_ctx(FFX.key(), Codec.t()) :: {:ok, ctx} | {:error, term}
   def new_ctx(key, codec) do
     with :ok <- validate_key(key),
          radix = Codec.radix(codec),
@@ -113,16 +107,11 @@ defmodule ExFPE.FF1 do
     end
   end
 
-  @doc """
-  Returns a `ctx`'s `ExFPE.FFX.Codec`, should you wish to further manipulate or
-  prepare encryption and decryption inputs or outputs.
-  """
-  @spec codec(ctx) :: codec
+  @doc false
+  @spec codec(ctx) :: Codec.t()
   def codec(%__MODULE__{codec: codec}), do: codec
 
-  @doc """
-  Returns a `ctx`'s [constraints](#module-length-constraints).
-  """
+  @doc false
   @spec constraints(ctx) :: constraints()
   def constraints(%__MODULE__{min_length: min_length, max_length: max_length}) do
     %{min_length: min_length, max_length: max_length}

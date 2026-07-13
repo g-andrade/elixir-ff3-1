@@ -53,7 +53,7 @@ defmodule ExFPE do
   Bundles the chosen mode's `algorithm` (which holds the key) with the `codec`
   that maps between symbols and integers. Treat it as opaque.
   """
-  @type t :: %__MODULE__{algorithm: Algorithm.t(), codec: Codec.t()}
+  @opaque t :: %__MODULE__{algorithm: Algorithm.t(), codec: Codec.t()}
 
   @typedoc "A supported FPE mode."
   @type mode :: :ff1 | :ff3_1

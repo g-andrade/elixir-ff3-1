@@ -2,7 +2,7 @@
 # credo:disable-for-this-file Credo.Check.Readability.VariableNames
 defmodule ExFPE.FFX do
   @moduledoc """
-  FFX reference functions required to manipulate byte strings.
+  FFX definitions.
   """
 
   # https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-38Gr1-draft.pdf
@@ -20,18 +20,16 @@ defmodule ExFPE.FFX do
 
   ## Internal API
 
-  @doc """
-  4.5, Algorithm 2: NUM(X) -> x
-  """
+  # 4.5, Algorithm 2: NUM(X) -> x
+  @doc false
   @spec num(vX) :: x
         when vX: byte_string, x: non_neg_integer
   def num(vX) do
     :binary.decode_unsigned(vX)
   end
 
-  @doc """
-  4.5, Algorithm 5: REVB(X) -> Y
-  """
+  # 4.5, Algorithm 5: REVB(X) -> Y
+  @doc false
   @spec revb(vX) :: vY
         when vX: byte_string, vY: byte_string
   def revb(vX) do

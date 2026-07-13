@@ -75,19 +75,15 @@ defmodule ExFPE.FF3_1 do
 
   ## API Types
 
-  @type key :: FFX.key()
-  @type codec :: Codec.t()
-  @type numerical_string :: FFX.numerical_string()
-
   # 5.2, FF3-1 requirements
   @min_radix 2
   @max_radix 0xFFFF
   @type radix :: 2..0xFFFF
-  @type alphabet :: <<_::16, _::_*8>>
 
   # 5.2, Algorithm 9: FF3.Encrypt(K, T, X)
   @type tweak :: <<_::56>>
 
+  @typedoc false
   @type constraints :: %{min_length: pos_integer, max_length: pos_integer}
 
   @enforce_keys [
@@ -105,21 +101,19 @@ defmodule ExFPE.FF3_1 do
     :max_length
   ]
 
-  @type ctx ::
-          %__MODULE__{
-            key: key,
-            codec: codec,
-            iform_ctx: FFX.IntermediateForm.ctx(),
-            min_length: pos_integer,
-            max_length: pos_integer
-          }
+  @typep ctx ::
+           %__MODULE__{
+             key: FFX.key(),
+             codec: Codec.t(),
+             iform_ctx: FFX.IntermediateForm.ctx(),
+             min_length: pos_integer,
+             max_length: pos_integer
+           }
 
   ## API
 
-  @doc """
-  Validates arguments and creates a context used for both encryption and decryption.
-  """
-  @spec new_ctx(key, Codec.t()) :: {:ok, ctx} | {:error, term}
+  @doc false
+  @spec new_ctx(FFX.key(), Codec.t()) :: {:ok, ctx} | {:error, term}
   def new_ctx(key, codec) do
     alias FFX.IntermediateForm
 
@@ -143,16 +137,11 @@ defmodule ExFPE.FF3_1 do
     end
   end
 
-  @doc """
-  Returns a `ctx`'s `ExFPE.FFX.Codec`, should you wish to further manipulate or
-  prepare encryption and decryption inputs or outputs.
-  """
-  @spec codec(ctx) :: codec
+  @doc false
+  @spec codec(ctx) :: Codec.t()
   def codec(%__MODULE__{codec: codec}), do: codec
 
-  @doc """
-  Returns a `ctx`'s [constraints](#module-length-constraints).
-  """
+  @doc false
   @spec constraints(ctx) :: %{min_length: pos_integer, max_length: pos_integer}
   def constraints(%__MODULE__{min_length: min_length, max_length: max_length}) do
     %{min_length: min_length, max_length: max_length}

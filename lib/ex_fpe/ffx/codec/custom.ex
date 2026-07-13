@@ -52,7 +52,7 @@ defmodule ExFPE.FFX.Codec.Custom do
   symbol within the same alphabet ever being a real use case.
 
   If you wish to handle case agnostically, you'll need to pick what best fits
-  your use case, and handle it before invoking `FF3_1` encryption and
+  your use case, and handle it before invoking `ExFPE` encryption and
   decryption functions.
 
   ## Why alphabets must already be in NFC, while inputs need not be
@@ -62,7 +62,7 @@ defmodule ExFPE.FFX.Codec.Custom do
   symbols. That lookup only works if the alphabet is itself in NFC, so
   requiring it isn't an arbitrary parallel to the input rule — it's the
   precondition that makes forgiving input normalization possible in the first
-  place. You can't normalize toward a target that is itself un-normalized.
+  place.
 
   We *reject* a non-NFC alphabet rather than normalizing it, because
   normalizing a symbol can silently change either its cardinality or its
