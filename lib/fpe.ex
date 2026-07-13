@@ -55,7 +55,7 @@ defmodule FPE do
 
       iex> key = :crypto.strong_rand_bytes(32)
       iex> {:ok, ctx} = FPE.new(key, _radix = 10)
-      iex> tweak = <<0::56>>
+      iex> tweak = "dev.env"
       iex> plaintext = "34436524"
       iex> ciphertext = FPE.encrypt!(ctx, tweak, plaintext)
       iex> ^plaintext = FPE.decrypt!(ctx, tweak, ciphertext)
@@ -88,8 +88,8 @@ defmodule FPE do
       iex> key = :crypto.strong_rand_bytes(32)
       iex> {:ok, ctx} = FPE.new(key, _radix = 10)
       iex> plaintext= "135522432"
-      iex> tweak1 = <<"dev.env">>
-      iex> tweak2 = <<"prodenv">>
+      iex> tweak1 = "dev.env"
+      iex> tweak2 = "prod.env"
       iex> ciphertext1 = FPE.encrypt!(ctx, tweak1, plaintext)
       iex> ciphertext2 = FPE.encrypt!(ctx, tweak2, plaintext)
       iex> ciphertext2 != ciphertext1
@@ -255,7 +255,7 @@ defmodule FPE do
 
   ## Choosing a mode
 
-  Everything above uses the default mode, FF1. To select a mode explicitly,
+  Everything above uses the default mode, `:ff1`. To select a mode explicitly,
   pass it as the second argument to `new/3`. The only other mode is `:ff3_1`,
   which is **no longer NIST-approved** (see `FPE.FF3_1`) — reach for it only to
   interoperate with data that was already encrypted with FF3-1. It takes a
