@@ -915,7 +915,7 @@ defmodule FF3_1_Test do
     key =
       <<63, 89, 255, 222, 188, 211, 44, 18, 129, 227, 228, 6, 210, 23, 145, 98, 144, 216, 104, 61, 203, 144, 121, 251>>
 
-    assert FPE.new(key, FPE.FF3_1, "🙌🙌🏻🙌🏼🙌🏽🙌🏾🙌🏿") ===
+    assert FPE.new(key, :ff3_1, "🙌🙌🏻🙌🏼🙌🏽🙌🏾🙌🏿") ===
              {:error,
               {:invalid_codepoints,
                [
@@ -929,7 +929,7 @@ defmodule FF3_1_Test do
 
   test "builtin alphabet is case insensitive" do
     key = :crypto.strong_rand_bytes(32)
-    {:ok, ctx} = FPE.new(key, FPE.FF3_1, _radix = 16)
+    {:ok, ctx} = FPE.new(key, :ff3_1, _radix = 16)
     tweak = :crypto.strong_rand_bytes(7)
 
     plaintext = "aabbcd1512f"
@@ -958,7 +958,7 @@ defmodule FF3_1_Test do
   test "custom alphabet is case sensitive" do
     key = :crypto.strong_rand_bytes(32)
     alphabet = "abcdéfgHijk🪩lMnoPqRsTuV"
-    {:ok, ctx} = FPE.new(key, FPE.FF3_1, alphabet)
+    {:ok, ctx} = FPE.new(key, :ff3_1, alphabet)
     tweak = :crypto.strong_rand_bytes(7)
 
     plaintext = "b🪩cdéfgHilMnoPqRsTuV"
@@ -997,7 +997,7 @@ defmodule FF3_1_Test do
   test "custom alphabet is norm insensitive" do
     key = :crypto.strong_rand_bytes(32)
     alphabet = "abcdéfgHijk🪩lMnoP#{@letter_a_with_ring_above}qRsTuV"
-    {:ok, ctx} = FPE.new(key, FPE.FF3_1, alphabet)
+    {:ok, ctx} = FPE.new(key, :ff3_1, alphabet)
     tweak = :crypto.strong_rand_bytes(7)
 
     plaintext = "b🪩cd#{@letter_a_with_ring_above}éfgHilMnoPqRsTuV"
@@ -1025,7 +1025,7 @@ defmodule FF3_1_Test do
 
   test "invalid keys are rejected" do
     key = ~c"key"
-    {:error, {:key_not_a_binary, ^key}} = FPE.new(key, FPE.FF3_1, _radix = 10)
+    {:error, {:key_not_a_binary, ^key}} = FPE.new(key, :ff3_1, _radix = 10)
 
     Enum.each(
       1..100,
@@ -1033,9 +1033,9 @@ defmodule FF3_1_Test do
         key = :crypto.strong_rand_bytes(key_size)
 
         if key_size in [16, 24, 32] do
-          {:ok, _ctx} = FPE.new(key, FPE.FF3_1, _radix = 10)
+          {:ok, _ctx} = FPE.new(key, :ff3_1, _radix = 10)
         else
-          {:error, {:key_has_invalid_size, ^key_size}} = FPE.new(key, FPE.FF3_1, _radix = 10)
+          {:error, {:key_has_invalid_size, ^key_size}} = FPE.new(key, :ff3_1, _radix = 10)
         end
       end
     )
@@ -1045,16 +1045,16 @@ defmodule FF3_1_Test do
     key = :crypto.strong_rand_bytes(24)
 
     alphabet = ""
-    {:error, {:alphabet_smaller_than_min_radix, 2}} = FPE.new(key, FPE.FF3_1, alphabet)
-    {:error, {:invalid_radix, {0, :less_than_minimum, 2}}} = FPE.new(key, FPE.FF3_1, _radix = 0)
+    {:error, {:alphabet_smaller_than_min_radix, 2}} = FPE.new(key, :ff3_1, alphabet)
+    {:error, {:invalid_radix, {0, :less_than_minimum, 2}}} = FPE.new(key, :ff3_1, _radix = 0)
 
     alphabet = "0"
-    {:error, {:alphabet_smaller_than_min_radix, 2}} = FPE.new(key, FPE.FF3_1, alphabet)
-    {:error, {:invalid_radix, {1, :less_than_minimum, 2}}} = FPE.new(key, FPE.FF3_1, _radix = 1)
+    {:error, {:alphabet_smaller_than_min_radix, 2}} = FPE.new(key, :ff3_1, alphabet)
+    {:error, {:invalid_radix, {1, :less_than_minimum, 2}}} = FPE.new(key, :ff3_1, _radix = 1)
 
     alphabet = "01"
-    {:ok, _ctx} = FPE.new(key, FPE.FF3_1, alphabet)
-    {:ok, _ctx} = FPE.new(key, FPE.FF3_1, _radix = 2)
+    {:ok, _ctx} = FPE.new(key, :ff3_1, alphabet)
+    {:ok, _ctx} = FPE.new(key, :ff3_1, _radix = 2)
   end
 
   ##
@@ -1068,31 +1068,31 @@ defmodule FF3_1_Test do
     key = :crypto.strong_rand_bytes(24)
 
     alphabet = "test/data/alphabet_500_symbols_long.txt" |> File.read!() |> String.trim()
-    {:ok, _ctx} = FPE.new(key, FPE.FF3_1, alphabet)
+    {:ok, _ctx} = FPE.new(key, :ff3_1, alphabet)
 
     alphabet = "test/data/alphabet_1000_symbols_long.txt" |> File.read!() |> String.trim()
-    {:ok, _ctx} = FPE.new(key, FPE.FF3_1, alphabet)
+    {:ok, _ctx} = FPE.new(key, :ff3_1, alphabet)
 
     alphabet = "test/data/alphabet_10000_symbols_long.txt" |> File.read!() |> String.trim()
-    {:ok, _ctx} = FPE.new(key, FPE.FF3_1, alphabet)
+    {:ok, _ctx} = FPE.new(key, :ff3_1, alphabet)
 
     alphabet = "test/data/alphabet_0xFFFF_symbols_long.txt" |> File.read!() |> String.trim()
-    {:ok, _ctx} = FPE.new(key, FPE.FF3_1, alphabet)
+    {:ok, _ctx} = FPE.new(key, :ff3_1, alphabet)
 
     alphabet = "test/data/alphabet_0x10000_symbols_long.txt" |> File.read!() |> String.trim()
-    {:error, {:alphabet_larger_than_max_radix, 0xFFFF}} = FPE.new(key, FPE.FF3_1, alphabet)
+    {:error, {:alphabet_larger_than_max_radix, 0xFFFF}} = FPE.new(key, :ff3_1, alphabet)
   end
 
   test "alphabets with repeated symbols are rejected" do
     key = :crypto.strong_rand_bytes(16)
     alphabet = "01234567389"
-    {:error, {:alphabet_has_repeated_symbols, ["3"]}} = FPE.new(key, FPE.FF3_1, alphabet)
+    {:error, {:alphabet_has_repeated_symbols, ["3"]}} = FPE.new(key, :ff3_1, alphabet)
   end
 
   test "unknown symbols are rejected - builtin alphabet" do
     key = :crypto.strong_rand_bytes(24)
     tweak = :crypto.strong_rand_bytes(7)
-    {:ok, ctx} = FPE.new(key, FPE.FF3_1, _radix = 10)
+    {:ok, ctx} = FPE.new(key, :ff3_1, _radix = 10)
     assert catch_error(FPE.encrypt!(ctx, tweak, "aaaaaaa"))
     assert catch_error(FPE.decrypt!(ctx, tweak, "aaaaaaa"))
   end
@@ -1100,7 +1100,7 @@ defmodule FF3_1_Test do
   test "unknown symbols are rejected - custom alphabet" do
     key = :crypto.strong_rand_bytes(24)
     tweak = :crypto.strong_rand_bytes(7)
-    {:ok, ctx} = FPE.new(key, FPE.FF3_1, _alphabet = "abcdefghijklmn")
+    {:ok, ctx} = FPE.new(key, :ff3_1, _alphabet = "abcdefghijklmn")
     assert catch_error(FPE.encrypt!(ctx, tweak, "abcdefgzzzz"))
     assert catch_error(FPE.decrypt!(ctx, tweak, "abcdefgzzzz"))
   end
@@ -1231,7 +1231,7 @@ defmodule FF3_1_Test do
   test "badly sized strings are rejected" do
     key = :crypto.strong_rand_bytes(24)
     tweak = :crypto.strong_rand_bytes(7)
-    {:ok, ctx} = FPE.new(key, FPE.FF3_1, _radix = 10)
+    {:ok, ctx} = FPE.new(key, :ff3_1, _radix = 10)
     %{min_length: min_length, max_length: max_length} = FPE.FF3_1.constraints(ctx.algorithm)
 
     short_string = String.duplicate("0", min_length - 1)
@@ -1247,7 +1247,7 @@ defmodule FF3_1_Test do
     key = :crypto.strong_rand_bytes(24)
 
     alphabet = "abcdefghijklmn"
-    {:ok, ctx} = FPE.new(key, FPE.FF3_1, alphabet)
+    {:ok, ctx} = FPE.new(key, :ff3_1, alphabet)
 
     tweak = :crypto.strong_rand_bytes(7)
     input = "aaaaaaaaa" <> <<251, 251>>
@@ -1257,7 +1257,7 @@ defmodule FF3_1_Test do
 
   test "invalid tweaks are rejected" do
     key = :crypto.strong_rand_bytes(24)
-    {:ok, ctx} = FPE.new(key, FPE.FF3_1, _radix = 10)
+    {:ok, ctx} = FPE.new(key, :ff3_1, _radix = 10)
     input = "1234567"
 
     tweak = <<0::48>>
@@ -1277,7 +1277,7 @@ defmodule FF3_1_Test do
     alias FPE.FFX.Codec
 
     key = :crypto.strong_rand_bytes(24)
-    {:ok, ctx} = FPE.new(key, FPE.FF3_1, _radix = 10)
+    {:ok, ctx} = FPE.new(key, :ff3_1, _radix = 10)
 
     codec = FPE.FF3_1.codec(ctx.algorithm)
     assert Codec.numerical_string_to_int(codec, "234234638") == {:ok, 234_234_638}
@@ -1288,7 +1288,7 @@ defmodule FF3_1_Test do
     alias FPE.FFX.Codec
 
     key = :crypto.strong_rand_bytes(24)
-    {:ok, ctx} = FPE.new(key, FPE.FF3_1, _alphabet = "012345678x")
+    {:ok, ctx} = FPE.new(key, :ff3_1, _alphabet = "012345678x")
 
     codec = FPE.FF3_1.codec(ctx.algorithm)
     assert Codec.numerical_string_to_int(codec, ~c"234234638x") == {:ok, 2_342_346_389}
@@ -1367,7 +1367,7 @@ defmodule FF3_1_Test do
           1..100,
           fn _ ->
             {:ok, codec} = NoSymbols.new(radix)
-            {:ok, ctx} = FPE.new(key, FPE.FF3_1, codec)
+            {:ok, ctx} = FPE.new(key, :ff3_1, codec)
             %{min_length: min_length, max_length: max_length} = FPE.FF3_1.constraints(ctx.algorithm)
 
             input_length = min_length + :rand.uniform(max_length - min_length + 1) - 1
@@ -1397,7 +1397,7 @@ defmodule FF3_1_Test do
   end
 
   defp check_test_vector(key, tweak, plaintext, ciphertext, radix_or_alphabet) do
-    {:ok, ctx} = FPE.new(key, FPE.FF3_1, radix_or_alphabet)
+    {:ok, ctx} = FPE.new(key, :ff3_1, radix_or_alphabet)
     assert FPE.encrypt!(ctx, tweak, plaintext) == ciphertext
     assert FPE.decrypt!(ctx, tweak, ciphertext) == plaintext
   end

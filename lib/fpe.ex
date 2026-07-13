@@ -30,7 +30,7 @@ defmodule FPE do
   the algorithm module, and a radix.
 
       iex> key = :crypto.strong_rand_bytes(32)
-      iex> {:ok, _ctx} = FPE.new(key, FPE.FF3_1, _radix = 10)
+      iex> {:ok, _ctx} = FPE.new(key, :ff3_1, _radix = 10)
 
   Keys can be:
   * 32 bytes long for AES-256
@@ -50,7 +50,7 @@ defmodule FPE do
   algorithm (7 bytes for FF3-1).
 
       iex> key = :crypto.strong_rand_bytes(32)
-      iex> {:ok, ctx} = FPE.new(key, FPE.FF3_1, _radix = 10)
+      iex> {:ok, ctx} = FPE.new(key, :ff3_1, _radix = 10)
       iex> tweak = <<0::56>>
       iex> plaintext = "34436524"
       iex> ciphertext = FPE.encrypt!(ctx, tweak, plaintext)
@@ -62,7 +62,7 @@ defmodule FPE do
   of equal length to their respective plaintexts, and vice-versa.
 
       iex> key = :crypto.strong_rand_bytes(32)
-      iex> {:ok, ctx} = FPE.new(key, FPE.FF3_1, _radix = 10)
+      iex> {:ok, ctx} = FPE.new(key, :ff3_1, _radix = 10)
       iex> tweak = <<0::56>>
       iex> plaintext1 =   "34436524"
       iex> plaintext2 = "0034436524"
@@ -82,7 +82,7 @@ defmodule FPE do
   the tweak should vary with each instance of the encryption whenever possible.
 
       iex> key = :crypto.strong_rand_bytes(32)
-      iex> {:ok, ctx} = FPE.new(key, FPE.FF3_1, _radix = 10)
+      iex> {:ok, ctx} = FPE.new(key, :ff3_1, _radix = 10)
       iex> plaintext= "135522432"
       iex> tweak1 = <<"dev.env">>
       iex> tweak2 = <<"prodenv">>
@@ -100,7 +100,7 @@ defmodule FPE do
   #### Base 8
 
       iex> key = :crypto.strong_rand_bytes(32)
-      iex> {:ok, ctx} = FPE.new(key, FPE.FF3_1, _radix = 8)
+      iex> {:ok, ctx} = FPE.new(key, :ff3_1, _radix = 8)
       iex> tweak = <<0::56>>
       iex> plaintext = "34436524"
       iex> ciphertext = FPE.encrypt!(ctx, tweak, plaintext)
@@ -109,7 +109,7 @@ defmodule FPE do
   #### Base 16
 
       iex> key = :crypto.strong_rand_bytes(32)
-      iex> {:ok, ctx} = FPE.new(key, FPE.FF3_1, _radix = 16)
+      iex> {:ok, ctx} = FPE.new(key, :ff3_1, _radix = 16)
       iex> tweak = <<0::56>>
       iex> plaintext = "AFD093902C"
       iex> ciphertext = FPE.encrypt!(ctx, tweak, plaintext)
@@ -118,7 +118,7 @@ defmodule FPE do
   #### Base 36
 
       iex> key = :crypto.strong_rand_bytes(32)
-      iex> {:ok, ctx} = FPE.new(key, FPE.FF3_1, _radix = 36)
+      iex> {:ok, ctx} = FPE.new(key, :ff3_1, _radix = 36)
       iex> tweak = <<0::56>>
       iex> plaintext = "ZZZAFD093902CBZDE"
       iex> ciphertext = FPE.encrypt!(ctx, tweak, plaintext)
@@ -131,7 +131,7 @@ defmodule FPE do
 
       iex> key = :crypto.strong_rand_bytes(32)
       iex> radix = 16
-      iex> {:ok, ctx} = FPE.new(key, FPE.FF3_1, radix)
+      iex> {:ok, ctx} = FPE.new(key, :ff3_1, radix)
       iex> tweak = <<0::56>>
       iex> input = "aBcDDFF01234eeEee"
       iex> _ciphertext = FPE.encrypt!(ctx, tweak, input)
@@ -144,7 +144,7 @@ defmodule FPE do
 
       iex> key = :crypto.strong_rand_bytes(32)
       iex> alphabet = "0123456789abcdef" # radix 16
-      iex> {:ok, ctx} = FPE.new(key, FPE.FF3_1, alphabet)
+      iex> {:ok, ctx} = FPE.new(key, :ff3_1, alphabet)
       iex> tweak = <<0::56>>
       iex> input = "aBcDDFF01234eeEee"
       iex> ciphertext = FPE.encrypt!(ctx, tweak, input)
@@ -169,7 +169,7 @@ defmodule FPE do
 
       iex> key = :crypto.strong_rand_bytes(32)
       iex> alphabet = "abcdefghij0123456789"
-      iex> {:ok, ctx} = FPE.new(key, FPE.FF3_1, alphabet)
+      iex> {:ok, ctx} = FPE.new(key, :ff3_1, alphabet)
       iex> tweak = <<0::56>>
       iex> plaintext = "34534abcd32235"
       iex> ciphertext = FPE.encrypt!(ctx, tweak, plaintext)
@@ -179,7 +179,7 @@ defmodule FPE do
 
       iex> key = :crypto.strong_rand_bytes(32)
       iex> alphabet = "0123456789abcdefghijklmnopqrstuvwxyz@#/*"
-      iex> {:ok, ctx} = FPE.new(key, FPE.FF3_1, alphabet)
+      iex> {:ok, ctx} = FPE.new(key, :ff3_1, alphabet)
       iex> tweak = <<0::56>>
       iex> plaintext = "34534ab@@@@@/cd32235"
       iex> ciphertext = FPE.encrypt!(ctx, tweak, plaintext)
@@ -189,7 +189,7 @@ defmodule FPE do
 
       iex> key = :crypto.strong_rand_bytes(32)
       iex> alphabet = "🌕🌖🌗🌘🌑🌒🌓🌔"
-      iex> {:ok, ctx} = FPE.new(key, FPE.FF3_1, alphabet)
+      iex> {:ok, ctx} = FPE.new(key, :ff3_1, alphabet)
       iex> tweak = <<0::56>>
       iex> plaintext = "🌖🌕🌘🌑🌓🌗🌔🌒🌒🌒🌒"
       iex> ciphertext = FPE.encrypt!(ctx, tweak, plaintext)
@@ -207,7 +207,7 @@ defmodule FPE do
       iex> key = :crypto.strong_rand_bytes(32)
       iex> radix = 10
       iex> {:ok, codec} = NoSymbols.new(radix)
-      iex> {:ok, ctx} = FPE.new(key, FPE.FF3_1, codec)
+      iex> {:ok, ctx} = FPE.new(key, :ff3_1, codec)
       iex> tweak = <<0::56>>
       iex> input = 1234567
       iex> input_length = 10
@@ -223,7 +223,7 @@ defmodule FPE do
       iex> key = :crypto.strong_rand_bytes(32)
       iex> radix = 500
       iex> {:ok, codec} = NoSymbols.new(radix)
-      iex> {:ok, ctx} = FPE.new(key, FPE.FF3_1, codec)
+      iex> {:ok, ctx} = FPE.new(key, :ff3_1, codec)
       iex> tweak = <<0::56>>
       iex> input = 1234567
       iex> input_length = 10
@@ -239,7 +239,7 @@ defmodule FPE do
       iex> key = :crypto.strong_rand_bytes(32)
       iex> radix = 65535
       iex> {:ok, codec} = NoSymbols.new(radix)
-      iex> {:ok, ctx} = FPE.new(key, FPE.FF3_1, codec)
+      iex> {:ok, ctx} = FPE.new(key, :ff3_1, codec)
       iex> tweak = <<0::56>>
       iex> input = 1234567
       iex> input_length = 10
@@ -253,11 +253,12 @@ defmodule FPE do
 
   alias FPE.Algorithm
   alias FPE.FF1
+  alias FPE.FF3_1
   alias FPE.FFX.Codec
 
   ## Constants
 
-  @default_module FF1
+  @default_mode :ff1
 
   ## Types
 
@@ -268,8 +269,8 @@ defmodule FPE do
 
   ## API
 
-  def new!(key, module \\ @default_module, radix_or_alphabet_or_codec) do
-    case new(key, module, radix_or_alphabet_or_codec) do
+  def new!(key, mode \\ @default_mode, radix_or_alphabet_or_codec) do
+    case new(key, mode, radix_or_alphabet_or_codec) do
       {:ok, fpe} ->
         fpe
 
@@ -278,9 +279,9 @@ defmodule FPE do
     end
   end
 
-  def new(key, module \\ @default_module, radix_or_alphabet_or_codec) do
+  def new(key, mode \\ @default_mode, radix_or_alphabet_or_codec) do
     with {:ok, codec} <- init_codec(radix_or_alphabet_or_codec),
-         {:ok, algorithm} <- module.new_ctx(key, codec) do
+         {:ok, algorithm} <- init_algorithm(mode, key, codec) do
       fpe = %__MODULE__{
         algorithm: algorithm,
         codec: codec
@@ -344,5 +345,17 @@ defmodule FPE do
       nil when is_integer(radix_or_alphabet) ->
         {:error, {:invalid_radix, {radix_or_alphabet, :you_need_to_provide_either_an_alphabet_or_a_codec}}}
     end
+  end
+
+  defp init_algorithm(:ff1, key, codec) do
+    FF1.new_ctx(key, codec)
+  end
+
+  defp init_algorithm(:ff3_1, key, codec) do
+    FF3_1.new_ctx(key, codec)
+  end
+
+  defp init_algorithm(mode, _key, _codec) do
+    {:error, {:unknown_mode, mode}}
   end
 end

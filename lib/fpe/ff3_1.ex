@@ -4,7 +4,7 @@ defmodule FPE.FF3_1 do
   @moduledoc """
   The FF3-1 format-preserving encryption mode.
 
-  Use it through the `FPE` facade: `FPE.new(key, FPE.FF3_1, radix_or_alphabet)`,
+  Use it through the `FPE` facade: `FPE.new(key, :ff3_1, radix_or_alphabet)`,
   then `FPE.encrypt!/3` / `FPE.decrypt!/3`. See `FPE` for the full how-to-use
   guide (contexts, alphabets, tweaks). This module documents what is specific
   to FF3-1: its fixed **7-byte tweak** and its **length constraints**.
@@ -24,15 +24,15 @@ defmodule FPE.FF3_1 do
   These constraints depend on the radix.
 
       iex> key = :crypto.strong_rand_bytes(32)
-      iex> {:ok, ctx} = FPE.new(key, FPE.FF3_1,_radix = 10)
+      iex> {:ok, ctx} = FPE.new(key, :ff3_1,_radix = 10)
       iex> %{min_length: 6, max_length: 56} = FPE.FF3_1.constraints(ctx.algorithm)
 
       iex> key = :crypto.strong_rand_bytes(32)
-      iex> {:ok, ctx} = FPE.new(key, FPE.FF3_1,_radix = 16)
+      iex> {:ok, ctx} = FPE.new(key, :ff3_1,_radix = 16)
       iex> %{min_length: 5, max_length: 48} = FPE.FF3_1.constraints(ctx.algorithm)
 
       iex> key = :crypto.strong_rand_bytes(32)
-      iex> {:ok, ctx} = FPE.new(key, FPE.FF3_1,_radix = 2)
+      iex> {:ok, ctx} = FPE.new(key, :ff3_1,_radix = 2)
       iex> %{min_length: 20, max_length: 192} = FPE.FF3_1.constraints(ctx.algorithm)
 
   `min_length` is required because, for any given radix, short enough numerical
