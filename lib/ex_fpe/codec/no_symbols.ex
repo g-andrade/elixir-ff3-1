@@ -1,12 +1,12 @@
 # credo:disable-for-this-file Credo.Check.Readability.ModuleNames
-defmodule ExFPE.FFX.Codec.NoSymbols do
+defmodule ExFPE.Codec.NoSymbols do
   @moduledoc """
-  An implementation of `ExFPE.FFX.Codec` that handles tagged integers, the tag
+  An implementation of `ExFPE.Codec` that handles tagged integers, the tag
   being the value length.
   """
 
+  alias ExFPE.Codec
   alias ExFPE.FFX
-  alias ExFPE.FFX.Codec
 
   ## Types
 

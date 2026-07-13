@@ -177,7 +177,7 @@ defmodule FF1_Test do
   end
 
   test "radix upper bound is 2**16" do
-    alias ExFPE.FFX.Codec.NoSymbols
+    alias ExFPE.Codec.NoSymbols
 
     key = hex("2B7E151628AED2A6ABF7158809CF4F3C")
 

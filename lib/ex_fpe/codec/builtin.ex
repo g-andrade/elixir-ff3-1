@@ -1,7 +1,7 @@
 # credo:disable-for-this-file Credo.Check.Readability.ModuleNames
-defmodule ExFPE.FFX.Codec.Builtin do
+defmodule ExFPE.Codec.Builtin do
   @moduledoc """
-  An implementation of `ExFPE.FFX.Codec` that handles alphabets made up of digits
+  An implementation of `ExFPE.Codec` that handles alphabets made up of digits
   0 to 9 and letters a to z, in that order, with all letters of equal casing,
   encompassing radixes from 2 and up to 36.
 
@@ -11,10 +11,10 @@ defmodule ExFPE.FFX.Codec.Builtin do
   If you specify a radix, the output will be upper case. If you'd like lower
   case outputs, you'll need to specify the corresponding alphabet.
 
-  Inputs are case insensitive, unlike `ExFPE.FFX.Codec.Custom`.
+  Inputs are case insensitive, unlike `ExFPE.Codec.Custom`.
   """
 
-  alias ExFPE.FFX.Codec
+  alias ExFPE.Codec
 
   ## Types
 

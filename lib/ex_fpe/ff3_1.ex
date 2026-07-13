@@ -70,8 +70,8 @@ defmodule ExFPE.FF3_1 do
   """
 
   alias ExFPE.Algorithm
+  alias ExFPE.Codec
   alias ExFPE.FFX
-  alias ExFPE.FFX.Codec
 
   ## API Types
 

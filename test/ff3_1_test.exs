@@ -4,7 +4,7 @@ defmodule FF3_1_Test do
   use ExUnit.Case, async: true
 
   alias ExFPE.Agent
-  alias ExFPE.FFX.Codec.Custom
+  alias ExFPE.Codec.Custom
 
   doctest ExFPE.FF3_1
 
@@ -1275,7 +1275,7 @@ defmodule FF3_1_Test do
   end
 
   test "builtin codec can be extracted and used" do
-    alias ExFPE.FFX.Codec
+    alias ExFPE.Codec
 
     key = :crypto.strong_rand_bytes(24)
     {:ok, ctx} = ExFPE.new(key, :ff3_1, _radix = 10)
@@ -1286,7 +1286,7 @@ defmodule FF3_1_Test do
   end
 
   test "custom codec can be extracted and used" do
-    alias ExFPE.FFX.Codec
+    alias ExFPE.Codec
 
     key = :crypto.strong_rand_bytes(24)
     {:ok, ctx} = ExFPE.new(key, :ff3_1, _alphabet = "012345678x")
@@ -1354,7 +1354,7 @@ defmodule FF3_1_Test do
   end
 
   test "no symbols" do
-    alias ExFPE.FFX.Codec.NoSymbols
+    alias ExFPE.Codec.NoSymbols
 
     key = :crypto.strong_rand_bytes(32)
     tweak = :crypto.strong_rand_bytes(7)

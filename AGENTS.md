@@ -62,7 +62,7 @@ Facade → algorithm → per-alphabet codec:
     moduledoc). Fixed 7-byte tweak; uses `IntermediateForm` for the REV/left-pad
     arithmetic. Public helpers: `new_ctx/2`, `codec/1`, `constraints/1`.
 - **`ExFPE.FFX`** (`lib/ex_fpe/ffx.ex`) — shared FFX byte-string primitives (`num/1`,
-  `revb/1`) and the nested **`ExFPE.FFX.Codec` protocol**: `radix/1`, `normalize_input/2`,
+  `revb/1`) and the nested **`ExFPE.Codec` protocol**: `radix/1`, `normalize_input/2`,
   `split_numerical_string_at/3`, `numerical_string_to_int/2`,
   `int_to_padded_numerical_string/3`, `concat_numerical_strings/3`.
 - **Codec implementations** (`lib/ex_fpe/ffx/codec/`):

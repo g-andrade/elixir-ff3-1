@@ -47,8 +47,8 @@ defmodule ExFPE.FF1 do
   import Bitwise
 
   alias ExFPE.Algorithm
+  alias ExFPE.Codec
   alias ExFPE.FFX
-  alias ExFPE.FFX.Codec
 
   ## API Types
 

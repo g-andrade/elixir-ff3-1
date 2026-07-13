@@ -191,11 +191,11 @@ in your numerical strings (or use such symbols in a different order), custom
 alphabets are supported.
 
 Note that custom alphabets are norm insensitive but **case sensitive**.
-The reasoning behind this can be found under `ExFPE.FFX.Codec.Custom`.
+The reasoning behind this can be found under `ExFPE.Codec.Custom`.
 
 Each symbol must be a single Unicode codepoint that stands on its own as one
 visual unit; alphabets are validated at construction. See
-`ExFPE.FFX.Codec.Custom` for the exact rules and the guarantees they buy.
+`ExFPE.Codec.Custom` for the exact rules and the guarantees they buy.
 
 #### Base 20 with custom alphabet
 
@@ -236,7 +236,7 @@ iex> ^plaintext = ExFPE.decrypt!(ctx, tweak, ciphertext)
 ### No alphabet
 
 If you wish to handle translation of integers into and from symbols yourself,
-you can use `ExFPE.FFX.Codec.NoSymbols`. Encryption and decryption functions
+you can use `ExFPE.Codec.NoSymbols`. Encryption and decryption functions
 will receive, and return, integer values with a length tag.
 
 Encryption and decryption will act on inputs as if the integer value was
@@ -245,7 +245,7 @@ encoded in that radix.
 #### Radix 10
 
 ```elixir
-iex> alias ExFPE.FFX.Codec.NoSymbols
+iex> alias ExFPE.Codec.NoSymbols
 iex> key = :crypto.strong_rand_bytes(32)
 iex> radix = 10
 iex> codec = NoSymbols.new!(radix)
@@ -263,7 +263,7 @@ iex> ^plaintext = ExFPE.decrypt!(ctx, tweak, ciphertext)
 #### Radix 500
 
 ```elixir
-iex> alias ExFPE.FFX.Codec.NoSymbols
+iex> alias ExFPE.Codec.NoSymbols
 iex> key = :crypto.strong_rand_bytes(32)
 iex> radix = 500
 iex> codec = NoSymbols.new!(radix)
@@ -281,7 +281,7 @@ iex> ^plaintext = ExFPE.decrypt!(ctx, tweak, ciphertext)
 #### Radix 65535
 
 ```elixir
-iex> alias ExFPE.FFX.Codec.NoSymbols
+iex> alias ExFPE.Codec.NoSymbols
 iex> key = :crypto.strong_rand_bytes(32)
 iex> radix = 65535
 iex> codec = NoSymbols.new!(radix)

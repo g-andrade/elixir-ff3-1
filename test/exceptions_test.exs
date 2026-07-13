@@ -2,7 +2,7 @@
 defmodule ExFPE.ExceptionsTest do
   use ExUnit.Case, async: true
 
-  alias ExFPE.FFX.Codec.NoSymbols
+  alias ExFPE.Codec.NoSymbols
 
   @key :crypto.strong_rand_bytes(32)
 
@@ -169,7 +169,7 @@ defmodule ExFPE.ExceptionsTest do
 
       assert %{min_length: 6, max_length: max} = ExFPE.constraints(ctx)
       assert is_integer(max)
-      assert %ExFPE.FFX.Codec.Builtin{radix: 10} = ExFPE.codec(ctx)
+      assert %ExFPE.Codec.Builtin{radix: 10} = ExFPE.codec(ctx)
     end
   end
 end

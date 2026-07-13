@@ -32,10 +32,10 @@ defmodule ExFPE do
   """
 
   alias ExFPE.Algorithm
+  alias ExFPE.Codec
   alias ExFPE.FF1
   alias ExFPE.FF3_1
   alias ExFPE.FFX
-  alias ExFPE.FFX.Codec
 
   ## Constants
 
@@ -71,11 +71,11 @@ defmodule ExFPE do
   The ordered symbols of a custom alphabet, given as a string.
 
   Each symbol is a single Unicode codepoint, and the amount of symbols is the
-  radix (**not** graphemes). `ExFPE.FFX.Codec.Custom` for the exact rules.
+  radix (**not** graphemes). `ExFPE.Codec.Custom` for the exact rules.
   """
   @type alphabet :: String.t()
 
-  @typedoc "A codec mapping between symbols and integers; see `ExFPE.FFX.Codec`."
+  @typedoc "A codec mapping between symbols and integers; see `ExFPE.Codec`."
   @type codec :: Codec.t()
 
   @typedoc """
@@ -89,7 +89,7 @@ defmodule ExFPE do
   A value to encrypt or decrypt.
 
   Usually the numeral `String.t()` over the context's alphabet, but a codec may
-  use its own representation (e.g. `ExFPE.FFX.Codec.NoSymbols` uses tagged
+  use its own representation (e.g. `ExFPE.Codec.NoSymbols` uses tagged
   integers). Ciphertext and plaintext share this type and the same length.
   """
   @type numerical_string :: FFX.numerical_string()
@@ -117,7 +117,7 @@ defmodule ExFPE do
   @doc """
   Creates a context for both encryption and decryption from a `key`, an optional
   `mode` (`:ff1` by default), and either a `radix`, an `alphabet`, or a
-  `ExFPE.FFX.Codec`.
+  `ExFPE.Codec`.
 
   Returns `{:error, reason}` if any argument is invalid.
   """
@@ -197,7 +197,7 @@ defmodule ExFPE do
   end
 
   @doc """
-  Returns a `ctx`'s `ExFPE.FFX.Codec`, should you wish to further manipulate or
+  Returns a `ctx`'s `ExFPE.Codec`, should you wish to further manipulate or
   prepare encryption and decryption inputs or outputs.
   """
   @spec codec(t) :: Codec.t()
@@ -300,7 +300,7 @@ defmodule ExFPE do
       def constraints, do: ExFPE.constraints(ex_fpe!())
 
       @doc "Like `ExFPE.codec/1` for `#{inspect(__MODULE__)}`'s context."
-      @spec codec() :: FFX.Codec.t()
+      @spec codec() :: Codec.t()
       def codec, do: ExFPE.codec(ex_fpe!())
 
       @doc "Returns this module's `t:ExFPE.t/0`."
