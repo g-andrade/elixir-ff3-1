@@ -27,8 +27,10 @@ defmodule FPE.FFX.Codec.NoSymbols do
 
   @spec new!(term) :: t()
   def new!(radix) do
-    {:ok, codec} = new(radix)
-    codec
+    case new(radix) do
+      {:ok, codec} -> codec
+      {:error, reason} -> raise FPE.ArgumentError, reason: reason
+    end
   end
 
   @spec new(term) :: {:ok, t()} | {:error, term}
@@ -36,8 +38,8 @@ defmodule FPE.FFX.Codec.NoSymbols do
     {:ok, %__MODULE__{radix: radix}}
   end
 
-  def new(invalid_radix) do
-    {:error, {:invalid_radix, {invalid_radix, :not_a_valid_radix}}}
+  def new(radix) do
+    {:error, {:bad_radix, {radix, :not_a_valid_radix}}}
   end
 
   defimpl Codec, for: __MODULE__ do

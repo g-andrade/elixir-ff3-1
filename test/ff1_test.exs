@@ -179,7 +179,7 @@ defmodule FF1_Test do
 
     {:ok, too_big} = NoSymbols.new(0x10001)
 
-    assert {:error, {:invalid_radix, {0x10001, :more_than_maximum, 0x10000}}} =
+    assert {:error, {:bad_radix, {0x10001, :more_than_maximum, 0x10000}}} =
              FPE.new(key, :ff1, too_big)
   end
 

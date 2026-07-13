@@ -176,10 +176,10 @@ defmodule FPE.FF3_1 do
   defp validate_radix(radix) do
     cond do
       radix < @min_radix ->
-        {:error, {:invalid_radix, {radix, :less_than_minimum, @min_radix}}}
+        {:error, {:bad_radix, {radix, :less_than_minimum, @min_radix}}}
 
       radix > @max_radix ->
-        {:error, {:invalid_radix, {radix, :more_than_maximum, @max_radix}}}
+        {:error, {:bad_radix, {radix, :more_than_maximum, @max_radix}}}
 
       true ->
         :ok

@@ -917,14 +917,15 @@ defmodule FF3_1_Test do
 
     assert FPE.new(key, :ff3_1, "🙌🙌🏻🙌🏼🙌🏽🙌🏾🙌🏿") ===
              {:error,
-              {:invalid_codepoints,
-               [
-                 {"🏻", :merges_with_adjacent_symbols},
-                 {"🏼", :merges_with_adjacent_symbols},
-                 {"🏽", :merges_with_adjacent_symbols},
-                 {"🏾", :merges_with_adjacent_symbols},
-                 {"🏿", :merges_with_adjacent_symbols}
-               ]}}
+              {:bad_alphabet,
+               {:invalid_codepoints,
+                [
+                  {"🏻", :merges_with_adjacent_symbols},
+                  {"🏼", :merges_with_adjacent_symbols},
+                  {"🏽", :merges_with_adjacent_symbols},
+                  {"🏾", :merges_with_adjacent_symbols},
+                  {"🏿", :merges_with_adjacent_symbols}
+                ]}}}
   end
 
   test "builtin alphabet is case insensitive" do
@@ -1045,12 +1046,12 @@ defmodule FF3_1_Test do
     key = :crypto.strong_rand_bytes(24)
 
     alphabet = ""
-    {:error, {:alphabet_smaller_than_min_radix, 2}} = FPE.new(key, :ff3_1, alphabet)
-    {:error, {:invalid_radix, {0, :less_than_minimum, 2}}} = FPE.new(key, :ff3_1, _radix = 0)
+    {:error, {:bad_radix, {0, :less_than_minimum, 2}}} = FPE.new(key, :ff3_1, alphabet)
+    {:error, {:bad_radix, {0, :need_alphabet_or_codec}}} = FPE.new(key, :ff3_1, _radix = 0)
 
     alphabet = "0"
-    {:error, {:alphabet_smaller_than_min_radix, 2}} = FPE.new(key, :ff3_1, alphabet)
-    {:error, {:invalid_radix, {1, :less_than_minimum, 2}}} = FPE.new(key, :ff3_1, _radix = 1)
+    {:error, {:bad_radix, {1, :less_than_minimum, 2}}} = FPE.new(key, :ff3_1, alphabet)
+    {:error, {:bad_radix, {1, :need_alphabet_or_codec}}} = FPE.new(key, :ff3_1, _radix = 1)
 
     alphabet = "01"
     {:ok, _ctx} = FPE.new(key, :ff3_1, alphabet)
@@ -1080,13 +1081,13 @@ defmodule FF3_1_Test do
     {:ok, _ctx} = FPE.new(key, :ff3_1, alphabet)
 
     alphabet = "test/data/alphabet_0x10000_symbols_long.txt" |> File.read!() |> String.trim()
-    {:error, {:alphabet_larger_than_max_radix, 0xFFFF}} = FPE.new(key, :ff3_1, alphabet)
+    {:error, {:bad_radix, {0x10_000, :more_than_maximum, 0xFFFF}}} = FPE.new(key, :ff3_1, alphabet)
   end
 
   test "alphabets with repeated symbols are rejected" do
     key = :crypto.strong_rand_bytes(16)
     alphabet = "01234567389"
-    {:error, {:alphabet_has_repeated_symbols, ["3"]}} = FPE.new(key, :ff3_1, alphabet)
+    {:error, {:bad_alphabet, {:repeated_symbols, ["3"]}}} = FPE.new(key, :ff3_1, alphabet)
   end
 
   test "unknown symbols are rejected - builtin alphabet" do
@@ -1200,16 +1201,16 @@ defmodule FF3_1_Test do
     end
 
     test "invalid UTF-8, before any per-codepoint check" do
-      assert Custom.new(<<0xFF, 0xFE>>) == {:error, {:alphabet_not_valid_utf8, <<0xFF, 0xFE>>}}
+      assert Custom.new(<<0xFF, 0xFE>>) == {:error, {:not_valid_utf8, <<0xFF, 0xFE>>}}
     end
 
     test "repeated symbols" do
-      assert Custom.new("abca") == {:error, {:alphabet_has_repeated_symbols, ["a"]}}
+      assert Custom.new("abca") == {:error, {:repeated_symbols, ["a"]}}
 
       raising_hands = <<0x1F64C::utf8>>
 
       assert Custom.new("ab" <> raising_hands <> raising_hands) ==
-               {:error, {:alphabet_has_repeated_symbols, [raising_hands]}}
+               {:error, {:repeated_symbols, [raising_hands]}}
     end
 
     test "an invalid codepoint in preference to a repeat (codepoint validation runs first)" do
@@ -1319,12 +1320,12 @@ defmodule FF3_1_Test do
            )
 
     assert match?(
-             {:error, {:invalid_radix, _}},
+             {:error, {:bad_radix, _}},
              start_setup_module(SetupModules.InvalidRadix)
            )
 
     assert match?(
-             {:error, {:alphabet_smaller_than_min_radix, _}},
+             {:error, {:bad_radix, {1, :less_than_minimum, 2}}},
              start_setup_module(SetupModules.InvalidAlphabet)
            )
   end

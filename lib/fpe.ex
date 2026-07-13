@@ -525,16 +525,19 @@ defmodule FPE do
         success
 
       nil when is_binary(radix_or_alphabet) ->
-        case Codec.Custom.new(radix_or_alphabet) do
+        alphabet = radix_or_alphabet
+
+        case Codec.Custom.new(alphabet) do
           {:ok, _} = success ->
             success
 
-          {:error, _} = error ->
-            error
+          {:error, reason} ->
+            {:error, {:bad_alphabet, reason}}
         end
 
       nil when is_integer(radix_or_alphabet) ->
-        {:error, {:invalid_radix, {radix_or_alphabet, :need_alphabet_or_codec}}}
+        radix = radix_or_alphabet
+        {:error, {:bad_radix, {radix, :need_alphabet_or_codec}}}
     end
   end
 

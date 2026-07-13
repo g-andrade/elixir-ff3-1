@@ -142,7 +142,7 @@ defmodule FPE.FFX.Codec.Custom do
     if String.valid?(alphabet) do
       :ok
     else
-      {:error, {:alphabet_not_valid_utf8, alphabet}}
+      {:error, {:not_valid_utf8, alphabet}}
     end
   end
 
@@ -289,7 +289,7 @@ defmodule FPE.FFX.Codec.Custom do
     else
       repeated_symbols = ordered_codepoints -- unique
       repeated_symbol_strings = Enum.map(repeated_symbols, &<<&1::utf8>>)
-      {:error, {:alphabet_has_repeated_symbols, repeated_symbol_strings}}
+      {:error, {:repeated_symbols, repeated_symbol_strings}}
     end
   end
 

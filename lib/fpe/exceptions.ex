@@ -18,26 +18,29 @@ defmodule FPE.Error do
 
   def humanize({:unknown_mode, mode}), do: "unknown mode #{inspect(mode)} (expected :ff1 or :ff3_1)"
 
-  def humanize({:invalid_radix, {radix, :less_than_minimum, min}}),
+  def humanize({:bad_radix, {radix, :less_than_minimum, min}}),
     do: "radix #{inspect(radix)} is below the minimum of #{min}"
 
-  def humanize({:invalid_radix, {radix, :more_than_maximum, max}}),
+  def humanize({:bad_radix, {radix, :more_than_maximum, max}}),
     do: "radix #{inspect(radix)} is above the maximum of #{max}"
 
-  def humanize({:invalid_radix, {radix, :need_alphabet_or_codec}}),
+  def humanize({:bad_radix, {radix, :need_alphabet_or_codec}}),
     do: "radix #{inspect(radix)} needs an alphabet or a codec to map symbols to numerals"
 
-  def humanize({:invalid_radix, {radix, :not_a_valid_radix}}), do: "radix must be an integer >= 2, got: #{inspect(radix)}"
+  def humanize({:bad_radix, {radix, :not_a_valid_radix}}), do: "radix must be an integer >= 2, got: #{inspect(radix)}"
 
-  ## Alphabet (Custom codec)
+  ## Alphabet (Custom codec) — the inner reasons come from `Codec.Custom.new/1`,
+  ## wrapped in `:bad_alphabet` by `FPE.new/3` when an alphabet is passed.
 
-  def humanize({:alphabet_not_valid_utf8, alphabet}), do: "alphabet is not valid UTF-8: #{inspect(alphabet)}"
+  def humanize({:bad_alphabet, reason}), do: "invalid alphabet — #{humanize(reason)}"
 
-  def humanize({:alphabet_has_repeated_symbols, symbols}), do: "alphabet has repeated symbols: #{inspect(symbols)}"
+  def humanize({:not_valid_utf8, value}), do: "not valid UTF-8: #{inspect(value)}"
+
+  def humanize({:repeated_symbols, symbols}), do: "repeated symbols: #{inspect(symbols)}"
 
   def humanize({:invalid_codepoints, entries}) do
     details = Enum.map_join(entries, "; ", fn {symbol, reason} -> "#{inspect(symbol)}: #{humanize(reason)}" end)
-    "alphabet has invalid symbols: #{details}"
+    "invalid symbols — #{details}"
   end
 
   def humanize({:invalid_category, {:other, sub}}),
