@@ -1,29 +1,29 @@
-defmodule FPE do
+defmodule ExFPE do
   @moduledoc """
-  Format-preserving encryption (FPE) for Elixir.
+  Format-preserving encryption (ExFPE) for Elixir.
 
-  FPE encrypts a numerical string into another of the **same length over the
+  ExFPE encrypts a numerical string into another of the **same length over the
   same alphabet**, which is useful to e.g. store an encrypted credit card
   number in a field that only accepts credit-card-shaped values, and other
   suchlike applications.
 
-  `FPE` is the entry point. It wraps a concrete FPE mode behind a single API —
+  `ExFPE` is the entry point. It wraps a concrete ExFPE mode behind a single API —
   `new/2` (or `new/3`), `encrypt!/3`, `decrypt!/3`.
 
-  By default it uses **FF1** (`FPE.FF1`), the only mode approved by NIST in
+  By default it uses **FF1** (`ExFPE.FF1`), the only mode approved by NIST in
   [SP 800-38Gr1 2pd](https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-38Gr1.2pd.pdf).
   The examples below all use the default. To pick a mode explicitly, pass it as
   the **second argument** to `new/3`:
 
   * `:ff1` — the FF1 mode (default; variable-length tweak).
   * `:ff3_1` — the FF3-1 mode (fixed **7-byte** tweak). ⚠️ NIST removed FF3-1;
-    use it only for interop with existing data. See `FPE.FF3_1`.
+    use it only for interop with existing data. See `ExFPE.FF3_1`.
 
   > #### Mode-specific rules {: .info}
   >
   > The **tweak size** and the **length constraints** on inputs depend on the
   > mode. FF1 accepts a variable-length tweak (it may even be empty); see
-  > `FPE.FF1`. FF3-1 uses a fixed 7-byte (56-bit) tweak; see `FPE.FF3_1`.
+  > `ExFPE.FF1`. FF3-1 uses a fixed 7-byte (56-bit) tweak; see `ExFPE.FF3_1`.
 
   # How to use
 
@@ -33,7 +33,7 @@ defmodule FPE do
   and a radix. With no mode given, the default (FF1) is used.
 
       iex> key = :crypto.strong_rand_bytes(32)
-      iex> {:ok, _ctx} = FPE.new(key, _radix = 10)
+      iex> {:ok, _ctx} = ExFPE.new(key, _radix = 10)
 
   Keys can be:
   * 32 bytes long for AES-256
@@ -54,11 +54,11 @@ defmodule FPE do
   tweak below is just one valid choice.
 
       iex> key = :crypto.strong_rand_bytes(32)
-      iex> {:ok, ctx} = FPE.new(key, _radix = 10)
+      iex> {:ok, ctx} = ExFPE.new(key, _radix = 10)
       iex> tweak = "dev.env"
       iex> plaintext = "34436524"
-      iex> ciphertext = FPE.encrypt!(ctx, tweak, plaintext)
-      iex> ^plaintext = FPE.decrypt!(ctx, tweak, ciphertext)
+      iex> ciphertext = ExFPE.encrypt!(ctx, tweak, plaintext)
+      iex> ^plaintext = ExFPE.decrypt!(ctx, tweak, ciphertext)
 
   ## Leading zeroes matter
 
@@ -66,12 +66,12 @@ defmodule FPE do
   of equal length to their respective plaintexts, and vice-versa.
 
       iex> key = :crypto.strong_rand_bytes(32)
-      iex> {:ok, ctx} = FPE.new(key, _radix = 10)
+      iex> {:ok, ctx} = ExFPE.new(key, _radix = 10)
       iex> tweak = <<0::56>>
       iex> plaintext1 =   "34436524"
       iex> plaintext2 = "0034436524"
-      iex> ciphertext1 = FPE.encrypt!(ctx, tweak, plaintext1)
-      iex> ciphertext2 = FPE.encrypt!(ctx, tweak, plaintext2)
+      iex> ciphertext1 = ExFPE.encrypt!(ctx, tweak, plaintext1)
+      iex> ciphertext2 = ExFPE.encrypt!(ctx, tweak, plaintext2)
       iex> false = (ciphertext2 == ciphertext1)
       iex> true = (String.length(ciphertext1) == String.length(plaintext1))
       iex> true = (String.length(ciphertext2) == String.length(plaintext2))
@@ -81,17 +81,17 @@ defmodule FPE do
   Tweaks may be public information used to produce different ciphertexts for
   the same plaintext.
 
-  **They are important in FPE modes**, since FPE (the technique) may be used
+  **They are important in ExFPE modes**, since ExFPE (the technique) may be used
   when the number of possible strings is somewhat small. In such a scenario,
   the tweak should vary with each instance of the encryption whenever possible.
 
       iex> key = :crypto.strong_rand_bytes(32)
-      iex> {:ok, ctx} = FPE.new(key, _radix = 10)
+      iex> {:ok, ctx} = ExFPE.new(key, _radix = 10)
       iex> plaintext= "135522432"
       iex> tweak1 = "dev.env"
       iex> tweak2 = "prod.env"
-      iex> ciphertext1 = FPE.encrypt!(ctx, tweak1, plaintext)
-      iex> ciphertext2 = FPE.encrypt!(ctx, tweak2, plaintext)
+      iex> ciphertext1 = ExFPE.encrypt!(ctx, tweak1, plaintext)
+      iex> ciphertext2 = ExFPE.encrypt!(ctx, tweak2, plaintext)
       iex> ciphertext2 != ciphertext1
 
   ## Built-in alphabet
@@ -104,29 +104,29 @@ defmodule FPE do
   #### Base 8
 
       iex> key = :crypto.strong_rand_bytes(32)
-      iex> {:ok, ctx} = FPE.new(key, _radix = 8)
+      iex> {:ok, ctx} = ExFPE.new(key, _radix = 8)
       iex> tweak = <<0::56>>
       iex> plaintext = "34436524"
-      iex> ciphertext = FPE.encrypt!(ctx, tweak, plaintext)
-      iex> ^plaintext = FPE.decrypt!(ctx, tweak, ciphertext)
+      iex> ciphertext = ExFPE.encrypt!(ctx, tweak, plaintext)
+      iex> ^plaintext = ExFPE.decrypt!(ctx, tweak, ciphertext)
 
   #### Base 16
 
       iex> key = :crypto.strong_rand_bytes(32)
-      iex> {:ok, ctx} = FPE.new(key, _radix = 16)
+      iex> {:ok, ctx} = ExFPE.new(key, _radix = 16)
       iex> tweak = <<0::56>>
       iex> plaintext = "AFD093902C"
-      iex> ciphertext = FPE.encrypt!(ctx, tweak, plaintext)
-      iex> ^plaintext = FPE.decrypt!(ctx, tweak, ciphertext)
+      iex> ciphertext = ExFPE.encrypt!(ctx, tweak, plaintext)
+      iex> ^plaintext = ExFPE.decrypt!(ctx, tweak, ciphertext)
 
   #### Base 36
 
       iex> key = :crypto.strong_rand_bytes(32)
-      iex> {:ok, ctx} = FPE.new(key, _radix = 36)
+      iex> {:ok, ctx} = ExFPE.new(key, _radix = 36)
       iex> tweak = <<0::56>>
       iex> plaintext = "ZZZAFD093902CBZDE"
-      iex> ciphertext = FPE.encrypt!(ctx, tweak, plaintext)
-      iex> ^plaintext = FPE.decrypt!(ctx, tweak, ciphertext)
+      iex> ciphertext = ExFPE.encrypt!(ctx, tweak, plaintext)
+      iex> ^plaintext = ExFPE.decrypt!(ctx, tweak, ciphertext)
 
   ### Built-in alphabet: case insensitivity to input
 
@@ -135,11 +135,11 @@ defmodule FPE do
 
       iex> key = :crypto.strong_rand_bytes(32)
       iex> radix = 16
-      iex> {:ok, ctx} = FPE.new(key, radix)
+      iex> {:ok, ctx} = ExFPE.new(key, radix)
       iex> tweak = <<0::56>>
       iex> input = "aBcDDFF01234eeEee"
-      iex> _ciphertext = FPE.encrypt!(ctx, tweak, input)
-      iex> _plaintext = FPE.decrypt!(ctx, tweak, input)
+      iex> _ciphertext = ExFPE.encrypt!(ctx, tweak, input)
+      iex> _plaintext = ExFPE.decrypt!(ctx, tweak, input)
 
   ### Built-in alphabet: lower case
 
@@ -148,11 +148,11 @@ defmodule FPE do
 
       iex> key = :crypto.strong_rand_bytes(32)
       iex> alphabet = "0123456789abcdef" # radix 16
-      iex> {:ok, ctx} = FPE.new(key, alphabet)
+      iex> {:ok, ctx} = ExFPE.new(key, alphabet)
       iex> tweak = <<0::56>>
       iex> input = "aBcDDFF01234eeEee"
-      iex> ciphertext = FPE.encrypt!(ctx, tweak, input)
-      iex> plaintext = FPE.decrypt!(ctx, tweak, input)
+      iex> ciphertext = ExFPE.encrypt!(ctx, tweak, input)
+      iex> plaintext = ExFPE.decrypt!(ctx, tweak, input)
       iex> ^ciphertext = String.downcase(ciphertext)
       iex> ^plaintext = String.downcase(plaintext)
 
@@ -163,117 +163,117 @@ defmodule FPE do
   alphabets are supported.
 
   Note that custom alphabets are **case sensitive** but norm insensitive.
-  The reasoning behind this can be found under `FPE.FFX.Codec.Custom`.
+  The reasoning behind this can be found under `ExFPE.FFX.Codec.Custom`.
 
   Each symbol must be a single Unicode scalar that stands on its own as one
   visual unit; alphabets are validated at construction. See
-  `FPE.FFX.Codec.Custom` for the exact rules and the guarantees they buy.
+  `ExFPE.FFX.Codec.Custom` for the exact rules and the guarantees they buy.
 
   #### Base 20 with custom alphabet
 
       iex> key = :crypto.strong_rand_bytes(32)
       iex> alphabet = "abcdefghij0123456789"
-      iex> {:ok, ctx} = FPE.new(key, alphabet)
+      iex> {:ok, ctx} = ExFPE.new(key, alphabet)
       iex> tweak = <<0::56>>
       iex> plaintext = "34534abcd32235"
-      iex> ciphertext = FPE.encrypt!(ctx, tweak, plaintext)
-      iex> ^plaintext = FPE.decrypt!(ctx, tweak, ciphertext)
+      iex> ciphertext = ExFPE.encrypt!(ctx, tweak, plaintext)
+      iex> ^plaintext = ExFPE.decrypt!(ctx, tweak, ciphertext)
 
   #### Base 40 with custom alphabet
 
       iex> key = :crypto.strong_rand_bytes(32)
       iex> alphabet = "0123456789abcdefghijklmnopqrstuvwxyz@#/*"
-      iex> {:ok, ctx} = FPE.new(key, alphabet)
+      iex> {:ok, ctx} = ExFPE.new(key, alphabet)
       iex> tweak = <<0::56>>
       iex> plaintext = "34534ab@@@@@/cd32235"
-      iex> ciphertext = FPE.encrypt!(ctx, tweak, plaintext)
-      iex> ^plaintext = FPE.decrypt!(ctx, tweak, ciphertext)
+      iex> ciphertext = ExFPE.encrypt!(ctx, tweak, plaintext)
+      iex> ^plaintext = ExFPE.decrypt!(ctx, tweak, ciphertext)
 
   #### Unicode support
 
       iex> key = :crypto.strong_rand_bytes(32)
       iex> alphabet = "🌕🌖🌗🌘🌑🌒🌓🌔"
-      iex> {:ok, ctx} = FPE.new(key, alphabet)
+      iex> {:ok, ctx} = ExFPE.new(key, alphabet)
       iex> tweak = <<0::56>>
       iex> plaintext = "🌖🌕🌘🌑🌓🌗🌔🌒🌒🌒🌒"
-      iex> ciphertext = FPE.encrypt!(ctx, tweak, plaintext)
-      iex> ^plaintext = FPE.decrypt!(ctx, tweak, ciphertext)
+      iex> ciphertext = ExFPE.encrypt!(ctx, tweak, plaintext)
+      iex> ^plaintext = ExFPE.decrypt!(ctx, tweak, ciphertext)
 
   ### No alphabet
 
   If you wish to handle translation of integers into and from symbols yourself,
-  you can use `FPE.FFX.Codec.NoSymbols`. Encryption and decryption functions
+  you can use `ExFPE.FFX.Codec.NoSymbols`. Encryption and decryption functions
   will receive, and return, integer values with a length tag.
 
   #### Radix 10
 
-      iex> alias FPE.FFX.Codec.NoSymbols
+      iex> alias ExFPE.FFX.Codec.NoSymbols
       iex> key = :crypto.strong_rand_bytes(32)
       iex> radix = 10
       iex> {:ok, codec} = NoSymbols.new(radix)
-      iex> {:ok, ctx} = FPE.new(key, codec)
+      iex> {:ok, ctx} = ExFPE.new(key, codec)
       iex> tweak = <<0::56>>
       iex> input = 1234567
       iex> input_length = 10
       iex>
       iex> plaintext = %NoSymbols.NumString{value: input, length: input_length}
-      iex> ciphertext = FPE.encrypt!(ctx, tweak, plaintext)
+      iex> ciphertext = ExFPE.encrypt!(ctx, tweak, plaintext)
       iex> %NoSymbols.NumString{length: ^input_length} = ciphertext
-      iex> ^plaintext = FPE.decrypt!(ctx, tweak, ciphertext)
+      iex> ^plaintext = ExFPE.decrypt!(ctx, tweak, ciphertext)
 
   #### Radix 500
 
-      iex> alias FPE.FFX.Codec.NoSymbols
+      iex> alias ExFPE.FFX.Codec.NoSymbols
       iex> key = :crypto.strong_rand_bytes(32)
       iex> radix = 500
       iex> {:ok, codec} = NoSymbols.new(radix)
-      iex> {:ok, ctx} = FPE.new(key, codec)
+      iex> {:ok, ctx} = ExFPE.new(key, codec)
       iex> tweak = <<0::56>>
       iex> input = 1234567
       iex> input_length = 10
       iex>
       iex> plaintext = %NoSymbols.NumString{value: input, length: input_length}
-      iex> ciphertext = FPE.encrypt!(ctx, tweak, plaintext)
+      iex> ciphertext = ExFPE.encrypt!(ctx, tweak, plaintext)
       iex> %NoSymbols.NumString{length: ^input_length} = ciphertext
-      iex> ^plaintext = FPE.decrypt!(ctx, tweak, ciphertext)
+      iex> ^plaintext = ExFPE.decrypt!(ctx, tweak, ciphertext)
 
   #### Radix 65535
 
-      iex> alias FPE.FFX.Codec.NoSymbols
+      iex> alias ExFPE.FFX.Codec.NoSymbols
       iex> key = :crypto.strong_rand_bytes(32)
       iex> radix = 65535
       iex> {:ok, codec} = NoSymbols.new(radix)
-      iex> {:ok, ctx} = FPE.new(key, codec)
+      iex> {:ok, ctx} = ExFPE.new(key, codec)
       iex> tweak = <<0::56>>
       iex> input = 1234567
       iex> input_length = 10
       iex>
       iex> plaintext = %NoSymbols.NumString{value: input, length: input_length}
-      iex> ciphertext = FPE.encrypt!(ctx, tweak, plaintext)
+      iex> ciphertext = ExFPE.encrypt!(ctx, tweak, plaintext)
       iex> %NoSymbols.NumString{length: ^input_length} = ciphertext
-      iex> ^plaintext = FPE.decrypt!(ctx, tweak, ciphertext)
+      iex> ^plaintext = ExFPE.decrypt!(ctx, tweak, ciphertext)
 
   ## Choosing a mode
 
   Everything above uses the default mode, `:ff1`. To select a mode explicitly,
   pass it as the second argument to `new/3`. The only other mode is `:ff3_1`,
-  which is **no longer NIST-approved** (see `FPE.FF3_1`) — reach for it only to
+  which is **no longer NIST-approved** (see `ExFPE.FF3_1`) — reach for it only to
   interoperate with data that was already encrypted with FF3-1. It takes a
   fixed 7-byte tweak.
 
       iex> key = :crypto.strong_rand_bytes(32)
-      iex> {:ok, ctx} = FPE.new(key, :ff3_1, _radix = 10)
+      iex> {:ok, ctx} = ExFPE.new(key, :ff3_1, _radix = 10)
       iex> tweak = <<0::56>>
       iex> plaintext = "34436524"
-      iex> ciphertext = FPE.encrypt!(ctx, tweak, plaintext)
-      iex> ^plaintext = FPE.decrypt!(ctx, tweak, ciphertext)
+      iex> ciphertext = ExFPE.encrypt!(ctx, tweak, plaintext)
+      iex> ^plaintext = ExFPE.decrypt!(ctx, tweak, ciphertext)
 
   """
 
-  alias FPE.Algorithm
-  alias FPE.FF1
-  alias FPE.FF3_1
-  alias FPE.FFX.Codec
+  alias ExFPE.Algorithm
+  alias ExFPE.FF1
+  alias ExFPE.FF3_1
+  alias ExFPE.FFX.Codec
 
   ## Constants
 
@@ -286,36 +286,36 @@ defmodule FPE do
 
   @type t :: %__MODULE__{algorithm: Algorithm.t(), codec: Codec.t()}
 
-  @typedoc "A supported FPE mode."
+  @typedoc "A supported ExFPE mode."
   @type mode :: :ff1 | :ff3_1
 
-  @type key :: FPE.FFX.key()
+  @type key :: ExFPE.FFX.key()
   @type tweak :: binary()
-  @type numerical_string :: FPE.FFX.numerical_string()
-  @type radix_or_alphabet_or_codec :: FPE.FFX.radix() | String.t() | Codec.t()
+  @type numerical_string :: ExFPE.FFX.numerical_string()
+  @type radix_or_alphabet_or_codec :: ExFPE.FFX.radix() | String.t() | Codec.t()
   @type constraints :: %{min_length: pos_integer, max_length: pos_integer}
 
   ## API
 
   @doc """
-  Like `new/3`, but returns the context directly and raises `FPE.ArgumentError`
+  Like `new/3`, but returns the context directly and raises `ExFPE.ArgumentError`
   on failure.
   """
   @spec new!(key, mode, radix_or_alphabet_or_codec) :: t
   def new!(key, mode \\ @default_mode, radix_or_alphabet_or_codec) do
     case new(key, mode, radix_or_alphabet_or_codec) do
-      {:ok, fpe} ->
-        fpe
+      {:ok, ex_fpe} ->
+        ex_fpe
 
       {:error, reason} ->
-        raise FPE.ArgumentError, reason: reason
+        raise ExFPE.ArgumentError, reason: reason
     end
   end
 
   @doc """
   Creates a context for both encryption and decryption from a `key`, an optional
   `mode` (`:ff1` by default), and either a `radix`, an `alphabet`, or a
-  `FPE.FFX.Codec`.
+  `ExFPE.FFX.Codec`.
 
   Returns `{:error, reason}` if any argument is invalid.
   """
@@ -323,12 +323,12 @@ defmodule FPE do
   def new(key, mode \\ @default_mode, radix_or_alphabet_or_codec) do
     with {:ok, codec} <- init_codec(radix_or_alphabet_or_codec),
          {:ok, algorithm} <- init_algorithm(mode, key, codec) do
-      fpe = %__MODULE__{
+      ex_fpe = %__MODULE__{
         algorithm: algorithm,
         codec: codec
       }
 
-      {:ok, fpe}
+      {:ok, ex_fpe}
     else
       {:error, _} = error ->
         error
@@ -337,16 +337,16 @@ defmodule FPE do
 
   @doc """
   Like `encrypt/3`, but returns the ciphertext directly and raises
-  `FPE.InputError` on failure.
+  `ExFPE.InputError` on failure.
   """
   @spec encrypt!(t, tweak, numerical_string) :: numerical_string
-  def encrypt!(fpe, tweak, plaintext) do
-    case encrypt(fpe, tweak, plaintext) do
+  def encrypt!(ex_fpe, tweak, plaintext) do
+    case encrypt(ex_fpe, tweak, plaintext) do
       {:ok, ciphertext} ->
         ciphertext
 
       {:error, reason} ->
-        raise FPE.InputError, reason: reason
+        raise ExFPE.InputError, reason: reason
     end
   end
 
@@ -363,16 +363,16 @@ defmodule FPE do
 
   @doc """
   Like `decrypt/3`, but returns the plaintext directly and raises
-  `FPE.InputError` on failure.
+  `ExFPE.InputError` on failure.
   """
   @spec decrypt!(t, tweak, numerical_string) :: numerical_string
-  def decrypt!(fpe, tweak, ciphertext) do
-    case decrypt(fpe, tweak, ciphertext) do
+  def decrypt!(ex_fpe, tweak, ciphertext) do
+    case decrypt(ex_fpe, tweak, ciphertext) do
       {:ok, plaintext} ->
         plaintext
 
       {:error, reason} ->
-        raise FPE.InputError, reason: reason
+        raise ExFPE.InputError, reason: reason
     end
   end
 
@@ -395,16 +395,16 @@ defmodule FPE do
   end
 
   @doc """
-  Returns a `ctx`'s `FPE.FFX.Codec`, should you wish to further manipulate or
+  Returns a `ctx`'s `ExFPE.FFX.Codec`, should you wish to further manipulate or
   prepare encryption and decryption inputs or outputs.
   """
   @spec codec(t) :: Codec.t()
   def codec(%__MODULE__{codec: codec}), do: codec
 
-  ## Convenience: `use FPE`
+  ## Convenience: `use ExFPE`
 
   @doc """
-  Returns the `Supervisor` child spec for the module that `use FPE`.
+  Returns the `Supervisor` child spec for the module that `use ExFPE`.
 
   Implement it by calling the generated `child_spec/2` or `child_spec/3` with
   your key, mode, and radix/alphabet/codec — see the moduledoc.
@@ -412,21 +412,21 @@ defmodule FPE do
   @callback child_spec() :: Supervisor.child_spec()
 
   @doc """
-  Places an `FPE` context under your supervision tree so that you can encrypt
+  Places an `ExFPE` context under your supervision tree so that you can encrypt
   and decrypt without threading the context through every call.
 
-  A module that `use FPE` gets:
+  A module that `use ExFPE` gets:
 
     * a `child_spec/2` / `child_spec/3` builder and a `start_link/3`, backed by
       a uniquely named process holding the context in a `:persistent_term`;
     * `encrypt/2`, `encrypt!/2`, `decrypt/2`, `decrypt!/2` that retrieve the
-      context transparently; plus `constraints/0`, `codec/0`, and `fpe/0`.
+      context transparently; plus `constraints/0`, `codec/0`, and `ex_fpe/0`.
 
   You implement the `c:child_spec/0` callback declaring your configuration, and
   add `MyModule.child_spec()` to your supervision tree.
 
       defmodule MyApp.CardCipher do
-        use FPE
+        use ExFPE
 
         @impl true
         def child_spec do
@@ -447,16 +447,16 @@ defmodule FPE do
   """
   defmacro __using__([]) do
     quote do
-      @behaviour FPE
+      @behaviour ExFPE
 
       @doc """
       Builds a `Supervisor` child spec for `#{inspect(__MODULE__)}`'s context.
 
-      Call this from your `c:FPE.child_spec/0` implementation.
+      Call this from your `c:ExFPE.child_spec/0` implementation.
       """
-      @spec child_spec(FPE.key(), FPE.mode(), term()) :: Supervisor.child_spec()
+      @spec child_spec(ExFPE.key(), ExFPE.mode(), term()) :: Supervisor.child_spec()
       def child_spec(key, mode \\ unquote(@default_mode), radix_or_alphabet_or_codec) do
-        FPE.Agent.child_spec(
+        ExFPE.Agent.child_spec(
           __MODULE__,
           {__MODULE__, :start_link, [key, mode, radix_or_alphabet_or_codec]}
         )
@@ -465,49 +465,49 @@ defmodule FPE do
       @doc """
       Starts the process holding `#{inspect(__MODULE__)}`'s context.
       """
-      @spec start_link(FPE.key(), FPE.mode(), term()) :: {:ok, pid} | {:error, term}
+      @spec start_link(ExFPE.key(), ExFPE.mode(), term()) :: {:ok, pid} | {:error, term}
       def start_link(key, mode, radix_or_alphabet_or_codec) do
-        FPE.Agent.start_link(
+        ExFPE.Agent.start_link(
           __MODULE__,
-          {&FPE.new/3, [key, mode, radix_or_alphabet_or_codec]}
+          {&ExFPE.new/3, [key, mode, radix_or_alphabet_or_codec]}
         )
       end
 
-      @doc "Like `FPE.encrypt/3`, retrieving `#{inspect(__MODULE__)}`'s context."
-      @spec encrypt(FPE.tweak(), FPE.numerical_string()) ::
-              {:ok, FPE.numerical_string()} | {:error, term}
-      def encrypt(tweak, plaintext), do: FPE.encrypt(fpe(), tweak, plaintext)
+      @doc "Like `ExFPE.encrypt/3`, retrieving `#{inspect(__MODULE__)}`'s context."
+      @spec encrypt(ExFPE.tweak(), ExFPE.numerical_string()) ::
+              {:ok, ExFPE.numerical_string()} | {:error, term}
+      def encrypt(tweak, plaintext), do: ExFPE.encrypt(ex_fpe(), tweak, plaintext)
 
-      @doc "Like `FPE.encrypt!/3`, retrieving `#{inspect(__MODULE__)}`'s context."
-      @spec encrypt!(FPE.tweak(), FPE.numerical_string()) :: FPE.numerical_string()
-      def encrypt!(tweak, plaintext), do: FPE.encrypt!(fpe(), tweak, plaintext)
+      @doc "Like `ExFPE.encrypt!/3`, retrieving `#{inspect(__MODULE__)}`'s context."
+      @spec encrypt!(ExFPE.tweak(), ExFPE.numerical_string()) :: ExFPE.numerical_string()
+      def encrypt!(tweak, plaintext), do: ExFPE.encrypt!(ex_fpe(), tweak, plaintext)
 
-      @doc "Like `FPE.decrypt/3`, retrieving `#{inspect(__MODULE__)}`'s context."
-      @spec decrypt(FPE.tweak(), FPE.numerical_string()) ::
-              {:ok, FPE.numerical_string()} | {:error, term}
-      def decrypt(tweak, ciphertext), do: FPE.decrypt(fpe(), tweak, ciphertext)
+      @doc "Like `ExFPE.decrypt/3`, retrieving `#{inspect(__MODULE__)}`'s context."
+      @spec decrypt(ExFPE.tweak(), ExFPE.numerical_string()) ::
+              {:ok, ExFPE.numerical_string()} | {:error, term}
+      def decrypt(tweak, ciphertext), do: ExFPE.decrypt(ex_fpe(), tweak, ciphertext)
 
-      @doc "Like `FPE.decrypt!/3`, retrieving `#{inspect(__MODULE__)}`'s context."
-      @spec decrypt!(FPE.tweak(), FPE.numerical_string()) :: FPE.numerical_string()
-      def decrypt!(tweak, ciphertext), do: FPE.decrypt!(fpe(), tweak, ciphertext)
+      @doc "Like `ExFPE.decrypt!/3`, retrieving `#{inspect(__MODULE__)}`'s context."
+      @spec decrypt!(ExFPE.tweak(), ExFPE.numerical_string()) :: ExFPE.numerical_string()
+      def decrypt!(tweak, ciphertext), do: ExFPE.decrypt!(ex_fpe(), tweak, ciphertext)
 
-      @doc "Like `FPE.constraints/1` for `#{inspect(__MODULE__)}`'s context."
-      @spec constraints() :: FPE.constraints()
-      def constraints, do: FPE.constraints(fpe())
+      @doc "Like `ExFPE.constraints/1` for `#{inspect(__MODULE__)}`'s context."
+      @spec constraints() :: ExFPE.constraints()
+      def constraints, do: ExFPE.constraints(ex_fpe())
 
-      @doc "Like `FPE.codec/1` for `#{inspect(__MODULE__)}`'s context."
-      @spec codec() :: FPE.FFX.Codec.t()
-      def codec, do: FPE.codec(fpe())
+      @doc "Like `ExFPE.codec/1` for `#{inspect(__MODULE__)}`'s context."
+      @spec codec() :: ExFPE.FFX.Codec.t()
+      def codec, do: ExFPE.codec(ex_fpe())
 
-      @doc "Returns this module's `t:FPE.t/0`."
-      @spec fpe() :: FPE.t()
-      def fpe do
-        case FPE.Agent.get(__MODULE__) do
-          {:ok, fpe} ->
-            fpe
+      @doc "Returns this module's `t:ExFPE.t/0`."
+      @spec ex_fpe() :: ExFPE.t()
+      def ex_fpe do
+        case ExFPE.Agent.get(__MODULE__) do
+          {:ok, ex_fpe} ->
+            ex_fpe
 
           {:error, {:ctx_not_found_for_module, module}} ->
-            raise FPE.NotStartedError, reason: {:ctx_not_found_for_module, module}
+            raise ExFPE.NotStartedError, reason: {:ctx_not_found_for_module, module}
         end
       end
     end

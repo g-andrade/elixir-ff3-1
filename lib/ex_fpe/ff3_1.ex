@@ -1,6 +1,6 @@
 # credo:disable-for-this-file Credo.Check.Readability.ModuleNames
 # credo:disable-for-this-file Credo.Check.Readability.VariableNames
-defmodule FPE.FF3_1 do
+defmodule ExFPE.FF3_1 do
   @moduledoc """
   The FF3-1 format-preserving encryption mode.
 
@@ -11,13 +11,13 @@ defmodule FPE.FF3_1 do
   > (Second Public Draft, February 2025): Beyne's linear cryptanalysis
   > ([CRYPTO 2021](https://doi.org/10.1007/978-3-030-84242-0_3)) found a weakness
   > in the tweak schedule that affects both FF3 and FF3-1 but **not** FF1. FF1 is
-  > now the only approved FPE mode.
+  > now the only approved ExFPE mode.
   >
   > FF3-1 is retained here for interoperability with existing data, but new
-  > applications should prefer `FPE.FF1` (the `:ff1` mode, which is the default).
+  > applications should prefer `ExFPE.FF1` (the `:ff1` mode, which is the default).
 
-  Use it through the `FPE` facade: `FPE.new(key, :ff3_1, radix_or_alphabet)`,
-  then `FPE.encrypt!/3` / `FPE.decrypt!/3`. See `FPE` for the full how-to-use
+  Use it through the `ExFPE` facade: `ExFPE.new(key, :ff3_1, radix_or_alphabet)`,
+  then `ExFPE.encrypt!/3` / `ExFPE.decrypt!/3`. See `ExFPE` for the full how-to-use
   guide (contexts, alphabets, tweaks). This module documents what is specific
   to FF3-1: its fixed **7-byte tweak** and its **length constraints**.
 
@@ -28,7 +28,7 @@ defmodule FPE.FF3_1 do
 
   No official test vectors for FF3-1 exist as of the time of writing;
   many of the ones used in this library's test suite were copied almost verbatim
-  from [ubiq-fpe-go](https://gitlab.com/ubiqsecurity/ubiq-fpe-go), an implementation
+  from [ubiq-ex_fpe-go](https://gitlab.com/ubiqsecurity/ubiq-ex_fpe-go), an implementation
   of the FF1 and FF3-1 algorithms in Go.
 
   ## Length constraints
@@ -37,16 +37,16 @@ defmodule FPE.FF3_1 do
   These constraints depend on the radix.
 
       iex> key = :crypto.strong_rand_bytes(32)
-      iex> {:ok, ctx} = FPE.new(key, :ff3_1,_radix = 10)
-      iex> %{min_length: 6, max_length: 56} = FPE.FF3_1.constraints(ctx.algorithm)
+      iex> {:ok, ctx} = ExFPE.new(key, :ff3_1,_radix = 10)
+      iex> %{min_length: 6, max_length: 56} = ExFPE.FF3_1.constraints(ctx.algorithm)
 
       iex> key = :crypto.strong_rand_bytes(32)
-      iex> {:ok, ctx} = FPE.new(key, :ff3_1,_radix = 16)
-      iex> %{min_length: 5, max_length: 48} = FPE.FF3_1.constraints(ctx.algorithm)
+      iex> {:ok, ctx} = ExFPE.new(key, :ff3_1,_radix = 16)
+      iex> %{min_length: 5, max_length: 48} = ExFPE.FF3_1.constraints(ctx.algorithm)
 
       iex> key = :crypto.strong_rand_bytes(32)
-      iex> {:ok, ctx} = FPE.new(key, :ff3_1,_radix = 2)
-      iex> %{min_length: 20, max_length: 192} = FPE.FF3_1.constraints(ctx.algorithm)
+      iex> {:ok, ctx} = ExFPE.new(key, :ff3_1,_radix = 2)
+      iex> %{min_length: 20, max_length: 192} = ExFPE.FF3_1.constraints(ctx.algorithm)
 
   `min_length` is required because, for any given radix, short enough numerical
   strings encompass too few possible values, rendering encryption ineffective
@@ -58,8 +58,8 @@ defmodule FPE.FF3_1 do
 
   ## Tweak
 
-  FF3-1 uses a fixed **7-byte (56-bit)** tweak. See `FPE` for the general role
-  of tweaks in FPE, and Appendix C (page 20) of
+  FF3-1 uses a fixed **7-byte (56-bit)** tweak. See `ExFPE` for the general role
+  of tweaks in ExFPE, and Appendix C (page 20) of
   [the reference
   document](https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-38Gr1-draft.pdf)
   for the specifics.
@@ -69,9 +69,9 @@ defmodule FPE.FF3_1 do
 
   """
 
-  alias FPE.Algorithm
-  alias FPE.FFX
-  alias FPE.FFX.Codec
+  alias ExFPE.Algorithm
+  alias ExFPE.FFX
+  alias ExFPE.FFX.Codec
 
   ## API Types
 
@@ -144,7 +144,7 @@ defmodule FPE.FF3_1 do
   end
 
   @doc """
-  Returns a `ctx`'s `FPE.FFX.Codec`, should you wish to further manipulate or
+  Returns a `ctx`'s `ExFPE.FFX.Codec`, should you wish to further manipulate or
   prepare encryption and decryption inputs or outputs.
   """
   @spec codec(ctx) :: codec
@@ -211,7 +211,7 @@ defmodule FPE.FF3_1 do
     def do_encrypt_or_decrypt(ctx, t, vX, enc) do
       with {:ok, vX_length, vX} <- validate_enc_or_dec_input(ctx, vX),
            :ok <- validate_tweak(t),
-           %FPE.FF3_1{key: key, codec: codec, iform_ctx: iform_ctx} = ctx,
+           %ExFPE.FF3_1{key: key, codec: codec, iform_ctx: iform_ctx} = ctx,
            {:ok, even_m, odd_m, vA, vB, even_vW, odd_vW} <-
              setup_encrypt_or_decrypt_vars(codec, t, vX, vX_length) do
         vY =
@@ -251,7 +251,7 @@ defmodule FPE.FF3_1 do
     end
 
     defp validate_enc_or_dec_input(ctx, vX) do
-      %FPE.FF3_1{codec: codec, min_length: min_length, max_length: max_length} = ctx
+      %ExFPE.FF3_1{codec: codec, min_length: min_length, max_length: max_length} = ctx
 
       case Codec.normalize_input(codec, vX) do
         {:ok, valid_length, normalized_vX} when valid_length in min_length..max_length//1 ->

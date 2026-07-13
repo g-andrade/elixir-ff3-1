@@ -1,10 +1,10 @@
 # credo:disable-for-this-file Credo.Check.Readability.ModuleNames
-defmodule FPE.Agent do
+defmodule ExFPE.Agent do
   @moduledoc false
-  # Storage for a `FPE` context shared across a supervision tree.
+  # Storage for a `ExFPE` context shared across a supervision tree.
   #
   # Like stdlib's `Agent` but backed by OTP's `:persistent_term`, so reads are
-  # lock-free. Used by the `use FPE` macro; you shouldn't need it directly.
+  # lock-free. Used by the `use ExFPE` macro; you shouldn't need it directly.
 
   use GenServer
 
@@ -48,7 +48,7 @@ defmodule FPE.Agent do
   end
 
   @doc false
-  @spec get(module) :: {:ok, FPE.t()} | {:error, {:ctx_not_found_for_module, module}}
+  @spec get(module) :: {:ok, ExFPE.t()} | {:error, {:ctx_not_found_for_module, module}}
   def get(module) do
     shared_state_key = shared_state_key(module)
 
@@ -58,8 +58,8 @@ defmodule FPE.Agent do
       :error, :badarg when is_atom(module) ->
         {:error, {:ctx_not_found_for_module, module}}
     else
-      fpe ->
-        {:ok, fpe}
+      ex_fpe ->
+        {:ok, ex_fpe}
     end
   end
 
@@ -113,12 +113,12 @@ defmodule FPE.Agent do
     {fun, args} = Keyword.fetch!(init_args, :shared_state_init)
 
     case apply(fun, args) do
-      {:ok, fpe} ->
+      {:ok, ex_fpe} ->
         # Ensure terminate/2 runs unless we're killed
         _ = Process.flag(:trap_exit, true)
 
         shared_state_key = shared_state_key(module)
-        :persistent_term.put(shared_state_key, fpe)
+        :persistent_term.put(shared_state_key, ex_fpe)
         state = state(shared_state_key: shared_state_key)
         :proc_lib.init_ack({:ok, self()})
 
@@ -151,7 +151,7 @@ defmodule FPE.Agent do
   end
 
   defp server_name(module) when is_atom(module) do
-    String.to_atom("fpe.agent." <> Atom.to_string(module))
+    String.to_atom("ex_fpe.agent." <> Atom.to_string(module))
   end
 
   defp shared_state_key(module) do

@@ -1,6 +1,6 @@
 # credo:disable-for-this-file Credo.Check.Readability.ModuleNames
 # credo:disable-for-this-file Credo.Check.Readability.VariableNames
-defmodule FPE.FFX do
+defmodule ExFPE.FFX do
   @moduledoc """
   FFX reference functions required to manipulate byte strings.
   """
@@ -16,7 +16,7 @@ defmodule FPE.FFX do
   @type numerical_string :: term()
 
   @type byte_string :: <<_::8, _::_*8>>
-  @type codec :: FPE.FFX.Codec.t()
+  @type codec :: ExFPE.FFX.Codec.t()
 
   ## Internal API
 
@@ -46,7 +46,7 @@ defmodule FPE.FFX do
     integers to and from the numerical strings that represent them, given a
     particular alphabet or radix.
     """
-    alias FPE.FFX
+    alias ExFPE.FFX
 
     @spec radix(t()) :: FFX.radix()
     def radix(codec)

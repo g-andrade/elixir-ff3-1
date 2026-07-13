@@ -4,7 +4,7 @@ defmodule FF3_1_Test.Helper.SetupModules do
 
   defmodule BuiltinBase10 do
     @moduledoc false
-    use FPE
+    use ExFPE
 
     @impl true
     def child_spec, do: child_spec(:crypto.strong_rand_bytes(32), :ff3_1, 10)
@@ -12,7 +12,7 @@ defmodule FF3_1_Test.Helper.SetupModules do
 
   defmodule BuiltinBase16 do
     @moduledoc false
-    use FPE
+    use ExFPE
 
     @impl true
     def child_spec, do: child_spec(:crypto.strong_rand_bytes(32), :ff3_1, 16)
@@ -20,7 +20,7 @@ defmodule FF3_1_Test.Helper.SetupModules do
 
   defmodule CustomBase10 do
     @moduledoc false
-    use FPE
+    use ExFPE
 
     @impl true
     def child_spec, do: child_spec(:crypto.strong_rand_bytes(32), :ff3_1, "abcDefghij")
@@ -28,7 +28,7 @@ defmodule FF3_1_Test.Helper.SetupModules do
 
   defmodule WrongKeySize do
     @moduledoc false
-    use FPE
+    use ExFPE
 
     @impl true
     def child_spec, do: child_spec(:crypto.strong_rand_bytes(31), :ff3_1, 10)
@@ -36,7 +36,7 @@ defmodule FF3_1_Test.Helper.SetupModules do
 
   defmodule InvalidRadix do
     @moduledoc false
-    use FPE
+    use ExFPE
 
     @impl true
     def child_spec, do: child_spec(:crypto.strong_rand_bytes(32), :ff3_1, 1)
@@ -44,7 +44,7 @@ defmodule FF3_1_Test.Helper.SetupModules do
 
   defmodule InvalidAlphabet do
     @moduledoc false
-    use FPE
+    use ExFPE
 
     @impl true
     def child_spec, do: child_spec(:crypto.strong_rand_bytes(32), :ff3_1, "0")

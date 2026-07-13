@@ -9,7 +9,7 @@
 # skipped so the file has no whitespace that `String.trim/1` could eat at a
 # boundary.
 
-alias FPE.FPE.FFX.Codec.Custom
+alias ExFPE.FFX.Codec.Custom
 
 require Logger
 

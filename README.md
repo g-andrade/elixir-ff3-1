@@ -1,4 +1,4 @@
-# FPE: Format-preserving encryption for Elixir
+# ExFPE: Format-preserving encryption for Elixir
 
 Work in progress to provide format-preserving encryption through the FF3-1 algorithm,
 [a revised version of FF3](https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-38Gr1-draft.pdf)
@@ -13,25 +13,25 @@ I wrote this for the kicks - it is not a serious project.
     >>
     tweak = <<0xCF, 0x29, 0xDA, 0x1E, 0x18, 0xD9, 0x70>>
 
-    {:ok, ctx} = FPE.FF3_1.new_ctx(key, 10)
-    assert "4716569208" == FPE.FF3_1.encrypt!(ctx, tweak, "6520935496")
-    assert "6520935496" == FPE.FF3_1.decrypt!(ctx, tweak, "4716569208")
+    {:ok, ctx} = ExFPE.FF3_1.new_ctx(key, 10)
+    assert "4716569208" == ExFPE.FF3_1.encrypt!(ctx, tweak, "6520935496")
+    assert "6520935496" == ExFPE.FF3_1.decrypt!(ctx, tweak, "4716569208")
 ```
 
 ## Installation
 
 If [available in Hex](https://hex.pm/docs/publish), the package can be installed
-by adding `fpe` to your list of dependencies in `mix.exs`:
+by adding `ex_fpe` to your list of dependencies in `mix.exs`:
 
 ```elixir
 def deps do
   [
-    {:fpe, "~> 0.1.0"}
+    {:ex_fpe, "~> 0.1.0"}
   ]
 end
 ```
 
 Documentation can be generated with [ExDoc](https://github.com/elixir-lang/ex_doc)
 and published on [HexDocs](https://hexdocs.pm). Once published, the docs can
-be found at <https://hexdocs.pm/fpe>.
+be found at <https://hexdocs.pm/ex_fpe>.
 

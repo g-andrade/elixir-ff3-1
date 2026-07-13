@@ -1,11 +1,11 @@
 # credo:disable-for-this-file Credo.Check.Readability.ModuleNames
-defmodule FPE.FFX.Codec.NoSymbols do
+defmodule ExFPE.FFX.Codec.NoSymbols do
   @moduledoc """
-  An implementation of `FPE.FFX.Codec` that handles numerical tagged
+  An implementation of `ExFPE.FFX.Codec` that handles numerical tagged
   integers, the tag being the value length.
   """
 
-  alias FPE.FFX.Codec
+  alias ExFPE.FFX.Codec
 
   ## Types
 
@@ -13,7 +13,7 @@ defmodule FPE.FFX.Codec.NoSymbols do
   defstruct [:radix]
 
   @opaque t :: %__MODULE__{radix: radix}
-  @type radix :: FPE.FF3_1.radix()
+  @type radix :: ExFPE.FF3_1.radix()
 
   defmodule NumString do
     @moduledoc false
@@ -29,7 +29,7 @@ defmodule FPE.FFX.Codec.NoSymbols do
   def new!(radix) do
     case new(radix) do
       {:ok, codec} -> codec
-      {:error, reason} -> raise FPE.ArgumentError, reason: reason
+      {:error, reason} -> raise ExFPE.ArgumentError, reason: reason
     end
   end
 

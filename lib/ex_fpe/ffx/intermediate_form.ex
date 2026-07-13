@@ -1,5 +1,5 @@
 # credo:disable-for-this-file Credo.Check.Readability.ModuleNames
-defmodule FPE.FFX.IntermediateForm do
+defmodule ExFPE.FFX.IntermediateForm do
   @moduledoc false
   import Bitwise
 
@@ -14,13 +14,13 @@ defmodule FPE.FFX.IntermediateForm do
 
   @opaque ctx ::
             record(:ctx,
-              radix: FPE.FFX.radix(),
+              radix: ExFPE.FFX.radix(),
               mask: pos_integer,
               bits_per_symbol: pos_integer,
               perfect_fit: boolean
             )
 
-  @spec new_ctx(FPE.FFX.radix()) :: ctx()
+  @spec new_ctx(ExFPE.FFX.radix()) :: ctx()
   def new_ctx(radix) do
     precise_bits_per_symbol = :math.log2(radix)
     bits_per_symbol = ceil(precise_bits_per_symbol)

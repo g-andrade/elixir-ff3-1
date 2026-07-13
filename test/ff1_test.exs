@@ -3,13 +3,13 @@
 defmodule FF1_Test do
   use ExUnit.Case, async: true
 
-  doctest FPE.FF1
+  doctest ExFPE.FF1
 
   ## Official NIST FF1 sample vectors, from the "Examples with Intermediate
   ## Values" published for SP 800-38G:
   ## https://csrc.nist.gov/CSRC/media/Projects/Cryptographic-Standards-and-Guidelines/documents/examples/FF1samples.pdf
   ##
-  ## Cross-checked against capitalone/fpe's ff1_test.go. The radix-36 vectors use
+  ## Cross-checked against capitalone/ex_fpe's ff1_test.go. The radix-36 vectors use
   ## a lowercase plaintext/ciphertext in the source; here they are upcased because
   ## the Builtin base-36 codec is case-insensitive on input and canonicalizes its
   ## output to uppercase.
@@ -163,32 +163,32 @@ defmodule FF1_Test do
     # §4: radix**minlen >= 1_000_000 (strengthened from >= 100 in the first
     # version). For radix 10 this makes minlen = 6.
     key = hex("2B7E151628AED2A6ABF7158809CF4F3C")
-    {:ok, fpe} = FPE.new(key, :ff1, 10)
+    {:ok, ex_fpe} = ExFPE.new(key, :ff1, 10)
 
-    assert {:error, _} = FPE.encrypt(fpe, "", "12345")
-    assert {:ok, _} = FPE.encrypt(fpe, "", "123456")
+    assert {:error, _} = ExFPE.encrypt(ex_fpe, "", "12345")
+    assert {:ok, _} = ExFPE.encrypt(ex_fpe, "", "123456")
   end
 
   test "radix upper bound is 2**16" do
-    alias FPE.FFX.Codec.NoSymbols
+    alias ExFPE.FFX.Codec.NoSymbols
 
     key = hex("2B7E151628AED2A6ABF7158809CF4F3C")
 
     {:ok, codec} = NoSymbols.new(0x10000)
-    assert {:ok, _fpe} = FPE.new(key, :ff1, codec)
+    assert {:ok, _fpe} = ExFPE.new(key, :ff1, codec)
 
     {:ok, too_big} = NoSymbols.new(0x10001)
 
     assert {:error, {:bad_radix, {0x10001, :more_than_maximum, 0x10000}}} =
-             FPE.new(key, :ff1, too_big)
+             ExFPE.new(key, :ff1, too_big)
   end
 
   ## Helpers
 
   defp check_test_vector(key, tweak, plaintext, ciphertext, radix_or_alphabet) do
-    {:ok, fpe} = FPE.new(key, :ff1, radix_or_alphabet)
-    assert FPE.encrypt!(fpe, tweak, plaintext) == ciphertext
-    assert FPE.decrypt!(fpe, tweak, ciphertext) == plaintext
+    {:ok, ex_fpe} = ExFPE.new(key, :ff1, radix_or_alphabet)
+    assert ExFPE.encrypt!(ex_fpe, tweak, plaintext) == ciphertext
+    assert ExFPE.decrypt!(ex_fpe, tweak, ciphertext) == plaintext
   end
 
   defp hex(string), do: Base.decode16!(string, case: :mixed)

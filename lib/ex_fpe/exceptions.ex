@@ -1,8 +1,8 @@
 # credo:disable-for-this-file Credo.Check.Readability.ModuleNames
-defmodule FPE.Error do
+defmodule ExFPE.Error do
   @moduledoc false
-  # Turns the structured `{:error, reason}` tuples returned across `FPE` into
-  # human-readable messages, shared by the `FPE` exceptions below.
+  # Turns the structured `{:error, reason}` tuples returned across `ExFPE` into
+  # human-readable messages, shared by the `ExFPE` exceptions below.
 
   @spec humanize(term) :: String.t()
   def humanize(reason)
@@ -30,7 +30,7 @@ defmodule FPE.Error do
   def humanize({:bad_radix, {radix, :not_a_valid_radix}}), do: "radix must be an integer >= 2, got: #{inspect(radix)}"
 
   ## Alphabet (Custom codec) — the inner reasons come from `Codec.Custom.new/1`,
-  ## wrapped in `:bad_alphabet` by `FPE.new/3` when an alphabet is passed.
+  ## wrapped in `:bad_alphabet` by `ExFPE.new/3` when an alphabet is passed.
 
   def humanize({:bad_alphabet, reason}), do: "invalid alphabet — #{humanize(reason)}"
 
@@ -85,7 +85,7 @@ defmodule FPE.Error do
   ## Supervised context
 
   def humanize({:ctx_not_found_for_module, module}) do
-    "FPE context for #{inspect(module)} was not found; is it started under your supervision tree?"
+    "ExFPE context for #{inspect(module)} was not found; is it started under your supervision tree?"
   end
 
   ## Fallback
@@ -93,12 +93,12 @@ defmodule FPE.Error do
   def humanize(reason), do: inspect(reason)
 end
 
-defmodule FPE.ArgumentError do
+defmodule ExFPE.ArgumentError do
   @moduledoc """
-  Raised by `FPE.new!/3` when a context cannot be built — an invalid key, mode,
+  Raised by `ExFPE.new!/3` when a context cannot be built — an invalid key, mode,
   radix, alphabet, or codec.
 
-  The structured `:reason` is the same term `FPE.new/3` would return under
+  The structured `:reason` is the same term `ExFPE.new/3` would return under
   `{:error, reason}`.
   """
   defexception [:reason]
@@ -106,15 +106,15 @@ defmodule FPE.ArgumentError do
   @type t :: %__MODULE__{reason: term}
 
   @impl true
-  def message(%__MODULE__{reason: reason}), do: "invalid FPE argument — " <> FPE.Error.humanize(reason)
+  def message(%__MODULE__{reason: reason}), do: "invalid ExFPE argument — " <> ExFPE.Error.humanize(reason)
 end
 
-defmodule FPE.InputError do
+defmodule ExFPE.InputError do
   @moduledoc """
-  Raised by `FPE.encrypt!/3` and `FPE.decrypt!/3` when the tweak or the input
+  Raised by `ExFPE.encrypt!/3` and `ExFPE.decrypt!/3` when the tweak or the input
   numerical string is invalid.
 
-  The structured `:reason` is the same term `FPE.encrypt/3` / `FPE.decrypt/3`
+  The structured `:reason` is the same term `ExFPE.encrypt/3` / `ExFPE.decrypt/3`
   would return under `{:error, reason}`.
   """
   defexception [:reason]
@@ -122,12 +122,12 @@ defmodule FPE.InputError do
   @type t :: %__MODULE__{reason: term}
 
   @impl true
-  def message(%__MODULE__{reason: reason}), do: "invalid FPE input — " <> FPE.Error.humanize(reason)
+  def message(%__MODULE__{reason: reason}), do: "invalid ExFPE input — " <> ExFPE.Error.humanize(reason)
 end
 
-defmodule FPE.NotStartedError do
+defmodule ExFPE.NotStartedError do
   @moduledoc """
-  Raised by a `use FPE` module's generated functions when its context is not
+  Raised by a `use ExFPE` module's generated functions when its context is not
   running — usually because it is missing from the supervision tree, or the
   application is stopped.
   """
@@ -136,5 +136,5 @@ defmodule FPE.NotStartedError do
   @type t :: %__MODULE__{reason: term}
 
   @impl true
-  def message(%__MODULE__{reason: reason}), do: FPE.Error.humanize(reason)
+  def message(%__MODULE__{reason: reason}), do: ExFPE.Error.humanize(reason)
 end

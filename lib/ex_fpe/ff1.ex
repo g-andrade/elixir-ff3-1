@@ -1,16 +1,16 @@
 # credo:disable-for-this-file Credo.Check.Readability.ModuleNames
 # credo:disable-for-this-file Credo.Check.Readability.VariableNames
-defmodule FPE.FF1 do
+defmodule ExFPE.FF1 do
   @moduledoc """
   The FF1 format-preserving encryption mode.
 
-  FF1 is the **only FPE mode approved by NIST** as of
+  FF1 is the **only ExFPE mode approved by NIST** as of
   [SP 800-38Gr1 2pd](https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-38Gr1.2pd.pdf)
   (Second Public Draft, February 2025), and this library's **default** mode.
 
-  Use it through the `FPE` facade: since FF1 is the default, `FPE.new(key,
+  Use it through the `ExFPE` facade: since FF1 is the default, `ExFPE.new(key,
   radix_or_alphabet)` already selects it (no mode argument needed); then
-  `FPE.encrypt!/3` / `FPE.decrypt!/3`. See `FPE` for the full how-to-use guide
+  `ExFPE.encrypt!/3` / `ExFPE.decrypt!/3`. See `ExFPE` for the full how-to-use guide
   (contexts, alphabets, tweaks). This module documents what is specific to FF1:
   its **variable-length tweak** and its **length constraints**.
 
@@ -20,12 +20,12 @@ defmodule FPE.FF1 do
   depend on the radix.
 
       iex> key = :crypto.strong_rand_bytes(32)
-      iex> {:ok, ctx} = FPE.new(key, _radix = 10)
-      iex> %{min_length: 6, max_length: 4_294_967_295} = FPE.FF1.constraints(ctx.algorithm)
+      iex> {:ok, ctx} = ExFPE.new(key, _radix = 10)
+      iex> %{min_length: 6, max_length: 4_294_967_295} = ExFPE.FF1.constraints(ctx.algorithm)
 
       iex> key = :crypto.strong_rand_bytes(32)
-      iex> {:ok, ctx} = FPE.new(key, _radix = 16)
-      iex> %{min_length: 5, max_length: 4_294_967_295} = FPE.FF1.constraints(ctx.algorithm)
+      iex> {:ok, ctx} = ExFPE.new(key, _radix = 16)
+      iex> %{min_length: 5, max_length: 4_294_967_295} = ExFPE.FF1.constraints(ctx.algorithm)
 
   `min_length` exists because, for a given radix, short numerical strings
   encompass too few possible values, rendering encryption ineffective under
@@ -36,7 +36,7 @@ defmodule FPE.FF1 do
   ## Tweak
 
   FF1 accepts a **variable-length** tweak: any byte string, from the empty
-  string up to the maximum tweak length. See `FPE` for the general role of
+  string up to the maximum tweak length. See `ExFPE` for the general role of
   tweaks, and the reference document below for the specifics.
 
   This implementation conforms, as best as possible, to
@@ -46,9 +46,9 @@ defmodule FPE.FF1 do
 
   import Bitwise
 
-  alias FPE.Algorithm
-  alias FPE.FFX
-  alias FPE.FFX.Codec
+  alias ExFPE.Algorithm
+  alias ExFPE.FFX
+  alias ExFPE.FFX.Codec
 
   ## API Types
 
@@ -114,7 +114,7 @@ defmodule FPE.FF1 do
   end
 
   @doc """
-  Returns a `ctx`'s `FPE.FFX.Codec`, should you wish to further manipulate or
+  Returns a `ctx`'s `ExFPE.FFX.Codec`, should you wish to further manipulate or
   prepare encryption and decryption inputs or outputs.
   """
   @spec codec(ctx) :: codec
@@ -196,7 +196,7 @@ defmodule FPE.FF1 do
     def do_encrypt_or_decrypt(ctx, tweak, vX, enc) do
       with {:ok, vX_length, vX} <- validate_enc_or_dec_input(ctx, vX),
            :ok <- validate_tweak(ctx, tweak),
-           %FPE.FF1{key: key, codec: codec} = ctx,
+           %ExFPE.FF1{key: key, codec: codec} = ctx,
            {:ok, u, v, vA, vB, b, d, vP} <- setup_encrypt_or_decrypt_vars(codec, tweak, vX, vX_length) do
         vY =
           if enc do
@@ -239,7 +239,7 @@ defmodule FPE.FF1 do
     end
 
     defp validate_enc_or_dec_input(ctx, vX) do
-      %FPE.FF1{codec: codec, min_length: min_length, max_length: max_length} = ctx
+      %ExFPE.FF1{codec: codec, min_length: min_length, max_length: max_length} = ctx
 
       case Codec.normalize_input(codec, vX) do
         {:ok, valid_length, normalized_vX} when valid_length in min_length..max_length//1 ->
@@ -253,7 +253,7 @@ defmodule FPE.FF1 do
       end
     end
 
-    defp validate_tweak(%FPE.FF1{max_length: max_length}, tweak) do
+    defp validate_tweak(%ExFPE.FF1{max_length: max_length}, tweak) do
       case tweak do
         _ when byte_size(tweak) <= max_length ->
           :ok
