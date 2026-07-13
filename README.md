@@ -325,7 +325,7 @@ defmodule MyApp.CardCipher do
 
   @impl true
   def child_spec do
-    child_spec(fetch_key(), :ff3_1, _radix = 10)
+    child_spec(fetch_key(), _radix = 10)
   end
 
   defp fetch_key, do: Application.fetch_env!(:my_app, :fpe_key)
@@ -338,7 +338,9 @@ children = [
 ]
 
 # then, anywhere:
-MyApp.CardCipher.encrypt!(tweak, "34436524")
+plaintext = "34436524"
+ciphertext = MyApp.CardCipher.encrypt!(tweak, plaintext)
+^plaintext = MyApp.CardCipher.decrypt!(tweak, ciphertext)
 ```
 
 ## License
