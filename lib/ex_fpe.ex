@@ -425,7 +425,7 @@ defmodule ExFPE do
     * a `child_spec/2` / `child_spec/3` builder and a `start_link/3`, backed by
       a uniquely named process holding the context in a `:persistent_term`;
     * `encrypt/2`, `encrypt!/2`, `decrypt/2`, `decrypt!/2` that retrieve the
-      context transparently; plus `constraints/0`, `codec/0`, and `ex_fpe/0`.
+      context transparently; plus `constraints/0`, `codec/0`, and `ex_fpe!/0`.
 
   You implement the `c:child_spec/0` callback declaring your configuration, and
   add `MyModule.child_spec()` to your supervision tree.
@@ -483,32 +483,32 @@ defmodule ExFPE do
       @doc "Like `ExFPE.encrypt/3`, retrieving `#{inspect(__MODULE__)}`'s context."
       @spec encrypt(ExFPE.tweak(), ExFPE.numerical_string()) ::
               {:ok, ExFPE.numerical_string()} | {:error, term}
-      def encrypt(tweak, plaintext), do: ExFPE.encrypt(ex_fpe(), tweak, plaintext)
+      def encrypt(tweak, plaintext), do: ExFPE.encrypt(ex_fpe!(), tweak, plaintext)
 
       @doc "Like `ExFPE.encrypt!/3`, retrieving `#{inspect(__MODULE__)}`'s context."
       @spec encrypt!(ExFPE.tweak(), ExFPE.numerical_string()) :: ExFPE.numerical_string()
-      def encrypt!(tweak, plaintext), do: ExFPE.encrypt!(ex_fpe(), tweak, plaintext)
+      def encrypt!(tweak, plaintext), do: ExFPE.encrypt!(ex_fpe!(), tweak, plaintext)
 
       @doc "Like `ExFPE.decrypt/3`, retrieving `#{inspect(__MODULE__)}`'s context."
       @spec decrypt(ExFPE.tweak(), ExFPE.numerical_string()) ::
               {:ok, ExFPE.numerical_string()} | {:error, term}
-      def decrypt(tweak, ciphertext), do: ExFPE.decrypt(ex_fpe(), tweak, ciphertext)
+      def decrypt(tweak, ciphertext), do: ExFPE.decrypt(ex_fpe!(), tweak, ciphertext)
 
       @doc "Like `ExFPE.decrypt!/3`, retrieving `#{inspect(__MODULE__)}`'s context."
       @spec decrypt!(ExFPE.tweak(), ExFPE.numerical_string()) :: ExFPE.numerical_string()
-      def decrypt!(tweak, ciphertext), do: ExFPE.decrypt!(ex_fpe(), tweak, ciphertext)
+      def decrypt!(tweak, ciphertext), do: ExFPE.decrypt!(ex_fpe!(), tweak, ciphertext)
 
       @doc "Like `ExFPE.constraints/1` for `#{inspect(__MODULE__)}`'s context."
       @spec constraints() :: ExFPE.constraints()
-      def constraints, do: ExFPE.constraints(ex_fpe())
+      def constraints, do: ExFPE.constraints(ex_fpe!())
 
       @doc "Like `ExFPE.codec/1` for `#{inspect(__MODULE__)}`'s context."
       @spec codec() :: FFX.Codec.t()
-      def codec, do: ExFPE.codec(ex_fpe())
+      def codec, do: ExFPE.codec(ex_fpe!())
 
       @doc "Returns this module's `t:ExFPE.t/0`."
-      @spec ex_fpe() :: ExFPE.t()
-      def ex_fpe do
+      @spec ex_fpe!() :: ExFPE.t()
+      def ex_fpe! do
         case ExFPE.Agent.get(__MODULE__) do
           {:ok, ex_fpe} ->
             ex_fpe
