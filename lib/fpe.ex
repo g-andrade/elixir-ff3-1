@@ -267,6 +267,11 @@ defmodule FPE do
 
   @type t :: %__MODULE__{algorithm: Algorithm.t(), codec: Codec.t()}
 
+  @typedoc "A supported FPE mode."
+  @type mode :: :ff1 | :ff3_1
+
+  @type key :: FPE.FFX.key()
+
   ## API
 
   def new!(key, mode \\ @default_mode, radix_or_alphabet_or_codec) do
@@ -320,6 +325,114 @@ defmodule FPE do
 
   def decrypt(%__MODULE__{algorithm: algorithm}, tweak, plaintext) do
     Algorithm.do_encrypt_or_decrypt(algorithm, tweak, plaintext, false)
+  end
+
+  ## Convenience: `use FPE`
+
+  @doc """
+  Returns the `Supervisor` child spec for the module that `use FPE`.
+
+  Implement it by calling the generated `child_spec/2` or `child_spec/3` with
+  your key, mode, and radix/alphabet/codec — see the moduledoc.
+  """
+  @callback child_spec() :: Supervisor.child_spec()
+
+  @doc """
+  Places an `FPE` context under your supervision tree so that you can encrypt
+  and decrypt without threading the context through every call.
+
+  A module that `use FPE` gets:
+
+    * a `child_spec/2` / `child_spec/3` builder and a `start_link/3`, backed by
+      a uniquely named process holding the context in a `:persistent_term`;
+    * `encrypt/2`, `encrypt!/2`, `decrypt/2`, `decrypt!/2` that retrieve the
+      context transparently; plus `constraints/0`, `codec/0`, and `fpe/0`.
+
+  You implement the `c:child_spec/0` callback declaring your configuration, and
+  add `MyModule.child_spec()` to your supervision tree.
+
+      defmodule MyApp.CardCipher do
+        use FPE
+
+        @impl true
+        def child_spec do
+          child_spec(fetch_key(), :ff3_1, _radix = 10)
+        end
+
+        defp fetch_key, do: Application.fetch_env!(:my_app, :fpe_key)
+      end
+
+      # in your application's supervision tree:
+      children = [
+        MyApp.CardCipher.child_spec(),
+        # ...
+      ]
+
+      # then, anywhere:
+      MyApp.CardCipher.encrypt!(tweak, "34436524")
+  """
+  defmacro __using__([]) do
+    quote do
+      @behaviour FPE
+
+      @doc """
+      Builds a `Supervisor` child spec for `#{inspect(__MODULE__)}`'s context.
+
+      Call this from your `c:FPE.child_spec/0` implementation.
+      """
+      @spec child_spec(FPE.key(), FPE.mode(), term()) :: Supervisor.child_spec()
+      def child_spec(key, mode \\ unquote(@default_mode), radix_or_alphabet_or_codec) do
+        FPE.Agent.child_spec(
+          __MODULE__,
+          {__MODULE__, :start_link, [key, mode, radix_or_alphabet_or_codec]}
+        )
+      end
+
+      @doc """
+      Starts the process holding `#{inspect(__MODULE__)}`'s context.
+      """
+      @spec start_link(FPE.key(), FPE.mode(), term()) :: {:ok, pid} | {:error, term}
+      def start_link(key, mode, radix_or_alphabet_or_codec) do
+        FPE.Agent.start_link(
+          __MODULE__,
+          {&FPE.new/3, [key, mode, radix_or_alphabet_or_codec]}
+        )
+      end
+
+      @doc "Like `FPE.encrypt/3`, retrieving `#{inspect(__MODULE__)}`'s context."
+      def encrypt(tweak, plaintext), do: FPE.encrypt(fpe(), tweak, plaintext)
+
+      @doc "Like `FPE.encrypt!/3`, retrieving `#{inspect(__MODULE__)}`'s context."
+      def encrypt!(tweak, plaintext), do: FPE.encrypt!(fpe(), tweak, plaintext)
+
+      @doc "Like `FPE.decrypt/3`, retrieving `#{inspect(__MODULE__)}`'s context."
+      def decrypt(tweak, ciphertext), do: FPE.decrypt(fpe(), tweak, ciphertext)
+
+      @doc "Like `FPE.decrypt!/3`, retrieving `#{inspect(__MODULE__)}`'s context."
+      def decrypt!(tweak, ciphertext), do: FPE.decrypt!(fpe(), tweak, ciphertext)
+
+      @doc "Returns this module's mode-specific constraints."
+      def constraints do
+        algorithm = fpe().algorithm
+        algorithm.__struct__.constraints(algorithm)
+      end
+
+      @doc "Returns this module's `FPE.FFX.Codec`."
+      def codec, do: fpe().codec
+
+      @doc "Returns this module's `t:FPE.t/0`."
+      @spec fpe() :: FPE.t()
+      def fpe do
+        case FPE.Agent.get(__MODULE__) do
+          {:ok, fpe} ->
+            fpe
+
+          {:error, {:ctx_not_found_for_module, module}} ->
+            raise "FPE context for #{inspect(module)} not found; " <>
+                    "is it started under your supervision tree?"
+        end
+      end
+    end
   end
 
   ## Internal

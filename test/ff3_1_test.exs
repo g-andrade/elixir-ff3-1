@@ -3,7 +3,7 @@
 defmodule FF3_1_Test do
   use ExUnit.Case, async: true
 
-  alias FPE.FF3_1.Setup.Server
+  alias FPE.Agent
   alias FPE.FFX.Codec.Custom
 
   doctest FPE.FF3_1
@@ -1315,17 +1315,17 @@ defmodule FF3_1_Test do
 
     assert match?(
              {:error, {:key_has_invalid_size, _}},
-             SetupModules.WrongKeySize.start_link()
+             start_setup_module(SetupModules.WrongKeySize)
            )
 
     assert match?(
              {:error, {:invalid_radix, _}},
-             SetupModules.InvalidRadix.start_link()
+             start_setup_module(SetupModules.InvalidRadix)
            )
 
     assert match?(
              {:error, {:alphabet_smaller_than_min_radix, _}},
-             SetupModules.InvalidAlphabet.start_link()
+             start_setup_module(SetupModules.InvalidAlphabet)
            )
   end
 
@@ -1334,21 +1334,21 @@ defmodule FF3_1_Test do
 
     _ = Process.flag(:trap_exit, true)
 
-    {:ok, pid} = SetupModules.BuiltinBase10.start_link()
-    assert match?({:ok, _ctx}, Server.get_ctx(SetupModules.BuiltinBase10))
-    Server.stop(pid, :"everything's crashing")
-    assert match?({:ok, _ctx}, Server.get_ctx(SetupModules.BuiltinBase10))
+    {:ok, pid} = start_setup_module(SetupModules.BuiltinBase10)
+    assert match?({:ok, _ctx}, Agent.get(SetupModules.BuiltinBase10))
+    Agent.stop(pid, :"everything's crashing")
+    assert match?({:ok, _ctx}, Agent.get(SetupModules.BuiltinBase10))
 
-    {:ok, pid} = SetupModules.BuiltinBase10.start_link()
-    Server.stop(pid, :shutdown)
+    {:ok, pid} = start_setup_module(SetupModules.BuiltinBase10)
+    Agent.stop(pid, :shutdown)
 
-    assert Server.get_ctx(SetupModules.BuiltinBase10) ==
+    assert Agent.get(SetupModules.BuiltinBase10) ==
              {:error, {:ctx_not_found_for_module, SetupModules.BuiltinBase10}}
 
-    {:ok, pid} = SetupModules.BuiltinBase10.start_link()
-    Server.stop(pid, {:shutdown, :detailed_reason})
+    {:ok, pid} = start_setup_module(SetupModules.BuiltinBase10)
+    Agent.stop(pid, {:shutdown, :detailed_reason})
 
-    assert Server.get_ctx(SetupModules.BuiltinBase10) ==
+    assert Agent.get(SetupModules.BuiltinBase10) ==
              {:error, {:ctx_not_found_for_module, SetupModules.BuiltinBase10}}
   end
 
@@ -1445,10 +1445,10 @@ defmodule FF3_1_Test do
   end
 
   defp test_setup_module(module, plaintext) do
-    assert Server.get_ctx(module) == {:error, {:ctx_not_found_for_module, module}}
+    assert Agent.get(module) == {:error, {:ctx_not_found_for_module, module}}
 
-    {:ok, pid} = module.start_link()
-    {:ok, ctx} = Server.get_ctx(module)
+    {:ok, pid} = start_setup_module(module)
+    {:ok, ctx} = Agent.get(module)
 
     tweak = :crypto.strong_rand_bytes(7)
     ciphertext = module.encrypt!(tweak, plaintext)
@@ -1458,7 +1458,14 @@ defmodule FF3_1_Test do
     assert module.constraints() == FPE.FF3_1.constraints(ctx.algorithm)
     assert module.codec() == FPE.FF3_1.codec(ctx.algorithm)
 
-    :ok = Server.stop(pid)
-    assert Server.get_ctx(module) == {:error, {:ctx_not_found_for_module, module}}
+    :ok = Agent.stop(pid)
+    assert Agent.get(module) == {:error, {:ctx_not_found_for_module, module}}
+  end
+
+  # Starts a `use FPE` module the way a supervisor would: through the child
+  # spec its `child_spec/0` declares.
+  defp start_setup_module(module) do
+    %{start: {mod, fun, args}} = module.child_spec()
+    apply(mod, fun, args)
   end
 end

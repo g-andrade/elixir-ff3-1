@@ -36,9 +36,12 @@ Facade → algorithm → per-alphabet codec:
 
 - **`FPE`** (`lib/fpe.ex`) — public API and struct (`%FPE{algorithm, codec}`):
   `new/3`, `new!/3`, `encrypt/3`, `encrypt!/3`, `decrypt/3`, `decrypt!/3`. `new/3` takes
-  `(key, module \\ FPE.FF1, radix_or_alphabet_or_codec)`, resolves the codec
-  (`init_codec/1`), and delegates to the algorithm module's `new_ctx/2`. This module
-  holds the **full how-to-use guide** in its moduledoc (contexts, alphabets, tweaks).
+  `(key, mode \\ :ff1, radix_or_alphabet_or_codec)` where **`mode` is an atom** (`:ff1` |
+  `:ff3_1`, not a module). It resolves the codec (`init_codec/1`) then the algorithm
+  (`init_algorithm/3`, which maps the atom to `FF1.new_ctx` / `FF3_1.new_ctx` and returns
+  `{:error, {:unknown_mode, mode}}` otherwise). This module holds the **full how-to-use
+  guide** in its moduledoc (contexts, alphabets, tweaks), plus the **`use FPE`** macro
+  (see below).
 - **`FPE.Algorithm`** (`lib/fpe/algorithm.ex`) — a one-function protocol,
   `do_encrypt_or_decrypt(t, tweak, input, encrypt?)`. Each mode implements it via a
   `defimpl ... for: __MODULE__` inside its own file.
@@ -62,10 +65,31 @@ Facade → algorithm → per-alphabet codec:
     radix up to 65535.
 - **`FPE.FFX.IntermediateForm`** (private) — record with radix/mask/bits-per-symbol for
   FF3-1's arithmetic.
-- **`FPE.FF3_1.Setup` / `FPE.FF3_1.Setup.Server`** (`lib/fpe/setup.ex`,
-  `lib/fpe/setup/server.ex`) — macro + GenServer for reusable named ctx setups
-  (used by tests via `test/helper/setup_modules.ex`). Note the file paths don't mirror
-  the module namespace.
+
+## Supervised context: `use FPE` + `FPE.Agent`
+
+For callers who don't want to thread a `%FPE{}` through every call, `use FPE` generates a
+module that keeps its context under a supervision tree (mirroring `sqids`):
+
+- **`use FPE`** (macro in `lib/fpe.ex`) generates `child_spec/2,3`, `start_link/3`,
+  `encrypt/2`, `encrypt!/2`, `decrypt/2`, `decrypt!/2`, `constraints/0`, `codec/0`, `fpe/0`,
+  and requires the caller to implement the **`child_spec/0` callback** (`@callback` on `FPE`)
+  declaring `child_spec(key, mode, radix_or_alphabet_or_codec)`. Config is supplied at
+  **runtime** in that callback — never baked into `use` — which keeps the AES **key** out
+  of the build artifact. There is deliberately **no compile-time (`@ctx`) mode**: unlike
+  sqids' non-secret config, an FPE context embeds a secret key.
+- **`FPE.Agent`** (`lib/fpe/agent.ex`, `@moduledoc false`) — a near-direct port of
+  `Sqids.Agent`: `:proc_lib` + `:gen_server.enter_loop` + `:hibernate`, storing the
+  `%FPE{}` in a per-module `:persistent_term` (`{FPE.Agent, module}`). `get/1` returns
+  `{:ok, fpe} | {:error, {:ctx_not_found_for_module, module}}`; `terminate/2` erases the
+  term only on healthy exits (`:normal`/`:shutdown`) to avoid GC churn on crash-restart
+  loops. Holds an opaque `%FPE{}`, so it knows nothing about keys or codecs.
+- Tests exercise this via `test/helper/setup_modules.ex` (`use FPE` modules) and start them
+  the way a supervisor would — through the child spec's MFA (`start_setup_module/1` in
+  `test/ff3_1_test.exs`).
+
+> Superseded the old `FPE.FF3_1.Setup` / `Setup.Server` (single supervised mode, mis-homed
+> under `FF3_1`, three nested structs). Don't reintroduce that shape.
 
 ## The Custom codec (read its moduledoc first)
 
