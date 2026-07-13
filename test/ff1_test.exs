@@ -155,6 +155,32 @@ defmodule FF1_Test do
     )
   end
 
+  ## SP 800-38Gr1 2pd conformance
+
+  test "rejects inputs whose domain is smaller than one million" do
+    # §4: radix**minlen >= 1_000_000 (strengthened from >= 100 in the first
+    # version). For radix 10 this makes minlen = 6.
+    key = hex("2B7E151628AED2A6ABF7158809CF4F3C")
+    {:ok, fpe} = FPE.new(key, :ff1, 10)
+
+    assert {:error, _} = FPE.encrypt(fpe, "", "12345")
+    assert {:ok, _} = FPE.encrypt(fpe, "", "123456")
+  end
+
+  test "radix upper bound is 2**16" do
+    alias FPE.FFX.Codec.NoSymbols
+
+    key = hex("2B7E151628AED2A6ABF7158809CF4F3C")
+
+    {:ok, codec} = NoSymbols.new(0x10000)
+    assert {:ok, _fpe} = FPE.new(key, :ff1, codec)
+
+    {:ok, too_big} = NoSymbols.new(0x10001)
+
+    assert {:error, {:invalid_radix, {0x10001, :more_than_maximum, 0x10000}}} =
+             FPE.new(key, :ff1, too_big)
+  end
+
   ## Helpers
 
   defp check_test_vector(key, tweak, plaintext, ciphertext, radix_or_alphabet) do

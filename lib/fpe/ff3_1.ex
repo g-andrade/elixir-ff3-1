@@ -4,6 +4,18 @@ defmodule FPE.FF3_1 do
   @moduledoc """
   The FF3-1 format-preserving encryption mode.
 
+  > #### No longer NIST-approved {: .warning}
+  >
+  > NIST **removed the entire FF3 family (FF3 and FF3-1)** in
+  > [SP 800-38Gr1 2pd](https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-38Gr1.2pd.pdf)
+  > (Second Public Draft, February 2025): Beyne's linear cryptanalysis
+  > ([CRYPTO 2021](https://doi.org/10.1007/978-3-030-84242-0_3)) found a weakness
+  > in the tweak schedule that affects both FF3 and FF3-1 but **not** FF1. FF1 is
+  > now the only approved FPE mode.
+  >
+  > FF3-1 is retained here for interoperability with existing data, but new
+  > applications should prefer `FPE.FF1` (the `:ff1` mode, which is the default).
+
   Use it through the `FPE` facade: `FPE.new(key, :ff3_1, radix_or_alphabet)`,
   then `FPE.encrypt!/3` / `FPE.decrypt!/3`. See `FPE` for the full how-to-use
   guide (contexts, alphabets, tweaks). This module documents what is specific
@@ -11,7 +23,8 @@ defmodule FPE.FF3_1 do
 
   This implementation conforms, as best as possible, to
   [Draft SP 800-38G Rev. 1](https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-38Gr1-draft.pdf)
-  specified by NIST in their Cryptographic Standards.
+  (the first draft, in which FF3-1 was still specified), as published by NIST in
+  their Cryptographic Standards.
 
   No official test vectors for FF3-1 exist as of the time of writing;
   many of the ones used in this library's test suite were copied almost verbatim

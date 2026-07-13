@@ -1,7 +1,11 @@
+# credo:disable-for-this-file Credo.Check.Readability.ModuleNames
+# credo:disable-for-this-file Credo.Check.Readability.VariableNames
 defmodule FPE.FF1 do
   @moduledoc false
 
-  # Reference: https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-38G.pdf
+  # Reference: NIST SP 800-38Gr1 2pd (Second Public Draft, February 2025), which
+  # specifies FF1 as the only approved FPE mode:
+  # https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-38Gr1.2pd.pdf
 
   import Bitwise
 
@@ -15,14 +19,14 @@ defmodule FPE.FF1 do
   @type codec :: Codec.t()
   @type numerical_string :: FFX.numerical_string()
 
-  # 5.2, FF3-1 requirements
+  # §4 FF1 requirements: radix ∈ [2 .. 2**16]
   @min_radix 2
-  @max_radix 0xFFFF
+  @max_radix 0x10_000
   @type radix :: 2..0x10_000
   @type alphabet :: <<_::16, _::_*8>>
 
-  # 5.2, Algorithm 9: FF3.Encrypt(K, T, X)
-  @type tweak :: <<_::56>>
+  # FF1 takes a variable-length byte-string tweak (0 .. maxTlen bytes)
+  @type tweak :: binary()
 
   @type constraints :: %{min_length: pos_integer, max_length: pos_integer}
 
@@ -101,16 +105,36 @@ defmodule FPE.FF1 do
   end
 
   defp calculate_min_length(radix) do
-    # FF1 requirement: 'radix**minlen >= 100'
-    min_length = ceil(:math.log(100.0) / :math.log(radix))
+    # §4 FF1 requirements: 'radix**minlen >= 1_000_000' and '2 <= minlen'.
+    #
+    # The first version required only >= 100; the 2pd strengthens the previous
+    # small-domain guidance into a requirement to mitigate FF1's vulnerabilities.
+    #
+    # Computed with integer arithmetic only, since the 2pd (§5) forbids
+    # floating-point representations and arithmetic.
+    min_domain_size = 1_000_000
+    min_length = max(2, smallest_exponent_reaching(radix, min_domain_size))
     {:ok, min_length}
   end
 
-  defp calculate_max_length(min_length) do
-    # FF1 requirement: 'minlen <= maxlen < 2**32'
-    upper_limit = 1 <<< 32
+  # Smallest positive `exponent` such that `radix ** exponent >= target`.
+  defp smallest_exponent_reaching(radix, target) do
+    smallest_exponent_reaching(radix, target, _exponent = 1, _value = radix)
+  end
 
-    case upper_limit do
+  defp smallest_exponent_reaching(_radix, target, exponent, value) when value >= target do
+    exponent
+  end
+
+  defp smallest_exponent_reaching(radix, target, exponent, value) do
+    smallest_exponent_reaching(radix, target, exponent + 1, value * radix)
+  end
+
+  defp calculate_max_length(min_length) do
+    # §4 FF1 requirements: 'minlen <= maxlen < 2**32'.
+    max_length = (1 <<< 32) - 1
+
+    case max_length do
       max_length when max_length >= min_length ->
         {:ok, max_length}
     end
@@ -203,12 +227,17 @@ defmodule FPE.FF1 do
 
       with {:ok, vA} <- Codec.numerical_string_to_int(codec, vA_str),
            {:ok, vB} <- Codec.numerical_string_to_int(codec, vB_str) do
-        # 3. Let b = ⎡ ⎡v ⋅ LOG(radix)⎤/8⎤.
+        # 3. Let b = ⎡BITLEN(radix**v − 1)/8⎤.
+        #
+        # BITLEN(radix**v − 1) is the number of bits needed to represent it, so
+        # ⎡that/8⎤ is the number of bytes: exactly the length of its minimal
+        # big-endian encoding. Computed without floating point, as the 2pd (§5)
+        # requires (the first version defined b via ⎡v·LOG2(radix)⎤).
         radix = Codec.radix(codec)
-        b = ceil(ceil(v * :math.log2(radix)) / 8)
+        b = byte_size(:binary.encode_unsigned(Integer.pow(radix, v) - 1))
 
         # 4. Let d = 4 ⎡b/4⎤ + 4.
-        d = 4 * ceil(b / 4) + 4
+        d = 4 * div(b + 3, 4) + 4
 
         # 5. Let P = [1]1 || [2]1 || [1]1 || [radix]3 || [10]1 || [u mod 256]1 || [n]4 || [t]4.
         vP = <<
@@ -343,8 +372,10 @@ defmodule FPE.FF1 do
 
     ###########
 
+    # credo:disable-for-next-line Credo.Check.Readability.FunctionNames
     defp compute_vS_blocks(key, d, vR) do
-      last_index = ceil(d / 16) - 1
+      # ⎡d/16⎤ blocks, computed without floating point (2pd §5).
+      last_index = div(d + 15, 16) - 1
       acc_size = byte_size(vR)
       IO.iodata_to_binary([vR | compute_vS_blocks_recur(key, d, vR, acc_size, 1, last_index)])
       # <<
@@ -356,6 +387,7 @@ defmodule FPE.FF1 do
       # >>
     end
 
+    # credo:disable-for-next-line Credo.Check.Readability.FunctionNames
     defp compute_vS_blocks_recur(key, d, vR, acc_size, index, last_index) when index <= last_index and acc_size < d do
       [
         ciph(key, :crypto.exor(vR, <<index::unsigned-size(16)-unit(8)>>))
@@ -363,6 +395,7 @@ defmodule FPE.FF1 do
       ]
     end
 
+    # credo:disable-for-next-line Credo.Check.Readability.FunctionNames
     defp compute_vS_blocks_recur(_key, _d, _vR, _acc_size, _index, _last_index) do
       []
     end
