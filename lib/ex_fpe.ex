@@ -460,7 +460,7 @@ defmodule ExFPE do
       Call this from your `c:ExFPE.child_spec/0` implementation.
       """
       @spec child_spec(ExFPE.key(), ExFPE.mode(), radix | alphabet | codec) :: Supervisor.child_spec()
-      when radix: ExFPE.radix(), alphabet: ExFPE.alphabet(), codec: ExFPE.codec()
+            when radix: ExFPE.radix(), alphabet: ExFPE.alphabet(), codec: ExFPE.codec()
       def child_spec(key, mode \\ unquote(@default_mode), radix_or_alphabet_or_codec) do
         ExFPE.Agent.child_spec(
           __MODULE__,
@@ -472,7 +472,7 @@ defmodule ExFPE do
       Starts the process holding `#{inspect(__MODULE__)}`'s context.
       """
       @spec start_link(ExFPE.key(), ExFPE.mode(), radix | alphabet | codec) :: {:ok, pid} | {:error, term}
-      when radix: ExFPE.radix(), alphabet: ExFPE.alphabet(), codec: ExFPE.codec()
+            when radix: ExFPE.radix(), alphabet: ExFPE.alphabet(), codec: ExFPE.codec()
       def start_link(key, mode, radix_or_alphabet_or_codec) do
         ExFPE.Agent.start_link(
           __MODULE__,
