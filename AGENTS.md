@@ -4,9 +4,14 @@ Guidance for AI agents working in this repo. Keep it current when structure or c
 
 ## Overview
 
-`fpe` is an Elixir library implementing **FF3-1 format-preserving encryption**
-([NIST SP 800-38G Rev. 1 draft](https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-38Gr1-draft.pdf)).
-It encrypts a string over a given alphabet into another string of the **same length over the same alphabet**.
+`fpe` is an Elixir library for **format-preserving encryption (FPE)**. It encrypts a
+numerical string into another string of the **same length over the same alphabet**.
+It implements two FFX modes:
+
+- **FF3-1** ([NIST SP 800-38G Rev. 1 draft](https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-38Gr1-draft.pdf)) — fixed **7-byte** tweak.
+- **FF1** ([NIST SP 800-38G](https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-38G.pdf)) — variable-length tweak.
+
+Both sit behind the single `FPE` facade; `FPE.FF1` is the default algorithm.
 
 - Min Elixir `~> 1.14`; developed on Elixir 1.20 / OTP 28. CI matrix runs 1.14–1.20.
 - Runtime deps: none beyond `:crypto` (stdlib). Dev/test tooling only (see below).
@@ -22,27 +27,45 @@ mix credo --strict       # CI gate
 mix dialyzer             # CI gate (slow first run)
 ```
 
-CI (`.github/workflows/ci.yml`) runs: `format --check-formatted`, `credo --strict`,
-`dialyzer`, `test --cover`, and deps hygiene. Green locally on all of these ≈ green CI.
+CI (`.github/workflows/ci.yml`) runs: deps hygiene, `format --check-formatted`,
+`credo --strict`, `test --cover`, and `dialyzer`. Green locally on all of these ≈ green CI.
 
 ## Architecture
 
-Public API → algorithm → per-alphabet codec:
+Facade → algorithm → per-alphabet codec:
 
-- **`FPE.FF3_1`** (`lib/fpe/ff3_1.ex`) — public API: `new_ctx/2`, `encrypt!/3`, `decrypt!/3`, etc.
-  Holds the ctx record and dispatches a radix / alphabet / codec into a concrete codec.
-- **`FPE.FFX`** (`lib/fpe/ffx.ex`) — the FF3-1/FFX reference algorithm, and the
-  **`FPE.FFX.Codec` protocol**: `radix/1`, `normalize_input/2`,
+- **`FPE`** (`lib/fpe.ex`) — public API and struct (`%FPE{algorithm, codec}`):
+  `new/3`, `new!/3`, `encrypt/3`, `encrypt!/3`, `decrypt/3`, `decrypt!/3`. `new/3` takes
+  `(key, module \\ FPE.FF1, radix_or_alphabet_or_codec)`, resolves the codec
+  (`init_codec/1`), and delegates to the algorithm module's `new_ctx/2`. This module
+  holds the **full how-to-use guide** in its moduledoc (contexts, alphabets, tweaks).
+- **`FPE.Algorithm`** (`lib/fpe/algorithm.ex`) — a one-function protocol,
+  `do_encrypt_or_decrypt(t, tweak, input, encrypt?)`. Each mode implements it via a
+  `defimpl ... for: __MODULE__` inside its own file.
+- **Algorithm modules**:
+  - **`FPE.FF3_1`** (`lib/fpe/ff3_1.ex`) — FF3-1 mode. Fixed 7-byte tweak; uses
+    `IntermediateForm` for the REV/left-pad arithmetic. Public helpers: `new_ctx/2`,
+    `codec/1`, `constraints/1`.
+  - **`FPE.FF1`** (`lib/fpe/ff1.ex`) — FF1 mode (`@moduledoc false`). Variable-length
+    tweak; does **not** use `IntermediateForm`.
+- **`FPE.FFX`** (`lib/fpe/ffx.ex`) — shared FFX byte-string primitives (`num/1`,
+  `revb/1`) and the nested **`FPE.FFX.Codec` protocol**: `radix/1`, `normalize_input/2`,
   `split_numerical_string_at/3`, `numerical_string_to_int/2`,
   `int_to_padded_numerical_string/3`, `concat_numerical_strings/3`.
 - **Codec implementations** (`lib/fpe/ffx/codec/`):
-  - `Builtin` — radix 2..36 over ASCII `0-9a-z`, case-insensitive. Numerical string = binary.
+  - `Builtin` — radix 2..36 over ASCII `0-9a-z`, case-insensitive. Numerical string =
+    binary. Built via `maybe_new/1` (returns `nil` on non-match, so the facade can fall
+    through to `Custom`).
   - `Custom` — arbitrary alphabets, **one Unicode scalar per symbol**, heavily validated.
     Numerical string = NFC codepoint list. Most recent work lives here.
-  - `NoSymbols` — integers tagged with a length (`%NumString{}`), no string alphabet.
-- **`FPE.FFX.IntermediateForm`** (private) — record with radix/mask/bits-per-symbol for the arithmetic.
-- **`FPE.FF3_1.Setup` / `FPE.FF3_1.Setup.Server`** — macro + GenServer for reusable named ctx setups
-  (used by tests via `test/helper/setup_modules.ex`).
+  - `NoSymbols` — integers tagged with a length (`%NumString{}`), no string alphabet;
+    radix up to 65535.
+- **`FPE.FFX.IntermediateForm`** (private) — record with radix/mask/bits-per-symbol for
+  FF3-1's arithmetic.
+- **`FPE.FF3_1.Setup` / `FPE.FF3_1.Setup.Server`** (`lib/fpe/setup.ex`,
+  `lib/fpe/setup/server.ex`) — macro + GenServer for reusable named ctx setups
+  (used by tests via `test/helper/setup_modules.ex`). Note the file paths don't mirror
+  the module namespace.
 
 ## The Custom codec (read its moduledoc first)
 
@@ -56,21 +79,31 @@ that is validated to **stand alone as exactly one grapheme cluster**. This yield
   decrypts if it ever does. ASCII is the formally-frozen subset.
 
 Validation rejects, per codepoint: category `:other` (unassigned/control/format/surrogate/private),
-combining class ≠ 0, conjoining Hangul jamo, non-NFC forms, and anything that merges with an
-adjacent symbol. It uses **undocumented OTP internals** (`:unicode_util.lookup/1` for
-category+ccc, `:unicode_util.gc/1` for the standalone probe) to avoid an ex_unicode dependency —
-there is a pin test guarding the `lookup/1` map shape.
+combining class ≠ 0, conjoining Hangul jamo, whitespace/separators, non-NFC forms, and anything that
+merges with an adjacent symbol. It uses **undocumented OTP internals**
+(`:unicode_util.lookup/1` for category+ccc, `:unicode_util.gc/1` for the standalone probe) to avoid
+an ex_unicode dependency — there is a pin test guarding the `lookup/1` map shape.
 
 ## Conventions
 
-- **Module names** in the `FPE.FF3_1`/`FFX` namespace trip Credo's `Readability.ModuleNames`; every
-  file disables it with a leading `# credo:disable-for-this-file Credo.Check.Readability.ModuleNames`.
+- **Module names** in the `FPE.FF3_1`/`FF1`/`FFX` namespaces trip Credo's
+  `Readability.ModuleNames`; every such file disables it with a leading
+  `# credo:disable-for-this-file Credo.Check.Readability.ModuleNames` (and often
+  `Readability.VariableNames`, since the code follows the spec's `vX`/`vA` naming).
   Match that in new files.
 - **Return shapes**: `{:ok, _} | {:error, reason}` with structured reason tuples; `!` variants raise.
 - **Codec unit discipline**: each codec defines its own `numerical_string` representation.
   `normalize_input/2` is the single normalization boundary — keep length, split, and decode in the
   **same unit** (this was the source of a real round-trip bug; don't mix graphemes/codepoints/NFC).
 - Dev/test compile with `warnings_as_errors` (see `elixirc_options/1` in `mix.exs`).
+
+## Tests
+
+- `test/fpe_test.exs` — `doctest FPE` (exercises the how-to-use guide's examples).
+- `test/ff1_test.exs` — **official NIST FF1 sample vectors**, cross-checked against
+  capitalone/fpe.
+- `test/ff3_1_test.exs` — no official FF3-1 vectors exist; the `ubiq-fpe-go` vectors are
+  copied in. Also `doctest FPE.FF3_1`.
 
 ## Gotchas
 
@@ -80,5 +113,6 @@ there is a pin test guarding the `lookup/1` map shape.
 - **Large-alphabet test fixtures** (`test/data/alphabet_*.txt`) are generated, not hand-edited:
   `mix run test/data/generate_alphabet.exs <count> <output_path>`. The generator gates each
   candidate through `Custom.new/1`, so fixtures can't drift from the codec's acceptance rules.
-- **No official FF3-1 test vectors exist**; the `ubiq-go` vectors are copied into the test suite.
+- **`new!/1` and `encrypt!`/`decrypt!` raise with a TODO placeholder exception** (`raise "TODO
+  proper exception: ..."`) in `lib/fpe.ex` — proper exception types are not yet defined.
 - Git workflow here is commit-directly-to-`main` (solo library); commit only when asked.
