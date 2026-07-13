@@ -6,12 +6,11 @@ in a field that only accepts credit-card-shaped values, and other suchlike
 applications.
 
 `ExFPE` is the entry point. It wraps a concrete FPE mode behind a single API —
-`new!/2` (or `new!/3`; `new/2,3` for the `{:ok, ctx} | {:error, reason}`
-variant), `encrypt!/3`, `decrypt!/3`.
+`new!/2`, `encrypt!/3`, `decrypt!/3`, and error-returning variants.
 
 By default it uses **FF1** (`ExFPE.FF1`), the only mode approved by NIST in
-[SP 800-38Gr1 2pd](https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-38Gr1.2pd.pdf).
-The examples below all use the default. The other mode is `:ff3_1`
+[SP 800-38Gr1 2pd](https://csrc.nist.gov/pubs/sp/800/38/g/r1/2pd).
+The examples below all use the default. The other mode is FF3-1
 (`ExFPE.FF3_1`), which NIST removed — reach for it only to interoperate with
 data that was already encrypted with FF3-1.
 
@@ -98,9 +97,9 @@ iex> true = (String.length(ciphertext2) == String.length(plaintext2))
 Tweaks may be public information used to produce different ciphertexts for
 the same plaintext.
 
-**They are important in FPE modes**, since FPE (the technique) may be used
-when the number of possible strings is somewhat small. In such a scenario,
-the tweak should vary with each instance of the encryption whenever possible.
+**They are important in FPE modes**, since the number of possible strings may
+be somewhat small. In such a scenario, the tweak should vary with each instance
+of the encryption whenever possible.
 
 ```elixir
 iex> key = :crypto.strong_rand_bytes(32)
@@ -191,10 +190,10 @@ Whether you need a radix larger than 36, or use symbols other than 0-9, A-Z
 in your numerical strings (or use such symbols in a different order), custom
 alphabets are supported.
 
-Note that custom alphabets are **case sensitive** but norm insensitive.
+Note that custom alphabets are norm insensitive but **case sensitive**.
 The reasoning behind this can be found under `ExFPE.FFX.Codec.Custom`.
 
-Each symbol must be a single Unicode scalar that stands on its own as one
+Each symbol must be a single Unicode codepoint that stands on its own as one
 visual unit; alphabets are validated at construction. See
 `ExFPE.FFX.Codec.Custom` for the exact rules and the guarantees they buy.
 
@@ -239,6 +238,9 @@ iex> ^plaintext = ExFPE.decrypt!(ctx, tweak, ciphertext)
 If you wish to handle translation of integers into and from symbols yourself,
 you can use `ExFPE.FFX.Codec.NoSymbols`. Encryption and decryption functions
 will receive, and return, integer values with a length tag.
+
+Encryption and decryption will act on inputs as if the integer value was
+encoded in that radix.
 
 #### Radix 10
 
@@ -296,8 +298,8 @@ iex> ^plaintext = ExFPE.decrypt!(ctx, tweak, ciphertext)
 
 ### Choosing a mode
 
-Everything above uses the default mode, `:ff1`. To select a mode explicitly,
-pass it as the second argument to `new!/3`. The only other mode is `:ff3_1`,
+Everything above uses the default mode, FF1. To select a mode explicitly,
+pass it as the second argument to `new!/3`. The only other mode is FF3-1,
 which is **no longer NIST-approved** (see `ExFPE.FF3_1`) — reach for it only to
 interoperate with data that was already encrypted with FF3-1. It takes a
 fixed 7-byte tweak.

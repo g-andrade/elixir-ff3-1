@@ -61,14 +61,17 @@ defmodule ExFPE do
   @typedoc "An AES key: 16, 24, or 32 bytes (AES-128/192/256)."
   @type key :: FFX.key()
 
-  @typedoc "The base the numerical strings are written in, from 2 up to 65535."
+  @typedoc """
+  The base the numerical strings are written in, from 2 up to 65536
+  (or 65535 in the case of `ExFPE.FF3_1`).
+  """
   @type radix :: FFX.radix()
 
   @typedoc """
   The ordered symbols of a custom alphabet, given as a string.
 
-  Its length is the radix, and each symbol is a single Unicode scalar. See
-  `ExFPE.FFX.Codec.Custom` for the exact rules.
+  Each symbol is a single Unicode codepoint, and the amount of symbols is the
+  radix (**not** graphemes). `ExFPE.FFX.Codec.Custom` for the exact rules.
   """
   @type alphabet :: String.t()
 
