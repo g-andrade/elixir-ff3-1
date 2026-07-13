@@ -37,7 +37,7 @@ defmodule FPE.FFX.Codec.NoSymbols do
   end
 
   def new(invalid_radix) do
-    {:error, {:invalid_radix, invalid_radix}}
+    {:error, {:invalid_radix, {invalid_radix, :not_a_valid_radix}}}
   end
 
   defimpl Codec, for: __MODULE__ do

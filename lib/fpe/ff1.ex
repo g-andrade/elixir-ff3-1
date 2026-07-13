@@ -245,8 +245,8 @@ defmodule FPE.FF1 do
         {:ok, valid_length, normalized_vX} when valid_length in min_length..max_length//1 ->
           {:ok, valid_length, normalized_vX}
 
-        {:ok, _invalid_length, _} ->
-          {:error, "Invalid input not between #{min_length} and #{max_length} symbols long: #{inspect(vX)}"}
+        {:ok, invalid_length, _} ->
+          {:error, {:invalid_input, {:length_out_of_bounds, invalid_length, {min_length, max_length}}}}
 
         {:error, reason} ->
           {:error, {:invalid_input, reason}}
@@ -259,10 +259,10 @@ defmodule FPE.FF1 do
           :ok
 
         invalid_size when is_binary(invalid_size) ->
-          {:error, "Invalid tweak, too large (#{byte_size(invalid_size)} bytes long)"}
+          {:error, {:invalid_tweak, {:too_large, byte_size(invalid_size), max_length}}}
 
         not_a_binary ->
-          {:error, "Invalid tweak not a binary #{inspect(not_a_binary)}"}
+          {:error, {:invalid_tweak, {:not_a_binary, not_a_binary}}}
       end
     end
 
@@ -306,7 +306,7 @@ defmodule FPE.FF1 do
         {:ok, u, v, vA, vB, b, d, vP}
       else
         {:error, reason} ->
-          {:error, {:invalid_input, vX, reason}}
+          {:error, {:invalid_input, reason}}
       end
     end
 

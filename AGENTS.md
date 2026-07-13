@@ -125,7 +125,13 @@ an ex_unicode dependency — there is a pin test guarding the `lookup/1` map sha
   `# credo:disable-for-this-file Credo.Check.Readability.ModuleNames` (and often
   `Readability.VariableNames`, since the code follows the spec's `vX`/`vA` naming).
   Match that in new files.
-- **Return shapes**: `{:ok, _} | {:error, reason}` with structured reason tuples; `!` variants raise.
+- **Return shapes**: `{:ok, _} | {:error, reason}` with **structured reason tuples** (no bare
+  strings — normalize new errors to tagged tuples). `!` variants raise a small exception
+  hierarchy (`lib/fpe/exceptions.ex`): `FPE.ArgumentError` (construction, from `new!`),
+  `FPE.InputError` (tweak/input, from `encrypt!`/`decrypt!`), `FPE.NotStartedError` (a
+  `use FPE` module with no running context). Each carries the raw `:reason`; the private
+  `FPE.Error.humanize/1` turns any reason into the message (add a clause there for new
+  reasons — it falls back to `inspect/1`).
 - **Codec unit discipline**: each codec defines its own `numerical_string` representation.
   `normalize_input/2` is the single normalization boundary — keep length, split, and decode in the
   **same unit** (this was the source of a real round-trip bug; don't mix graphemes/codepoints/NFC).

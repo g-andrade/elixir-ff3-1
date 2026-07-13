@@ -290,19 +290,36 @@ defmodule FPE do
   @type mode :: :ff1 | :ff3_1
 
   @type key :: FPE.FFX.key()
+  @type tweak :: binary()
+  @type numerical_string :: FPE.FFX.numerical_string()
+  @type radix_or_alphabet_or_codec :: FPE.FFX.radix() | String.t() | Codec.t()
+  @type constraints :: %{min_length: pos_integer, max_length: pos_integer}
 
   ## API
 
+  @doc """
+  Like `new/3`, but returns the context directly and raises `FPE.ArgumentError`
+  on failure.
+  """
+  @spec new!(key, mode, radix_or_alphabet_or_codec) :: t
   def new!(key, mode \\ @default_mode, radix_or_alphabet_or_codec) do
     case new(key, mode, radix_or_alphabet_or_codec) do
       {:ok, fpe} ->
         fpe
 
       {:error, reason} ->
-        raise "TODO proper exception: #{inspect(reason)}"
+        raise FPE.ArgumentError, reason: reason
     end
   end
 
+  @doc """
+  Creates a context for both encryption and decryption from a `key`, an optional
+  `mode` (`:ff1` by default), and either a `radix`, an `alphabet`, or a
+  `FPE.FFX.Codec`.
+
+  Returns `{:error, reason}` if any argument is invalid.
+  """
+  @spec new(key, mode, radix_or_alphabet_or_codec) :: {:ok, t} | {:error, term}
   def new(key, mode \\ @default_mode, radix_or_alphabet_or_codec) do
     with {:ok, codec} <- init_codec(radix_or_alphabet_or_codec),
          {:ok, algorithm} <- init_algorithm(mode, key, codec) do
@@ -318,33 +335,71 @@ defmodule FPE do
     end
   end
 
+  @doc """
+  Like `encrypt/3`, but returns the ciphertext directly and raises
+  `FPE.InputError` on failure.
+  """
+  @spec encrypt!(t, tweak, numerical_string) :: numerical_string
   def encrypt!(fpe, tweak, plaintext) do
     case encrypt(fpe, tweak, plaintext) do
       {:ok, ciphertext} ->
         ciphertext
 
       {:error, reason} ->
-        raise "TODO proper exception: #{inspect(reason)}"
+        raise FPE.InputError, reason: reason
     end
   end
 
+  @doc """
+  Encrypts `plaintext` into a numerical string of the same length over the same
+  alphabet, using `tweak`.
+
+  Returns `{:error, reason}` if the tweak or input is invalid.
+  """
+  @spec encrypt(t, tweak, numerical_string) :: {:ok, numerical_string} | {:error, term}
   def encrypt(%__MODULE__{algorithm: algorithm}, tweak, plaintext) do
     Algorithm.do_encrypt_or_decrypt(algorithm, tweak, plaintext, true)
   end
 
-  def decrypt!(fpe, tweak, plaintext) do
-    case decrypt(fpe, tweak, plaintext) do
-      {:ok, ciphertext} ->
-        ciphertext
+  @doc """
+  Like `decrypt/3`, but returns the plaintext directly and raises
+  `FPE.InputError` on failure.
+  """
+  @spec decrypt!(t, tweak, numerical_string) :: numerical_string
+  def decrypt!(fpe, tweak, ciphertext) do
+    case decrypt(fpe, tweak, ciphertext) do
+      {:ok, plaintext} ->
+        plaintext
 
       {:error, reason} ->
-        raise "TODO proper exception: #{inspect(reason)}"
+        raise FPE.InputError, reason: reason
     end
   end
 
-  def decrypt(%__MODULE__{algorithm: algorithm}, tweak, plaintext) do
-    Algorithm.do_encrypt_or_decrypt(algorithm, tweak, plaintext, false)
+  @doc """
+  Decrypts `ciphertext` back into its plaintext numerical string, using `tweak`.
+
+  Returns `{:error, reason}` if the tweak or input is invalid.
+  """
+  @spec decrypt(t, tweak, numerical_string) :: {:ok, numerical_string} | {:error, term}
+  def decrypt(%__MODULE__{algorithm: algorithm}, tweak, ciphertext) do
+    Algorithm.do_encrypt_or_decrypt(algorithm, tweak, ciphertext, false)
   end
+
+  @doc """
+  Returns a `ctx`'s mode-specific length constraints (`min_length`/`max_length`).
+  """
+  @spec constraints(t) :: constraints
+  def constraints(%__MODULE__{algorithm: algorithm}) do
+    algorithm.__struct__.constraints(algorithm)
+  end
+
+  @doc """
+  Returns a `ctx`'s `FPE.FFX.Codec`, should you wish to further manipulate or
+  prepare encryption and decryption inputs or outputs.
+  """
+  @spec codec(t) :: Codec.t()
+  def codec(%__MODULE__{codec: codec}), do: codec
 
   ## Convenience: `use FPE`
 
@@ -419,25 +474,30 @@ defmodule FPE do
       end
 
       @doc "Like `FPE.encrypt/3`, retrieving `#{inspect(__MODULE__)}`'s context."
+      @spec encrypt(FPE.tweak(), FPE.numerical_string()) ::
+              {:ok, FPE.numerical_string()} | {:error, term}
       def encrypt(tweak, plaintext), do: FPE.encrypt(fpe(), tweak, plaintext)
 
       @doc "Like `FPE.encrypt!/3`, retrieving `#{inspect(__MODULE__)}`'s context."
+      @spec encrypt!(FPE.tweak(), FPE.numerical_string()) :: FPE.numerical_string()
       def encrypt!(tweak, plaintext), do: FPE.encrypt!(fpe(), tweak, plaintext)
 
       @doc "Like `FPE.decrypt/3`, retrieving `#{inspect(__MODULE__)}`'s context."
+      @spec decrypt(FPE.tweak(), FPE.numerical_string()) ::
+              {:ok, FPE.numerical_string()} | {:error, term}
       def decrypt(tweak, ciphertext), do: FPE.decrypt(fpe(), tweak, ciphertext)
 
       @doc "Like `FPE.decrypt!/3`, retrieving `#{inspect(__MODULE__)}`'s context."
+      @spec decrypt!(FPE.tweak(), FPE.numerical_string()) :: FPE.numerical_string()
       def decrypt!(tweak, ciphertext), do: FPE.decrypt!(fpe(), tweak, ciphertext)
 
-      @doc "Returns this module's mode-specific constraints."
-      def constraints do
-        algorithm = fpe().algorithm
-        algorithm.__struct__.constraints(algorithm)
-      end
+      @doc "Like `FPE.constraints/1` for `#{inspect(__MODULE__)}`'s context."
+      @spec constraints() :: FPE.constraints()
+      def constraints, do: FPE.constraints(fpe())
 
-      @doc "Returns this module's `FPE.FFX.Codec`."
-      def codec, do: fpe().codec
+      @doc "Like `FPE.codec/1` for `#{inspect(__MODULE__)}`'s context."
+      @spec codec() :: FPE.FFX.Codec.t()
+      def codec, do: FPE.codec(fpe())
 
       @doc "Returns this module's `t:FPE.t/0`."
       @spec fpe() :: FPE.t()
@@ -447,8 +507,7 @@ defmodule FPE do
             fpe
 
           {:error, {:ctx_not_found_for_module, module}} ->
-            raise "FPE context for #{inspect(module)} not found; " <>
-                    "is it started under your supervision tree?"
+            raise FPE.NotStartedError, reason: {:ctx_not_found_for_module, module}
         end
       end
     end
@@ -475,7 +534,7 @@ defmodule FPE do
         end
 
       nil when is_integer(radix_or_alphabet) ->
-        {:error, {:invalid_radix, {radix_or_alphabet, :you_need_to_provide_either_an_alphabet_or_a_codec}}}
+        {:error, {:invalid_radix, {radix_or_alphabet, :need_alphabet_or_codec}}}
     end
   end
 

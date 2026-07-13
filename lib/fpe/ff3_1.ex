@@ -257,8 +257,8 @@ defmodule FPE.FF3_1 do
         {:ok, valid_length, normalized_vX} when valid_length in min_length..max_length//1 ->
           {:ok, valid_length, normalized_vX}
 
-        {:ok, _invalid_length, _} ->
-          {:error, "Invalid input not between #{min_length} and #{max_length} symbols long: #{inspect(vX)}"}
+        {:ok, invalid_length, _} ->
+          {:error, {:invalid_input, {:length_out_of_bounds, invalid_length, {min_length, max_length}}}}
 
         {:error, reason} ->
           {:error, {:invalid_input, reason}}
@@ -271,10 +271,10 @@ defmodule FPE.FF3_1 do
           :ok
 
         invalid_size when is_bitstring(invalid_size) ->
-          {:error, "Invalid tweak not 56 bits long: #{inspect(invalid_size)}"}
+          {:error, {:invalid_tweak, {:invalid_bit_size, bit_size(invalid_size), 56}}}
 
         not_a_bitstring ->
-          {:error, "Invalid tweak not a bitstring #{inspect(not_a_bitstring)}"}
+          {:error, {:invalid_tweak, {:not_a_bitstring, not_a_bitstring}}}
       end
     end
 
@@ -305,7 +305,7 @@ defmodule FPE.FF3_1 do
         {:ok, even_m, odd_m, vA, vB, even_vW, odd_vW}
       else
         {:error, reason} ->
-          {:error, {:invalid_input, vX, reason}}
+          {:error, {:invalid_input, reason}}
       end
     end
 
