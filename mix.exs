@@ -11,7 +11,7 @@ defmodule ExFPE.MixProject do
       elixirc_paths: elixirc_paths(Mix.env()),
       elixirc_options: elixirc_options(Mix.env()),
       docs: [
-        # main: "FPE.FF3_1",
+        # main: "ExFPE.FF3_1",
         extras: [
           "CHANGELOG.md",
           "LICENSE"

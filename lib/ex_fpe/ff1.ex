@@ -4,7 +4,7 @@ defmodule ExFPE.FF1 do
   @moduledoc """
   The FF1 format-preserving encryption mode.
 
-  FF1 is the **only ExFPE mode approved by NIST** as of
+  FF1 is the **only FPE mode approved by NIST** as of
   [SP 800-38Gr1 2pd](https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-38Gr1.2pd.pdf)
   (Second Public Draft, February 2025), and this library's **default** mode.
 

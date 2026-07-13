@@ -14,7 +14,7 @@ defmodule FF3_1_Test do
   integer_otp_release = :otp_release |> :erlang.system_info() |> List.to_integer()
 
   ## I didn't find any official test vectors, so I copied the ones from ubiq-go:
-  ## * https://github.com/ubiqsecurity/ubiq-ex_fpe-go/blob/63af101126699b7438045844d0f25120e424789d/ff3_1_test.go
+  ## * https://github.com/ubiqsecurity/ubiq-fpe-go/blob/63af101126699b7438045844d0f25120e424789d/ff3_1_test.go
 
   test "ubiq-go TestFF3_1ACVP1" do
     check_test_vector(

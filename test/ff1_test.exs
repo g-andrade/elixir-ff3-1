@@ -9,7 +9,7 @@ defmodule FF1_Test do
   ## Values" published for SP 800-38G:
   ## https://csrc.nist.gov/CSRC/media/Projects/Cryptographic-Standards-and-Guidelines/documents/examples/FF1samples.pdf
   ##
-  ## Cross-checked against capitalone/ex_fpe's ff1_test.go. The radix-36 vectors use
+  ## Cross-checked against capitalone/fpe's ff1_test.go. The radix-36 vectors use
   ## a lowercase plaintext/ciphertext in the source; here they are upcased because
   ## the Builtin base-36 codec is case-insensitive on input and canonicalizes its
   ## output to uppercase.

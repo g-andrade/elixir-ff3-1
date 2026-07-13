@@ -4,7 +4,7 @@ Guidance for AI agents working in this repo. Keep it current when structure or c
 
 ## Overview
 
-`ex_fpe` is an Elixir library for **format-preserving encryption (ExFPE)**. It encrypts a
+`ex_fpe` is an Elixir library for **format-preserving encryption (FPE)**. It encrypts a
 numerical string into another string of the **same length over the same alphabet**.
 It implements two FFX modes:
 
@@ -142,9 +142,9 @@ an ex_unicode dependency — there is a pin test guarding the `lookup/1` map sha
 - `test/fpe_test.exs` — `doctest ExFPE` (exercises the how-to-use guide's examples, which
   run under the default FF1 mode).
 - `test/ff1_test.exs` — **official NIST FF1 sample vectors**, cross-checked against
-  capitalone/ex_fpe, plus 2pd-conformance tests (min-domain rejection, radix ≤ 2^16) and
+  capitalone/fpe, plus 2pd-conformance tests (min-domain rejection, radix ≤ 2^16) and
   `doctest ExFPE.FF1`.
-- `test/ff3_1_test.exs` — no official FF3-1 vectors exist; the `ubiq-ex_fpe-go` vectors are
+- `test/ff3_1_test.exs` — no official FF3-1 vectors exist; the `ubiq-fpe-go` vectors are
   copied in. Also `doctest ExFPE.FF3_1`.
 
 The FF1 NIST vectors and the ExFPE guide's short-input examples all clear the strengthened

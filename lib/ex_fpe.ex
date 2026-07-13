@@ -1,13 +1,13 @@
 defmodule ExFPE do
   @moduledoc """
-  Format-preserving encryption (ExFPE) for Elixir.
+  Format-preserving encryption (FPE) for Elixir.
 
   ExFPE encrypts a numerical string into another of the **same length over the
   same alphabet**, which is useful to e.g. store an encrypted credit card
   number in a field that only accepts credit-card-shaped values, and other
   suchlike applications.
 
-  `ExFPE` is the entry point. It wraps a concrete ExFPE mode behind a single API —
+  `ExFPE` is the entry point. It wraps a concrete FPE mode behind a single API —
   `new/2` (or `new/3`), `encrypt!/3`, `decrypt!/3`.
 
   By default it uses **FF1** (`ExFPE.FF1`), the only mode approved by NIST in
@@ -81,7 +81,7 @@ defmodule ExFPE do
   Tweaks may be public information used to produce different ciphertexts for
   the same plaintext.
 
-  **They are important in ExFPE modes**, since ExFPE (the technique) may be used
+  **They are important in FPE modes**, since FPE (the technique) may be used
   when the number of possible strings is somewhat small. In such a scenario,
   the tweak should vary with each instance of the encryption whenever possible.
 
@@ -286,7 +286,7 @@ defmodule ExFPE do
 
   @type t :: %__MODULE__{algorithm: Algorithm.t(), codec: Codec.t()}
 
-  @typedoc "A supported ExFPE mode."
+  @typedoc "A supported FPE mode."
   @type mode :: :ff1 | :ff3_1
 
   @type key :: ExFPE.FFX.key()

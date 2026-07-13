@@ -11,7 +11,7 @@ defmodule ExFPE.FF3_1 do
   > (Second Public Draft, February 2025): Beyne's linear cryptanalysis
   > ([CRYPTO 2021](https://doi.org/10.1007/978-3-030-84242-0_3)) found a weakness
   > in the tweak schedule that affects both FF3 and FF3-1 but **not** FF1. FF1 is
-  > now the only approved ExFPE mode.
+  > now the only approved FPE mode.
   >
   > FF3-1 is retained here for interoperability with existing data, but new
   > applications should prefer `ExFPE.FF1` (the `:ff1` mode, which is the default).
@@ -28,7 +28,7 @@ defmodule ExFPE.FF3_1 do
 
   No official test vectors for FF3-1 exist as of the time of writing;
   many of the ones used in this library's test suite were copied almost verbatim
-  from [ubiq-ex_fpe-go](https://gitlab.com/ubiqsecurity/ubiq-ex_fpe-go), an implementation
+  from [ubiq-fpe-go](https://gitlab.com/ubiqsecurity/ubiq-fpe-go), an implementation
   of the FF1 and FF3-1 algorithms in Go.
 
   ## Length constraints
@@ -59,7 +59,7 @@ defmodule ExFPE.FF3_1 do
   ## Tweak
 
   FF3-1 uses a fixed **7-byte (56-bit)** tweak. See `ExFPE` for the general role
-  of tweaks in ExFPE, and Appendix C (page 20) of
+  of tweaks in FPE, and Appendix C (page 20) of
   [the reference
   document](https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-38Gr1-draft.pdf)
   for the specifics.
