@@ -1,11 +1,48 @@
 # credo:disable-for-this-file Credo.Check.Readability.ModuleNames
 # credo:disable-for-this-file Credo.Check.Readability.VariableNames
 defmodule FPE.FF1 do
-  @moduledoc false
+  @moduledoc """
+  The FF1 format-preserving encryption mode.
 
-  # Reference: NIST SP 800-38Gr1 2pd (Second Public Draft, February 2025), which
-  # specifies FF1 as the only approved FPE mode:
-  # https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-38Gr1.2pd.pdf
+  FF1 is the **only FPE mode approved by NIST** as of
+  [SP 800-38Gr1 2pd](https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-38Gr1.2pd.pdf)
+  (Second Public Draft, February 2025), and this library's **default** mode.
+
+  Use it through the `FPE` facade: since FF1 is the default, `FPE.new(key,
+  radix_or_alphabet)` already selects it (no mode argument needed); then
+  `FPE.encrypt!/3` / `FPE.decrypt!/3`. See `FPE` for the full how-to-use guide
+  (contexts, alphabets, tweaks). This module documents what is specific to FF1:
+  its **variable-length tweak** and its **length constraints**.
+
+  ## Length constraints
+
+  Numerical strings under FF1 are subject to minimum and maximum lengths that
+  depend on the radix.
+
+      iex> key = :crypto.strong_rand_bytes(32)
+      iex> {:ok, ctx} = FPE.new(key, _radix = 10)
+      iex> %{min_length: 6, max_length: 4_294_967_295} = FPE.FF1.constraints(ctx.algorithm)
+
+      iex> key = :crypto.strong_rand_bytes(32)
+      iex> {:ok, ctx} = FPE.new(key, _radix = 16)
+      iex> %{min_length: 5, max_length: 4_294_967_295} = FPE.FF1.constraints(ctx.algorithm)
+
+  `min_length` exists because, for a given radix, short numerical strings
+  encompass too few possible values, rendering encryption ineffective under
+  adversarial conditions. The 2pd requires the domain `radix ** min_length` to
+  be at least **1 000 000** (strengthened from 100 in the first version, to
+  mitigate FF1's small-domain vulnerabilities).
+
+  ## Tweak
+
+  FF1 accepts a **variable-length** tweak: any byte string, from the empty
+  string up to the maximum tweak length. See `FPE` for the general role of
+  tweaks, and the reference document below for the specifics.
+
+  This implementation conforms, as best as possible, to
+  [SP 800-38Gr1 2pd](https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-38Gr1.2pd.pdf)
+  as published by NIST in their Cryptographic Standards.
+  """
 
   import Bitwise
 
@@ -74,6 +111,21 @@ defmodule FPE.FF1 do
       {:error, _} = error ->
         error
     end
+  end
+
+  @doc """
+  Returns a `ctx`'s `FPE.FFX.Codec`, should you wish to further manipulate or
+  prepare encryption and decryption inputs or outputs.
+  """
+  @spec codec(ctx) :: codec
+  def codec(%__MODULE__{codec: codec}), do: codec
+
+  @doc """
+  Returns a `ctx`'s [constraints](#module-length-constraints).
+  """
+  @spec constraints(ctx) :: constraints()
+  def constraints(%__MODULE__{min_length: min_length, max_length: max_length}) do
+    %{min_length: min_length, max_length: max_length}
   end
 
   ## Internal

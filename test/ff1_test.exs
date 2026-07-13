@@ -3,6 +3,8 @@
 defmodule FF1_Test do
   use ExUnit.Case, async: true
 
+  doctest FPE.FF1
+
   ## Official NIST FF1 sample vectors, from the "Examples with Intermediate
   ## Values" published for SP 800-38G:
   ## https://csrc.nist.gov/CSRC/media/Projects/Cryptographic-Standards-and-Guidelines/documents/examples/FF1samples.pdf

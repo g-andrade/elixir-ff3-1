@@ -8,10 +8,16 @@ Guidance for AI agents working in this repo. Keep it current when structure or c
 numerical string into another string of the **same length over the same alphabet**.
 It implements two FFX modes:
 
-- **FF3-1** ([NIST SP 800-38G Rev. 1 draft](https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-38Gr1-draft.pdf)) — fixed **7-byte** tweak.
-- **FF1** ([NIST SP 800-38G](https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-38G.pdf)) — variable-length tweak.
+- **FF1** ([SP 800-38Gr1 2pd](https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-38Gr1.2pd.pdf)) —
+  variable-length tweak. The **default** mode and the **only one NIST still approves**.
+- **FF3-1** ([SP 800-38G Rev. 1 first draft](https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-38Gr1-draft.pdf)) —
+  fixed **7-byte** tweak. **NIST removed the whole FF3 family in the 2pd** (Beyne's
+  tweak-schedule weakness); kept here for interop, documented as non-approved.
 
-Both sit behind the single `FPE` facade; `FPE.FF1` is the default algorithm.
+Both sit behind the single `FPE` facade. `FPE.new/3` takes an atom **mode** (`:ff1` |
+`:ff3_1`); `:ff1` is the default, so `FPE.new(key, radix)` (arity 2) uses FF1. The
+moduledoc guide and examples all lead with the default and only name a mode to opt into
+the deprecated FF3-1.
 
 - Min Elixir `~> 1.14`; developed on Elixir 1.20 / OTP 28. CI matrix runs 1.14–1.20.
 - Runtime deps: none beyond `:crypto` (stdlib). Dev/test tooling only (see below).
@@ -46,11 +52,15 @@ Facade → algorithm → per-alphabet codec:
   `do_encrypt_or_decrypt(t, tweak, input, encrypt?)`. Each mode implements it via a
   `defimpl ... for: __MODULE__` inside its own file.
 - **Algorithm modules**:
-  - **`FPE.FF3_1`** (`lib/fpe/ff3_1.ex`) — FF3-1 mode. Fixed 7-byte tweak; uses
-    `IntermediateForm` for the REV/left-pad arithmetic. Public helpers: `new_ctx/2`,
-    `codec/1`, `constraints/1`.
-  - **`FPE.FF1`** (`lib/fpe/ff1.ex`) — FF1 mode (`@moduledoc false`). Variable-length
-    tweak; does **not** use `IntermediateForm`.
+  - **`FPE.FF1`** (`lib/fpe/ff1.ex`) — FF1 mode (the default; documented moduledoc).
+    Variable-length tweak; does **not** use `IntermediateForm`. Public helpers:
+    `new_ctx/2`, `codec/1`, `constraints/1`. Conforms to the 2pd: `radix ∈ [2..2^16]`,
+    `radix^minlen ≥ 1_000_000`, `maxlen < 2^32`, and **integer-only arithmetic** (the
+    2pd forbids floating point — `b`, `d`, minlen, and the ⌈d/16⌉ block count are all
+    computed with integers).
+  - **`FPE.FF3_1`** (`lib/fpe/ff3_1.ex`) — FF3-1 mode (non-approved; `.warning` in its
+    moduledoc). Fixed 7-byte tweak; uses `IntermediateForm` for the REV/left-pad
+    arithmetic. Public helpers: `new_ctx/2`, `codec/1`, `constraints/1`.
 - **`FPE.FFX`** (`lib/fpe/ffx.ex`) — shared FFX byte-string primitives (`num/1`,
   `revb/1`) and the nested **`FPE.FFX.Codec` protocol**: `radix/1`, `normalize_input/2`,
   `split_numerical_string_at/3`, `numerical_string_to_int/2`,
@@ -123,11 +133,17 @@ an ex_unicode dependency — there is a pin test guarding the `lookup/1` map sha
 
 ## Tests
 
-- `test/fpe_test.exs` — `doctest FPE` (exercises the how-to-use guide's examples).
+- `test/fpe_test.exs` — `doctest FPE` (exercises the how-to-use guide's examples, which
+  run under the default FF1 mode).
 - `test/ff1_test.exs` — **official NIST FF1 sample vectors**, cross-checked against
-  capitalone/fpe.
+  capitalone/fpe, plus 2pd-conformance tests (min-domain rejection, radix ≤ 2^16) and
+  `doctest FPE.FF1`.
 - `test/ff3_1_test.exs` — no official FF3-1 vectors exist; the `ubiq-fpe-go` vectors are
   copied in. Also `doctest FPE.FF3_1`.
+
+The FF1 NIST vectors and the FPE guide's short-input examples all clear the strengthened
+`minlen` (FF1's `minlen` equals FF3-1's — both require `radix^minlen ≥ 1_000_000`). Keep
+that in mind before shortening any doctest input.
 
 ## Gotchas
 

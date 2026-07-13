@@ -7,30 +7,33 @@ defmodule FPE do
   number in a field that only accepts credit-card-shaped values, and other
   suchlike applications.
 
-  `FPE` is the entry point. It wraps a concrete algorithm behind a single API —
-  `new/3`, `encrypt!/3`, `decrypt!/3` — dispatching to the algorithm you choose:
+  `FPE` is the entry point. It wraps a concrete FPE mode behind a single API —
+  `new/2` (or `new/3`), `encrypt!/3`, `decrypt!/3`.
 
-  * `FPE.FF3_1` — the FF3-1 mode (fixed **7-byte** tweak).
-  * `FPE.FF1` — the FF1 mode (variable-length tweak).
+  By default it uses **FF1** (`FPE.FF1`), the only mode approved by NIST in
+  [SP 800-38Gr1 2pd](https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-38Gr1.2pd.pdf).
+  The examples below all use the default. To pick a mode explicitly, pass it as
+  the **second argument** to `new/3`:
 
-  The examples below use FF3-1. Pass `FPE.FF1` instead to use FF1, or omit the
-  module to use the default (`FPE.FF1`).
+  * `:ff1` — the FF1 mode (default; variable-length tweak).
+  * `:ff3_1` — the FF3-1 mode (fixed **7-byte** tweak). ⚠️ NIST removed FF3-1;
+    use it only for interop with existing data. See `FPE.FF3_1`.
 
-  > #### Algorithm-specific rules {: .info}
+  > #### Mode-specific rules {: .info}
   >
   > The **tweak size** and the **length constraints** on inputs depend on the
-  > algorithm. FF3-1 uses a 7-byte (56-bit) tweak; see `FPE.FF3_1` for its
-  > length constraints. FF1 supports variable-length tweaks; see `FPE.FF1`.
+  > mode. FF1 accepts a variable-length tweak (it may even be empty); see
+  > `FPE.FF1`. FF3-1 uses a fixed 7-byte (56-bit) tweak; see `FPE.FF3_1`.
 
   # How to use
 
   ## Context
 
-  We start by creating a context with `new/3`, passing it a cryptographic key,
-  the algorithm module, and a radix.
+  We start by creating a context with `new/2`, passing it a cryptographic key
+  and a radix. With no mode given, the default (FF1) is used.
 
       iex> key = :crypto.strong_rand_bytes(32)
-      iex> {:ok, _ctx} = FPE.new(key, :ff3_1, _radix = 10)
+      iex> {:ok, _ctx} = FPE.new(key, _radix = 10)
 
   Keys can be:
   * 32 bytes long for AES-256
@@ -47,10 +50,11 @@ defmodule FPE do
   to get the `plaintext` back.
 
   A `tweak` is required, which we'll handwave for now. Its size depends on the
-  algorithm (7 bytes for FF3-1).
+  mode: FF1 (the default) accepts a variable-length byte string, so the 7-byte
+  tweak below is just one valid choice.
 
       iex> key = :crypto.strong_rand_bytes(32)
-      iex> {:ok, ctx} = FPE.new(key, :ff3_1, _radix = 10)
+      iex> {:ok, ctx} = FPE.new(key, _radix = 10)
       iex> tweak = <<0::56>>
       iex> plaintext = "34436524"
       iex> ciphertext = FPE.encrypt!(ctx, tweak, plaintext)
@@ -62,7 +66,7 @@ defmodule FPE do
   of equal length to their respective plaintexts, and vice-versa.
 
       iex> key = :crypto.strong_rand_bytes(32)
-      iex> {:ok, ctx} = FPE.new(key, :ff3_1, _radix = 10)
+      iex> {:ok, ctx} = FPE.new(key, _radix = 10)
       iex> tweak = <<0::56>>
       iex> plaintext1 =   "34436524"
       iex> plaintext2 = "0034436524"
@@ -82,7 +86,7 @@ defmodule FPE do
   the tweak should vary with each instance of the encryption whenever possible.
 
       iex> key = :crypto.strong_rand_bytes(32)
-      iex> {:ok, ctx} = FPE.new(key, :ff3_1, _radix = 10)
+      iex> {:ok, ctx} = FPE.new(key, _radix = 10)
       iex> plaintext= "135522432"
       iex> tweak1 = <<"dev.env">>
       iex> tweak2 = <<"prodenv">>
@@ -100,7 +104,7 @@ defmodule FPE do
   #### Base 8
 
       iex> key = :crypto.strong_rand_bytes(32)
-      iex> {:ok, ctx} = FPE.new(key, :ff3_1, _radix = 8)
+      iex> {:ok, ctx} = FPE.new(key, _radix = 8)
       iex> tweak = <<0::56>>
       iex> plaintext = "34436524"
       iex> ciphertext = FPE.encrypt!(ctx, tweak, plaintext)
@@ -109,7 +113,7 @@ defmodule FPE do
   #### Base 16
 
       iex> key = :crypto.strong_rand_bytes(32)
-      iex> {:ok, ctx} = FPE.new(key, :ff3_1, _radix = 16)
+      iex> {:ok, ctx} = FPE.new(key, _radix = 16)
       iex> tweak = <<0::56>>
       iex> plaintext = "AFD093902C"
       iex> ciphertext = FPE.encrypt!(ctx, tweak, plaintext)
@@ -118,7 +122,7 @@ defmodule FPE do
   #### Base 36
 
       iex> key = :crypto.strong_rand_bytes(32)
-      iex> {:ok, ctx} = FPE.new(key, :ff3_1, _radix = 36)
+      iex> {:ok, ctx} = FPE.new(key, _radix = 36)
       iex> tweak = <<0::56>>
       iex> plaintext = "ZZZAFD093902CBZDE"
       iex> ciphertext = FPE.encrypt!(ctx, tweak, plaintext)
@@ -131,7 +135,7 @@ defmodule FPE do
 
       iex> key = :crypto.strong_rand_bytes(32)
       iex> radix = 16
-      iex> {:ok, ctx} = FPE.new(key, :ff3_1, radix)
+      iex> {:ok, ctx} = FPE.new(key, radix)
       iex> tweak = <<0::56>>
       iex> input = "aBcDDFF01234eeEee"
       iex> _ciphertext = FPE.encrypt!(ctx, tweak, input)
@@ -144,7 +148,7 @@ defmodule FPE do
 
       iex> key = :crypto.strong_rand_bytes(32)
       iex> alphabet = "0123456789abcdef" # radix 16
-      iex> {:ok, ctx} = FPE.new(key, :ff3_1, alphabet)
+      iex> {:ok, ctx} = FPE.new(key, alphabet)
       iex> tweak = <<0::56>>
       iex> input = "aBcDDFF01234eeEee"
       iex> ciphertext = FPE.encrypt!(ctx, tweak, input)
@@ -169,7 +173,7 @@ defmodule FPE do
 
       iex> key = :crypto.strong_rand_bytes(32)
       iex> alphabet = "abcdefghij0123456789"
-      iex> {:ok, ctx} = FPE.new(key, :ff3_1, alphabet)
+      iex> {:ok, ctx} = FPE.new(key, alphabet)
       iex> tweak = <<0::56>>
       iex> plaintext = "34534abcd32235"
       iex> ciphertext = FPE.encrypt!(ctx, tweak, plaintext)
@@ -179,7 +183,7 @@ defmodule FPE do
 
       iex> key = :crypto.strong_rand_bytes(32)
       iex> alphabet = "0123456789abcdefghijklmnopqrstuvwxyz@#/*"
-      iex> {:ok, ctx} = FPE.new(key, :ff3_1, alphabet)
+      iex> {:ok, ctx} = FPE.new(key, alphabet)
       iex> tweak = <<0::56>>
       iex> plaintext = "34534ab@@@@@/cd32235"
       iex> ciphertext = FPE.encrypt!(ctx, tweak, plaintext)
@@ -189,7 +193,7 @@ defmodule FPE do
 
       iex> key = :crypto.strong_rand_bytes(32)
       iex> alphabet = "🌕🌖🌗🌘🌑🌒🌓🌔"
-      iex> {:ok, ctx} = FPE.new(key, :ff3_1, alphabet)
+      iex> {:ok, ctx} = FPE.new(key, alphabet)
       iex> tweak = <<0::56>>
       iex> plaintext = "🌖🌕🌘🌑🌓🌗🌔🌒🌒🌒🌒"
       iex> ciphertext = FPE.encrypt!(ctx, tweak, plaintext)
@@ -207,7 +211,7 @@ defmodule FPE do
       iex> key = :crypto.strong_rand_bytes(32)
       iex> radix = 10
       iex> {:ok, codec} = NoSymbols.new(radix)
-      iex> {:ok, ctx} = FPE.new(key, :ff3_1, codec)
+      iex> {:ok, ctx} = FPE.new(key, codec)
       iex> tweak = <<0::56>>
       iex> input = 1234567
       iex> input_length = 10
@@ -223,7 +227,7 @@ defmodule FPE do
       iex> key = :crypto.strong_rand_bytes(32)
       iex> radix = 500
       iex> {:ok, codec} = NoSymbols.new(radix)
-      iex> {:ok, ctx} = FPE.new(key, :ff3_1, codec)
+      iex> {:ok, ctx} = FPE.new(key, codec)
       iex> tweak = <<0::56>>
       iex> input = 1234567
       iex> input_length = 10
@@ -239,7 +243,7 @@ defmodule FPE do
       iex> key = :crypto.strong_rand_bytes(32)
       iex> radix = 65535
       iex> {:ok, codec} = NoSymbols.new(radix)
-      iex> {:ok, ctx} = FPE.new(key, :ff3_1, codec)
+      iex> {:ok, ctx} = FPE.new(key, codec)
       iex> tweak = <<0::56>>
       iex> input = 1234567
       iex> input_length = 10
@@ -247,6 +251,21 @@ defmodule FPE do
       iex> plaintext = %NoSymbols.NumString{value: input, length: input_length}
       iex> ciphertext = FPE.encrypt!(ctx, tweak, plaintext)
       iex> %NoSymbols.NumString{length: ^input_length} = ciphertext
+      iex> ^plaintext = FPE.decrypt!(ctx, tweak, ciphertext)
+
+  ## Choosing a mode
+
+  Everything above uses the default mode, FF1. To select a mode explicitly,
+  pass it as the second argument to `new/3`. The only other mode is `:ff3_1`,
+  which is **no longer NIST-approved** (see `FPE.FF3_1`) — reach for it only to
+  interoperate with data that was already encrypted with FF3-1. It takes a
+  fixed 7-byte tweak.
+
+      iex> key = :crypto.strong_rand_bytes(32)
+      iex> {:ok, ctx} = FPE.new(key, :ff3_1, _radix = 10)
+      iex> tweak = <<0::56>>
+      iex> plaintext = "34436524"
+      iex> ciphertext = FPE.encrypt!(ctx, tweak, plaintext)
       iex> ^plaintext = FPE.decrypt!(ctx, tweak, ciphertext)
 
   """
