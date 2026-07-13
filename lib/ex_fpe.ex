@@ -273,6 +273,7 @@ defmodule ExFPE do
   alias ExFPE.Algorithm
   alias ExFPE.FF1
   alias ExFPE.FF3_1
+  alias ExFPE.FFX
   alias ExFPE.FFX.Codec
 
   ## Constants
@@ -289,10 +290,14 @@ defmodule ExFPE do
   @typedoc "A supported FPE mode."
   @type mode :: :ff1 | :ff3_1
 
-  @type key :: ExFPE.FFX.key()
+  @type key :: FFX.key()
+  @type radix :: FFX.radix()
+  @type alphabet :: String.t()
+  @type codec :: Codec.t()
+
   @type tweak :: binary()
-  @type numerical_string :: ExFPE.FFX.numerical_string()
-  @type radix_or_alphabet_or_codec :: ExFPE.FFX.radix() | String.t() | Codec.t()
+  @type numerical_string :: FFX.numerical_string()
+
   @type constraints :: %{min_length: pos_integer, max_length: pos_integer}
 
   ## API
@@ -301,7 +306,7 @@ defmodule ExFPE do
   Like `new/3`, but returns the context directly and raises `ExFPE.ArgumentError`
   on failure.
   """
-  @spec new!(key, mode, radix_or_alphabet_or_codec) :: t
+  @spec new!(key, mode, radix | alphabet | codec) :: t
   def new!(key, mode \\ @default_mode, radix_or_alphabet_or_codec) do
     case new(key, mode, radix_or_alphabet_or_codec) do
       {:ok, ex_fpe} ->
@@ -319,7 +324,7 @@ defmodule ExFPE do
 
   Returns `{:error, reason}` if any argument is invalid.
   """
-  @spec new(key, mode, radix_or_alphabet_or_codec) :: {:ok, t} | {:error, term}
+  @spec new(key, mode, radix | alphabet | codec) :: {:ok, t} | {:error, term}
   def new(key, mode \\ @default_mode, radix_or_alphabet_or_codec) do
     with {:ok, codec} <- init_codec(radix_or_alphabet_or_codec),
          {:ok, algorithm} <- init_algorithm(mode, key, codec) do
@@ -454,7 +459,8 @@ defmodule ExFPE do
 
       Call this from your `c:ExFPE.child_spec/0` implementation.
       """
-      @spec child_spec(ExFPE.key(), ExFPE.mode(), term()) :: Supervisor.child_spec()
+      @spec child_spec(ExFPE.key(), ExFPE.mode(), radix | alphabet | codec) :: Supervisor.child_spec()
+      when radix: ExFPE.radix(), alphabet: ExFPE.alphabet(), codec: ExFPE.codec()
       def child_spec(key, mode \\ unquote(@default_mode), radix_or_alphabet_or_codec) do
         ExFPE.Agent.child_spec(
           __MODULE__,
@@ -465,7 +471,8 @@ defmodule ExFPE do
       @doc """
       Starts the process holding `#{inspect(__MODULE__)}`'s context.
       """
-      @spec start_link(ExFPE.key(), ExFPE.mode(), term()) :: {:ok, pid} | {:error, term}
+      @spec start_link(ExFPE.key(), ExFPE.mode(), radix | alphabet | codec) :: {:ok, pid} | {:error, term}
+      when radix: ExFPE.radix(), alphabet: ExFPE.alphabet(), codec: ExFPE.codec()
       def start_link(key, mode, radix_or_alphabet_or_codec) do
         ExFPE.Agent.start_link(
           __MODULE__,
@@ -496,7 +503,7 @@ defmodule ExFPE do
       def constraints, do: ExFPE.constraints(ex_fpe())
 
       @doc "Like `ExFPE.codec/1` for `#{inspect(__MODULE__)}`'s context."
-      @spec codec() :: ExFPE.FFX.Codec.t()
+      @spec codec() :: FFX.Codec.t()
       def codec, do: ExFPE.codec(ex_fpe())
 
       @doc "Returns this module's `t:ExFPE.t/0`."
