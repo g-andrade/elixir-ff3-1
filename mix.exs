@@ -27,9 +27,7 @@ defmodule ExFPE.MixProject do
       ],
       test_coverage: [
         summary: [
-          # Threshold adjusted over time as :cover doesn't account for macros
-          # (e.g. defstruct)
-          threshold: 85.71
+          threshold: 95
         ]
       ]
     ]
