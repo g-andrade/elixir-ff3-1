@@ -71,6 +71,10 @@ defmodule ExFPE.ExceptionsTest do
     test "alphabet has a symbol that merges with its neighbour" do
       assert_raise ExFPE.ArgumentError, ~r/merges with an adjacent symbol/, fn -> ExFPE.new!(@key, <<0x1F3FB::utf8>>) end
     end
+
+    test "bad base conf" do
+      assert_raise ExFPE.ArgumentError, ~r/neither a radix nor an alphabet/, fn -> ExFPE.new!(@key, make_ref()) end
+    end
   end
 
   describe "encrypt!/decrypt! raise ExFPE.InputError" do

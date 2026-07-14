@@ -443,7 +443,7 @@ defmodule ExFPE do
     {:ok, {:radix, radix}}
   end
 
-  defp base_conf(radix_or_alphabet) when is_integer(radix_or_alphabet) or is_binary(radix_or_alphabet) do
+  defp base_conf(radix_or_alphabet) do
     case Codec.Builtin.maybe_new(radix_or_alphabet) do
       {:ok, codec} ->
         {:ok, {:codec, codec}}
@@ -462,6 +462,9 @@ defmodule ExFPE do
       nil when is_integer(radix_or_alphabet) ->
         radix = radix_or_alphabet
         {:error, {:bad_radix, {radix, :need_alphabet_or_raw_only}}}
+
+      nil ->
+        {:error, {:neither_a_radix_nor_an_alphabet, radix_or_alphabet}}
     end
   end
 

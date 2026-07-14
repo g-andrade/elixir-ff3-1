@@ -59,6 +59,8 @@ defmodule ExFPE.Error do
 
   def humanize(:merges_with_adjacent_symbols), do: "merges with an adjacent symbol into one grapheme"
 
+  def humanize({:neither_a_radix_nor_an_alphabet, term}), do: "neither a radix nor an alphabet: #{inspect(term)}"
+
   ## Tweak
 
   def humanize({:invalid_tweak, {:too_large, size, max}}), do: "tweak is too large: #{size} bytes (maximum #{max})"
