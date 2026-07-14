@@ -315,7 +315,7 @@ defmodule ExFPE.FF1 do
 
       # v. If i is even, let m = u; else, let m = v
       m =
-        if rem(i, 2) === 0 do
+        if (i &&& 1) === 0 do
           u
         else
           v
