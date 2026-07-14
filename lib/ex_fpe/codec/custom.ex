@@ -1,8 +1,8 @@
 # credo:disable-for-this-file Credo.Check.Readability.ModuleNames
 defmodule ExFPE.Codec.Custom do
   @moduledoc """
-  An implementation of `ExFPE.Codec` that handles alphabets other than the
-  ones supported by `ExFPE.Codec.Builtin`.
+  Handles custom alphabets — those other than the ones supported by
+  `ExFPE.Codec.Builtin`.
 
   Each symbol is a single Unicode scalar (codepoint) that is guaranteed to
   stand on its own as one visual unit — a [grapheme
@@ -55,8 +55,8 @@ defmodule ExFPE.Codec.Custom do
   casings of others?
 
   If you wish to handle case agnostically, you'll need to pick what best fits
-  your use case, and either pass your own `ExFPE.Codec`, or handle it before
-  invoking `ExFPE` encryption and decryption functions.
+  your use case and normalize inputs yourself before invoking `ExFPE`
+  encryption and decryption functions.
 
   ## Why alphabets must be in NFC, but not inputs
 

@@ -1,9 +1,8 @@
 # credo:disable-for-this-file Credo.Check.Readability.ModuleNames
 defmodule ExFPE.Codec.Builtin do
   @moduledoc """
-  An implementation of `ExFPE.Codec` that handles alphabets made up of digits
-  0 to 9 and letters a to z, in that order, with all letters of equal casing,
-  encompassing radixes from 2 and up to 36.
+  Handles alphabets made up of digits 0 to 9 and letters a to z, in that order,
+  with all letters of equal casing, encompassing radixes from 2 and up to 36.
 
   In other words: whatever `String.to_integer/2` can handle (or
   `String.to_integer/2` + `String.downcase/1`), this module will be a wrapper
