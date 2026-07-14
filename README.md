@@ -264,9 +264,9 @@ iex> tweak = <<0::56>>
 iex> input = 1234567
 iex> input_length = 10
 iex>
-iex> plaintext = %NoSymbols.NumString{value: input, length: input_length}
+iex> plaintext = %NoSymbols.Numeral{value: input, length: input_length}
 iex> ciphertext = ExFPE.encrypt!(ctx, tweak, plaintext)
-iex> %NoSymbols.NumString{length: ^input_length} = ciphertext
+iex> %NoSymbols.Numeral{length: ^input_length} = ciphertext
 iex> ^plaintext = ExFPE.decrypt!(ctx, tweak, ciphertext)
 ```
 
@@ -282,9 +282,9 @@ iex> tweak = <<0::56>>
 iex> input = 1234567
 iex> input_length = 10
 iex>
-iex> plaintext = %NoSymbols.NumString{value: input, length: input_length}
+iex> plaintext = %NoSymbols.Numeral{value: input, length: input_length}
 iex> ciphertext = ExFPE.encrypt!(ctx, tweak, plaintext)
-iex> %NoSymbols.NumString{length: ^input_length} = ciphertext
+iex> %NoSymbols.Numeral{length: ^input_length} = ciphertext
 iex> ^plaintext = ExFPE.decrypt!(ctx, tweak, ciphertext)
 ```
 
@@ -300,9 +300,9 @@ iex> tweak = <<0::56>>
 iex> input = 1234567
 iex> input_length = 10
 iex>
-iex> plaintext = %NoSymbols.NumString{value: input, length: input_length}
+iex> plaintext = %NoSymbols.Numeral{value: input, length: input_length}
 iex> ciphertext = ExFPE.encrypt!(ctx, tweak, plaintext)
-iex> %NoSymbols.NumString{length: ^input_length} = ciphertext
+iex> %NoSymbols.Numeral{length: ^input_length} = ciphertext
 iex> ^plaintext = ExFPE.decrypt!(ctx, tweak, ciphertext)
 ```
 

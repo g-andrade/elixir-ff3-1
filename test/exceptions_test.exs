@@ -129,13 +129,13 @@ defmodule ExFPE.ExceptionsTest do
 
     test "NoSymbols value is negative" do
       ctx = ExFPE.new!(@key, :ff1, NoSymbols.new!(10))
-      input = %NoSymbols.NumString{value: -1, length: 10}
+      input = %NoSymbols.Numeral{value: -1, length: 10}
       assert_raise ExFPE.InputError, ~r/value must be non-negative/, fn -> ExFPE.encrypt!(ctx, "", input) end
     end
 
     test "NoSymbols value does not fit its declared length" do
       ctx = ExFPE.new!(@key, :ff1, NoSymbols.new!(10))
-      input = %NoSymbols.NumString{value: 9_999_999, length: 6}
+      input = %NoSymbols.Numeral{value: 9_999_999, length: 6}
       assert_raise ExFPE.InputError, ~r/does not fit in its declared length/, fn -> ExFPE.encrypt!(ctx, "", input) end
     end
   end

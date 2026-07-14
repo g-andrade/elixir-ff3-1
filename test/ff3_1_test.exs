@@ -1376,7 +1376,7 @@ defmodule FF3_1_Test do
             input_low = :rand.uniform(input_high) - 1
             input = input_high + input_low
 
-            input_num_string = %NoSymbols.NumString{value: input, length: input_length}
+            input_num_string = %NoSymbols.Numeral{value: input, length: input_length}
             ciphertext = ExFPE.encrypt!(ctx, tweak, input_num_string)
             assert ciphertext.length == input_num_string.length
 

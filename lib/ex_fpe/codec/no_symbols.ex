@@ -16,22 +16,22 @@ defmodule ExFPE.Codec.NoSymbols do
   codec accepts any radix `>= 2`; the usable ceiling is set by the FFX mode, not
   by this codec (FF1 allows up to 65536 — see `ExFPE.FF1` and `ExFPE.FF3_1`).
 
-  ## Numerical strings are `NumString` structs
+  ## Numerical strings are `Numeral` structs
 
-  Inputs and outputs are `#{inspect(__MODULE__)}.NumString` structs rather than
+  Inputs and outputs are `#{inspect(__MODULE__)}.Numeral` structs rather than
   binaries. A plain integer isn't enough, because **length is significant** in
   FPE (a leading zero is a real symbol): the value `1234567` could be a 7-symbol
   string or a 10-symbol one padded with leading zeroes, and those encrypt
   differently. So each numerical string pairs a non-negative `value` with the
   `length` (symbol count) it's meant to occupy:
 
-      %ExFPE.Codec.NoSymbols.NumString{value: 1234567, length: 10}
+      %ExFPE.Codec.NoSymbols.Numeral{value: 1234567, length: 10}
 
   The value is interpreted as `length` digits in the codec's radix, most
   significant first. It must fit — that is, `0 <= value < radix ** length` —
   otherwise `normalize_input/2` returns `{:error, {:negative_value, value}}` or
   `{:error, {:value_is_larger_than_declared_length}}`. Encryption preserves the
-  `length`, so a ciphertext `NumString` always carries the same `length` as its
+  `length`, so a ciphertext `Numeral` always carries the same `length` as its
   plaintext.
 
   ## Example
@@ -41,11 +41,11 @@ defmodule ExFPE.Codec.NoSymbols do
       iex> codec = NoSymbols.new!(_radix = 10)
       iex> ctx = ExFPE.new!(key, codec)
       iex> tweak = <<0::56>>
-      iex> plaintext = %NoSymbols.NumString{value: 1234567, length: 10}
+      iex> plaintext = %NoSymbols.Numeral{value: 1234567, length: 10}
       iex> ciphertext = ExFPE.encrypt!(ctx, tweak, plaintext)
-      iex> %NoSymbols.NumString{length: 10} = ciphertext
+      iex> %NoSymbols.Numeral{length: 10} = ciphertext
       iex> ^plaintext = ExFPE.decrypt!(ctx, tweak, ciphertext)
-      %NoSymbols.NumString{value: 1234567, length: 10}
+      %NoSymbols.Numeral{value: 1234567, length: 10}
 
   See the `ExFPE` guide's "No alphabet" section for more examples across radixes.
   """
@@ -61,7 +61,7 @@ defmodule ExFPE.Codec.NoSymbols do
   @opaque t :: %__MODULE__{radix: radix}
   @type radix :: FFX.radix()
 
-  defmodule NumString do
+  defmodule Numeral do
     @moduledoc """
     A numerical string for `ExFPE.Codec.NoSymbols`, encoded as an integer
     `value` interpreted as `length` symbols (most significant first) in the
@@ -79,7 +79,7 @@ defmodule ExFPE.Codec.NoSymbols do
     @type t :: %__MODULE__{value: non_neg_integer, length: pos_integer}
   end
 
-  @type numerical_string :: NumString.t()
+  @type numerical_string :: Numeral.t()
 
   @spec new!(term) :: t()
   def new!(radix) do
@@ -105,7 +105,7 @@ defmodule ExFPE.Codec.NoSymbols do
 
     def radix(codec), do: codec.radix
 
-    def normalize_input(codec, %NumString{value: value, length: length} = input) do
+    def normalize_input(codec, %Numeral{value: value, length: length} = input) do
       max_value = Integer.pow(codec.radix, length) - 1
 
       cond do
@@ -126,7 +126,7 @@ defmodule ExFPE.Codec.NoSymbols do
     end
 
     def split_numerical_string_at(codec, num_string, n) do
-      %NumString{value: value, length: length} = num_string
+      %Numeral{value: value, length: length} = num_string
 
       left_length = n
       right_length = length - n
@@ -134,25 +134,25 @@ defmodule ExFPE.Codec.NoSymbols do
       left_value = div(value, left_multiplier)
       right_value = rem(value, left_multiplier)
 
-      left = %NumString{value: left_value, length: left_length}
-      right = %NumString{value: right_value, length: right_length}
+      left = %Numeral{value: left_value, length: left_length}
+      right = %Numeral{value: right_value, length: right_length}
       {left, right}
     end
 
-    def numerical_string_to_int(_codec, %NumString{value: value}), do: {:ok, value}
+    def numerical_string_to_int(_codec, %Numeral{value: value}), do: {:ok, value}
 
     def int_to_padded_numerical_string(_codec, int, pad_count) when int >= 0 do
-      %NumString{value: int, length: pad_count}
+      %Numeral{value: int, length: pad_count}
     end
 
     def concat_numerical_strings(codec, left, right) do
-      %NumString{value: left_value, length: left_length} = left
-      %NumString{value: right_value, length: right_length} = right
+      %Numeral{value: left_value, length: left_length} = left
+      %Numeral{value: right_value, length: right_length} = right
 
       left_multiplier = Integer.pow(codec.radix, right_length)
       concat_value = left_value * left_multiplier + right_value
       concat_length = left_length + right_length
-      %NumString{value: concat_value, length: concat_length}
+      %Numeral{value: concat_value, length: concat_length}
     end
   end
 end
