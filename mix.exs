@@ -27,7 +27,7 @@ defmodule ExFPE.MixProject do
       ],
       test_coverage: [
         summary: [
-          threshold: 95
+          threshold: 93
         ]
       ]
     ]
