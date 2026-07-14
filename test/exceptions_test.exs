@@ -2,8 +2,6 @@
 defmodule ExFPE.ExceptionsTest do
   use ExUnit.Case, async: true
 
-  alias ExFPE.Codec.Raw
-
   @key :crypto.strong_rand_bytes(32)
 
   defmodule Unstarted do
@@ -32,17 +30,16 @@ defmodule ExFPE.ExceptionsTest do
       assert_raise ExFPE.ArgumentError, ~r/unknown mode :nope/, fn -> ExFPE.new!(@key, :nope, 10) end
     end
 
-    test "radix needs an alphabet or codec" do
-      assert_raise ExFPE.ArgumentError, ~r/needs an alphabet or a codec/, fn -> ExFPE.new!(@key, 100) end
+    test "radix needs an alphabet or a raw-only context" do
+      assert_raise ExFPE.ArgumentError, ~r/needs an alphabet.+or pass \{:raw_only/, fn -> ExFPE.new!(@key, 100) end
     end
 
     test "radix is below the minimum (one-symbol alphabet)" do
       assert_raise ExFPE.ArgumentError, ~r/below the minimum/, fn -> ExFPE.new!(@key, "0") end
     end
 
-    test "radix is above the maximum (Raw codec)" do
-      codec = Raw.new!(0x10001)
-      assert_raise ExFPE.ArgumentError, ~r/above the maximum/, fn -> ExFPE.new!(@key, :ff1, codec) end
+    test "radix is above the maximum (raw-only context)" do
+      assert_raise ExFPE.ArgumentError, ~r/above the maximum/, fn -> ExFPE.new!(@key, :ff1, {:raw_only, 0x10001}) end
     end
 
     test "alphabet is not valid UTF-8" do
@@ -73,12 +70,6 @@ defmodule ExFPE.ExceptionsTest do
 
     test "alphabet has a symbol that merges with its neighbour" do
       assert_raise ExFPE.ArgumentError, ~r/merges with an adjacent symbol/, fn -> ExFPE.new!(@key, <<0x1F3FB::utf8>>) end
-    end
-  end
-
-  describe "Raw.new! raises ExFPE.ArgumentError" do
-    test "radix is not a valid radix" do
-      assert_raise ExFPE.ArgumentError, ~r/must be an integer >= 2/, fn -> Raw.new!(1) end
     end
   end
 
@@ -127,22 +118,27 @@ defmodule ExFPE.ExceptionsTest do
       end
     end
 
-    test "Raw value is negative" do
-      ctx = ExFPE.new!(@key, :ff1, Raw.new!(10))
-      input = %Raw.Numeral{value: -1, length: 10}
-      assert_raise ExFPE.InputError, ~r/value must be non-negative/, fn -> ExFPE.encrypt!(ctx, "", input) end
+    test "raw value is negative" do
+      ctx = ExFPE.new!(@key, :ff1, {:raw_only, 10})
+      assert_raise ExFPE.InputError, ~r/value must be non-negative/, fn -> ExFPE.raw_encrypt!(ctx, "", -1, 10) end
     end
 
-    test "Raw value does not fit its declared length" do
-      ctx = ExFPE.new!(@key, :ff1, Raw.new!(10))
-      input = %Raw.Numeral{value: 9_999_999, length: 6}
-      assert_raise ExFPE.InputError, ~r/does not fit in its declared length/, fn -> ExFPE.encrypt!(ctx, "", input) end
+    test "raw value does not fit its declared length" do
+      ctx = ExFPE.new!(@key, :ff1, {:raw_only, 10})
+
+      assert_raise ExFPE.InputError, ~r/does not fit in its declared length/, fn ->
+        ExFPE.raw_encrypt!(ctx, "", 9_999_999, 6)
+      end
     end
   end
 
   describe "a use ExFPE module raises ExFPE.NotStartedError" do
     test "when its context is not under a supervision tree" do
       assert_raise ExFPE.NotStartedError, ~r/was not found/, fn -> Unstarted.encrypt!(<<0::56>>, "34436524") end
+    end
+
+    test "from a raw wrapper when its context is not under a supervision tree" do
+      assert_raise ExFPE.NotStartedError, ~r/was not found/, fn -> Unstarted.raw_encrypt!(<<0::56>>, 34_436_524, 8) end
     end
   end
 
@@ -163,13 +159,12 @@ defmodule ExFPE.ExceptionsTest do
     end
   end
 
-  describe "ExFPE.constraints/1 and ExFPE.codec/1" do
-    test "expose the context's mode constraints and codec" do
+  describe "ExFPE.constraints/1" do
+    test "exposes the context's mode constraints" do
       ctx = ExFPE.new!(@key, 10)
 
       assert %{min_length: 6, max_length: max} = ExFPE.constraints(ctx)
       assert is_integer(max)
-      assert %ExFPE.Codec.Builtin{radix: 10} = ExFPE.codec(ctx)
     end
   end
 end

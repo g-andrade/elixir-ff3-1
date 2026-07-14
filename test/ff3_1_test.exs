@@ -1047,11 +1047,11 @@ defmodule FF3_1_Test do
 
     alphabet = ""
     {:error, {:bad_radix, {0, :less_than_minimum, 2}}} = ExFPE.new(key, :ff3_1, alphabet)
-    {:error, {:bad_radix, {0, :need_alphabet_or_codec}}} = ExFPE.new(key, :ff3_1, _radix = 0)
+    {:error, {:bad_radix, {0, :need_alphabet_or_raw_only}}} = ExFPE.new(key, :ff3_1, _radix = 0)
 
     alphabet = "0"
     {:error, {:bad_radix, {1, :less_than_minimum, 2}}} = ExFPE.new(key, :ff3_1, alphabet)
-    {:error, {:bad_radix, {1, :need_alphabet_or_codec}}} = ExFPE.new(key, :ff3_1, _radix = 1)
+    {:error, {:bad_radix, {1, :need_alphabet_or_raw_only}}} = ExFPE.new(key, :ff3_1, _radix = 1)
 
     alphabet = "01"
     {:ok, _ctx} = ExFPE.new(key, :ff3_1, alphabet)
@@ -1280,7 +1280,7 @@ defmodule FF3_1_Test do
     key = :crypto.strong_rand_bytes(24)
     {:ok, ctx} = ExFPE.new(key, :ff3_1, _radix = 10)
 
-    codec = ExFPE.FF3_1.codec(ctx.algorithm)
+    {:codec, codec} = ctx.base_conf
     assert Codec.numerical_string_to_int(codec, "234234638") == {:ok, 234_234_638}
     assert Codec.int_to_padded_numerical_string(codec, 234_234_638, _padding = 10) == "0234234638"
   end
@@ -1291,7 +1291,7 @@ defmodule FF3_1_Test do
     key = :crypto.strong_rand_bytes(24)
     {:ok, ctx} = ExFPE.new(key, :ff3_1, _alphabet = "012345678x")
 
-    codec = ExFPE.FF3_1.codec(ctx.algorithm)
+    {:codec, codec} = ctx.base_conf
     assert Codec.numerical_string_to_int(codec, ~c"234234638x") == {:ok, 2_342_346_389}
     assert Codec.int_to_padded_numerical_string(codec, 2_342_346_389, _padding = 12) == ~c"00234234638x"
   end
@@ -1307,6 +1307,31 @@ defmodule FF3_1_Test do
 
     plaintext = "abababcDcDfabi"
     test_setup_module(SetupModules.CustomBase10, plaintext)
+  end
+
+  test "setup module raw wrappers working fine" do
+    alias FF3_1_Test.Helper.SetupModules
+
+    module = SetupModules.RawBase10
+    assert Agent.get(module) == {:error, {:ctx_not_found_for_module, module}}
+
+    {:ok, pid} = start_setup_module(module)
+    {:ok, ctx} = Agent.get(module)
+
+    tweak = :crypto.strong_rand_bytes(7)
+    plainval = 423_423_409_017
+    length = 12
+
+    cipherval = module.raw_encrypt!(tweak, plainval, length)
+    assert module.raw_decrypt!(tweak, cipherval, length) == plainval
+
+    # The wrappers just thread in the module's context.
+    assert cipherval == ExFPE.raw_encrypt!(ctx, tweak, plainval, length)
+    assert module.raw_encrypt(tweak, plainval, length) == {:ok, cipherval}
+    assert module.raw_decrypt(tweak, cipherval, length) == {:ok, plainval}
+
+    :ok = Agent.stop(pid)
+    assert Agent.get(module) == {:error, {:ctx_not_found_for_module, module}}
   end
 
   test "setup modules with wrong opts" do
@@ -1354,8 +1379,6 @@ defmodule FF3_1_Test do
   end
 
   test "no symbols" do
-    alias ExFPE.Codec.Raw
-
     key = :crypto.strong_rand_bytes(32)
     tweak = :crypto.strong_rand_bytes(7)
 
@@ -1367,21 +1390,17 @@ defmodule FF3_1_Test do
         Enum.each(
           1..100,
           fn _ ->
-            {:ok, codec} = Raw.new(radix)
-            {:ok, ctx} = ExFPE.new(key, :ff3_1, codec)
-            %{min_length: min_length, max_length: max_length} = ExFPE.FF3_1.constraints(ctx.algorithm)
+            {:ok, ctx} = ExFPE.new(key, :ff3_1, {:raw_only, radix})
+            %{min_length: min_length, max_length: max_length} = ExFPE.constraints(ctx)
 
             input_length = min_length + :rand.uniform(max_length - min_length + 1) - 1
             input_high = Integer.pow(radix, input_length - 1)
             input_low = :rand.uniform(input_high) - 1
             input = input_high + input_low
 
-            input_num_string = %Raw.Numeral{value: input, length: input_length}
-            ciphertext = ExFPE.encrypt!(ctx, tweak, input_num_string)
-            assert ciphertext.length == input_num_string.length
-
-            plaintext = ExFPE.decrypt!(ctx, tweak, ciphertext)
-            assert plaintext == input_num_string
+            cipherval = ExFPE.raw_encrypt!(ctx, tweak, input, input_length)
+            plainval = ExFPE.raw_decrypt!(ctx, tweak, cipherval, input_length)
+            assert plainval == input
           end
         )
       end
@@ -1457,7 +1476,6 @@ defmodule FF3_1_Test do
 
     assert ciphertext == ExFPE.encrypt!(ctx, tweak, plaintext)
     assert module.constraints() == ExFPE.FF3_1.constraints(ctx.algorithm)
-    assert module.codec() == ExFPE.FF3_1.codec(ctx.algorithm)
 
     :ok = Agent.stop(pid)
     assert Agent.get(module) == {:error, {:ctx_not_found_for_module, module}}

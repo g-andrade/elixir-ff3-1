@@ -104,8 +104,6 @@ defmodule ExFPE.Codec.Custom do
     :amount_to_symbol
   ]
 
-  @type numerical_string :: String.t()
-
   @opaque t :: %__MODULE__{
             symbol_to_amount: %{char() => non_neg_integer},
             amount_to_symbol: tuple()
@@ -113,6 +111,7 @@ defmodule ExFPE.Codec.Custom do
 
   ## API
 
+  @doc false
   @spec new(String.t()) :: {:ok, t()} | {:error, term}
   def new(alphabet) do
     with :ok <- validate_string(alphabet),

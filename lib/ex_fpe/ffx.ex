@@ -12,9 +12,6 @@ defmodule ExFPE.FFX do
   @type key :: <<_::128>> | <<_::192>> | <<_::256>>
   @type radix :: pos_integer
 
-  @typedoc "Defined by an `ExFPE.Codec`"
-  @type numerical_string :: term()
-
   @type byte_string :: <<_::8, _::_*8>>
 
   ## Internal API

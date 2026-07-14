@@ -61,13 +61,11 @@ defmodule ExFPE.FF1 do
 
   @enforce_keys [
     :key,
-    :codec,
     :min_length,
     :max_length
   ]
   defstruct [
     :key,
-    :codec,
     :min_length,
     :max_length
   ]
@@ -75,7 +73,6 @@ defmodule ExFPE.FF1 do
   @typep ctx ::
            %__MODULE__{
              key: FFX.key(),
-             codec: Codec.t(),
              min_length: pos_integer,
              max_length: pos_integer
            }
@@ -84,16 +81,14 @@ defmodule ExFPE.FF1 do
 
   @doc false
   @spec new_ctx(FFX.key(), Codec.t()) :: {:ok, ctx} | {:error, term}
-  def new_ctx(key, codec) do
+  def new_ctx(key, radix) do
     with :ok <- validate_key(key),
-         radix = Codec.radix(codec),
          :ok <- validate_radix(radix),
          {:ok, min_length} <- calculate_min_length(radix),
          {:ok, max_length} <- calculate_max_length(min_length) do
       {:ok,
        %__MODULE__{
          key: key,
-         codec: codec,
          min_length: min_length,
          max_length: max_length
        }}
@@ -102,10 +97,6 @@ defmodule ExFPE.FF1 do
         error
     end
   end
-
-  @doc false
-  @spec codec(ctx) :: Codec.t()
-  def codec(%__MODULE__{codec: codec}), do: codec
 
   @doc false
   @spec constraints(ctx) :: constraints()
@@ -178,10 +169,10 @@ defmodule ExFPE.FF1 do
   end
 
   defimpl Algorithm, for: __MODULE__ do
-    def do_encrypt_or_decrypt(ctx, tweak, vX, enc) do
-      with {:ok, vX_length, vX} <- validate_enc_or_dec_input(ctx, vX),
+    def do_encrypt_or_decrypt(ctx, tweak, codec, vX, enc) do
+      with {:ok, vX_length, vX} <- validate_enc_or_dec_input(ctx, codec, vX),
            :ok <- validate_tweak(ctx, tweak),
-           %ExFPE.FF1{key: key, codec: codec} = ctx,
+           %ExFPE.FF1{key: key} = ctx,
            {:ok, u, v, vA, vB, b, d, vP} <- setup_encrypt_or_decrypt_vars(codec, tweak, vX, vX_length) do
         vY =
           if enc do
@@ -223,8 +214,8 @@ defmodule ExFPE.FF1 do
       end
     end
 
-    defp validate_enc_or_dec_input(ctx, vX) do
-      %ExFPE.FF1{codec: codec, min_length: min_length, max_length: max_length} = ctx
+    defp validate_enc_or_dec_input(ctx, codec, vX) do
+      %ExFPE.FF1{min_length: min_length, max_length: max_length} = ctx
 
       case Codec.normalize_input(codec, vX) do
         {:ok, valid_length, normalized_vX} when valid_length in min_length..max_length//1 ->

@@ -26,6 +26,14 @@ defmodule FF3_1_Test.Helper.SetupModules do
     def child_spec, do: child_spec(:crypto.strong_rand_bytes(32), :ff3_1, "abcDefghij")
   end
 
+  defmodule RawBase10 do
+    @moduledoc false
+    use ExFPE
+
+    @impl true
+    def child_spec, do: child_spec(:crypto.strong_rand_bytes(32), :ff3_1, {:raw_only, 10})
+  end
+
   defmodule WrongKeySize do
     @moduledoc false
     use ExFPE

@@ -88,14 +88,12 @@ defmodule ExFPE.FF3_1 do
 
   @enforce_keys [
     :key,
-    :codec,
     :iform_ctx,
     :min_length,
     :max_length
   ]
   defstruct [
     :key,
-    :codec,
     :iform_ctx,
     :min_length,
     :max_length
@@ -104,7 +102,6 @@ defmodule ExFPE.FF3_1 do
   @typep ctx ::
            %__MODULE__{
              key: FFX.key(),
-             codec: Codec.t(),
              iform_ctx: FFX.IntermediateForm.ctx(),
              min_length: pos_integer,
              max_length: pos_integer
@@ -113,12 +110,11 @@ defmodule ExFPE.FF3_1 do
   ## API
 
   @doc false
-  @spec new_ctx(FFX.key(), Codec.t()) :: {:ok, ctx} | {:error, term}
-  def new_ctx(key, codec) do
+  @spec new_ctx(FFX.key(), radix) :: {:ok, ctx} | {:error, term}
+  def new_ctx(key, radix) do
     alias FFX.IntermediateForm
 
     with :ok <- validate_key(key),
-         radix = Codec.radix(codec),
          :ok <- validate_radix(radix),
          iform_ctx = IntermediateForm.new_ctx(radix),
          {:ok, min_length} <- calculate_min_length(radix),
@@ -126,7 +122,6 @@ defmodule ExFPE.FF3_1 do
       {:ok,
        %__MODULE__{
          key: key,
-         codec: codec,
          iform_ctx: iform_ctx,
          min_length: min_length,
          max_length: max_length
@@ -136,10 +131,6 @@ defmodule ExFPE.FF3_1 do
         error
     end
   end
-
-  @doc false
-  @spec codec(ctx) :: Codec.t()
-  def codec(%__MODULE__{codec: codec}), do: codec
 
   @doc false
   @spec constraints(ctx) :: %{min_length: pos_integer, max_length: pos_integer}
@@ -197,10 +188,10 @@ defmodule ExFPE.FF3_1 do
   end
 
   defimpl Algorithm, for: __MODULE__ do
-    def do_encrypt_or_decrypt(ctx, t, vX, enc) do
-      with {:ok, vX_length, vX} <- validate_enc_or_dec_input(ctx, vX),
+    def do_encrypt_or_decrypt(ctx, t, codec, vX, enc) do
+      with {:ok, vX_length, vX} <- validate_enc_or_dec_input(ctx, codec, vX),
            :ok <- validate_tweak(t),
-           %ExFPE.FF3_1{key: key, codec: codec, iform_ctx: iform_ctx} = ctx,
+           %ExFPE.FF3_1{key: key, iform_ctx: iform_ctx} = ctx,
            {:ok, even_m, odd_m, vA, vB, even_vW, odd_vW} <-
              setup_encrypt_or_decrypt_vars(codec, t, vX, vX_length) do
         vY =
@@ -239,8 +230,8 @@ defmodule ExFPE.FF3_1 do
       end
     end
 
-    defp validate_enc_or_dec_input(ctx, vX) do
-      %ExFPE.FF3_1{codec: codec, min_length: min_length, max_length: max_length} = ctx
+    defp validate_enc_or_dec_input(ctx, codec, vX) do
+      %ExFPE.FF3_1{min_length: min_length, max_length: max_length} = ctx
 
       case Codec.normalize_input(codec, vX) do
         {:ok, valid_length, normalized_vX} when valid_length in min_length..max_length//1 ->

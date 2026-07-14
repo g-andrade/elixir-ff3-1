@@ -24,10 +24,15 @@ defmodule ExFPE.Error do
   def humanize({:bad_radix, {radix, :more_than_maximum, max}}),
     do: "radix #{inspect(radix)} is above the maximum of #{max}"
 
-  def humanize({:bad_radix, {radix, :need_alphabet_or_codec}}),
-    do: "radix #{inspect(radix)} needs an alphabet or a codec to map symbols to numerals"
+  def humanize({:bad_radix, {radix, :need_alphabet_or_raw_only}}),
+    do:
+      "radix #{inspect(radix)} needs an alphabet to map symbols to numerals, or pass {:raw_only, #{inspect(radix)}} to skip symbols"
 
   def humanize({:bad_radix, {radix, :not_a_valid_radix}}), do: "radix must be an integer >= 2, got: #{inspect(radix)}"
+
+  def humanize({:raw_only_context, radix}),
+    do:
+      "this is a raw-only context (radix #{inspect(radix)}); use raw_encrypt/4 and raw_decrypt/4, or build it with an alphabet"
 
   ## Alphabet (Custom codec) — the inner reasons come from `Codec.Custom.new/1`,
   ## wrapped in `:bad_alphabet` by `ExFPE.new/3` when an alphabet is passed.
@@ -96,7 +101,7 @@ end
 defmodule ExFPE.ArgumentError do
   @moduledoc """
   Raised by `ExFPE.new!/3` when a context cannot be built — an invalid key, mode,
-  radix, alphabet, or codec.
+  radix, or alphabet.
 
   The structured `:reason` is the same term `ExFPE.new/3` would return under
   `{:error, reason}`.

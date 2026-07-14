@@ -246,64 +246,51 @@ iex> ^plaintext = ExFPE.decrypt!(ctx, tweak, ciphertext)
 ### No alphabet
 
 If you wish to handle translation of integers into and from symbols yourself,
-you can use `ExFPE.Codec.Raw`. Encryption and decryption functions
-will receive, and return, integer values with a length tag.
+build the context with `{:raw_only, radix}` and use `ExFPE.raw_encrypt!/4` and
+`ExFPE.raw_decrypt!/4`. They receive, and return, an integer value; you pass its
+length (symbol count) separately, because leading zeroes are significant in FPE
+and can't be recovered from the value alone.
 
-Encryption and decryption will act on inputs as if the integer value was
-encoded in that radix.
+Encryption and decryption act on the value as if it were encoded in that radix,
+most significant symbol first.
 
 #### Radix 10
 
 ```elixir
-iex> alias ExFPE.Codec.Raw
 iex> key = :crypto.strong_rand_bytes(32)
-iex> radix = 10
-iex> codec = Raw.new!(radix)
-iex> ctx = ExFPE.new!(key, codec)
+iex> ctx = ExFPE.new!(key, {:raw_only, _radix = 10})
 iex> tweak = <<0::56>>
-iex> input = 1234567
-iex> input_length = 10
+iex> plainval = 1234567
+iex> length = 10
 iex>
-iex> plaintext = %Raw.Numeral{value: input, length: input_length}
-iex> ciphertext = ExFPE.encrypt!(ctx, tweak, plaintext)
-iex> %Raw.Numeral{length: ^input_length} = ciphertext
-iex> ^plaintext = ExFPE.decrypt!(ctx, tweak, ciphertext)
+iex> cipherval = ExFPE.raw_encrypt!(ctx, tweak, plainval, length)
+iex> ^plainval = ExFPE.raw_decrypt!(ctx, tweak, cipherval, length)
 ```
 
 #### Radix 500
 
 ```elixir
-iex> alias ExFPE.Codec.Raw
 iex> key = :crypto.strong_rand_bytes(32)
-iex> radix = 500
-iex> codec = Raw.new!(radix)
-iex> ctx = ExFPE.new!(key, codec)
+iex> ctx = ExFPE.new!(key, {:raw_only, _radix = 500})
 iex> tweak = <<0::56>>
-iex> input = 1234567
-iex> input_length = 10
+iex> plainval = 1234567
+iex> length = 10
 iex>
-iex> plaintext = %Raw.Numeral{value: input, length: input_length}
-iex> ciphertext = ExFPE.encrypt!(ctx, tweak, plaintext)
-iex> %Raw.Numeral{length: ^input_length} = ciphertext
-iex> ^plaintext = ExFPE.decrypt!(ctx, tweak, ciphertext)
+iex> cipherval = ExFPE.raw_encrypt!(ctx, tweak, plainval, length)
+iex> ^plainval = ExFPE.raw_decrypt!(ctx, tweak, cipherval, length)
 ```
 
 #### Radix 65535
 
 ```elixir
-iex> alias ExFPE.Codec.Raw
 iex> key = :crypto.strong_rand_bytes(32)
-iex> radix = 65535
-iex> codec = Raw.new!(radix)
-iex> ctx = ExFPE.new!(key, codec)
+iex> ctx = ExFPE.new!(key, {:raw_only, _radix = 65535})
 iex> tweak = <<0::56>>
-iex> input = 1234567
-iex> input_length = 10
+iex> plainval = 1234567
+iex> length = 10
 iex>
-iex> plaintext = %Raw.Numeral{value: input, length: input_length}
-iex> ciphertext = ExFPE.encrypt!(ctx, tweak, plaintext)
-iex> %Raw.Numeral{length: ^input_length} = ciphertext
-iex> ^plaintext = ExFPE.decrypt!(ctx, tweak, ciphertext)
+iex> cipherval = ExFPE.raw_encrypt!(ctx, tweak, plainval, length)
+iex> ^plainval = ExFPE.raw_decrypt!(ctx, tweak, cipherval, length)
 ```
 
 ### Choosing a mode

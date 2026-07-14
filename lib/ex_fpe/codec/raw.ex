@@ -1,0 +1,101 @@
+# credo:disable-for-this-file Credo.Check.Readability.ModuleNames
+defmodule ExFPE.Codec.Raw do
+  @moduledoc false
+
+  alias ExFPE.Codec
+  alias ExFPE.FFX
+
+  ## Types
+
+  @enforce_keys [:radix]
+  defstruct [:radix]
+
+  @opaque t :: %__MODULE__{radix: radix}
+  @type radix :: FFX.radix()
+
+  defmodule Numeral do
+    @moduledoc false
+
+    @enforce_keys [:value, :length]
+    defstruct [:value, :length]
+
+    @type t :: %__MODULE__{value: non_neg_integer, length: pos_integer}
+  end
+
+  @type numerical_string :: Numeral.t()
+
+  @spec new!(term) :: t()
+  def new!(radix) do
+    case new(radix) do
+      {:ok, codec} -> codec
+      {:error, reason} -> raise ExFPE.ArgumentError, reason: reason
+    end
+  end
+
+  @spec new(term) :: {:ok, t()} | {:error, term}
+  def new(radix) when is_integer(radix) and radix >= 2 do
+    {:ok, %__MODULE__{radix: radix}}
+  end
+
+  def new(radix) do
+    {:error, {:bad_radix, {radix, :not_a_valid_radix}}}
+  end
+
+  defimpl Codec, for: __MODULE__ do
+    @moduledoc false
+
+    ## API
+
+    def radix(codec), do: codec.radix
+
+    def normalize_input(codec, %Numeral{value: value, length: length} = input) do
+      max_value = Integer.pow(codec.radix, length) - 1
+
+      cond do
+        value < 0 ->
+          {:error, {:negative_value, value}}
+
+        value > max_value ->
+          {:error, {:value_is_larger_than_declared_length}}
+
+        true ->
+          normalized = input
+          {:ok, length, normalized}
+      end
+    end
+
+    def normalize_input(_codec, invalid) do
+      {:error, {:not_a_numerical_string, invalid}}
+    end
+
+    def split_numerical_string_at(codec, num_string, n) do
+      %Numeral{value: value, length: length} = num_string
+
+      left_length = n
+      right_length = length - n
+      left_multiplier = Integer.pow(codec.radix, right_length)
+      left_value = div(value, left_multiplier)
+      right_value = rem(value, left_multiplier)
+
+      left = %Numeral{value: left_value, length: left_length}
+      right = %Numeral{value: right_value, length: right_length}
+      {left, right}
+    end
+
+    def numerical_string_to_int(_codec, %Numeral{value: value}), do: {:ok, value}
+
+    def int_to_padded_numerical_string(_codec, int, pad_count) when int >= 0 do
+      %Numeral{value: int, length: pad_count}
+    end
+
+    def concat_numerical_strings(codec, left, right) do
+      %Numeral{value: left_value, length: left_length} = left
+      %Numeral{value: right_value, length: right_length} = right
+
+      left_multiplier = Integer.pow(codec.radix, right_length)
+      concat_value = left_value * left_multiplier + right_value
+      concat_length = left_length + right_length
+      %Numeral{value: concat_value, length: concat_length}
+    end
+  end
+end

@@ -22,8 +22,6 @@ defmodule ExFPE.Codec.Builtin do
   @enforce_keys [:radix, :lower_case?]
   defstruct [:radix, :lower_case?]
 
-  @type numerical_string :: String.t()
-
   @opaque t :: %__MODULE__{radix: radix, lower_case?: boolean}
   @type radix :: 2..36
 
@@ -32,16 +30,7 @@ defmodule ExFPE.Codec.Builtin do
 
   ## API Functions
 
-  @doc """
-  Succeeds if the radix or alphabet can be handled by `Integer.to_string/2`.
-
-  Returns `{:ok, t()}` if `term` is either:
-  * a valid radix;
-  * an upper case alphabet matching that of `Integer.to_string/2`;
-  * a lower case alphabet matching that of `Integer.to_string/2` + `String.downcase/1`.
-
-  Returns `nil` otherwise.
-  """
+  @doc false
   @spec maybe_new(term) :: {:ok, t()} | nil
   def maybe_new(radix_or_alphabet) when is_integer(radix_or_alphabet) do
     radix = radix_or_alphabet
