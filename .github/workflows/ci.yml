@@ -70,7 +70,7 @@ jobs:
       - name: Set dynamic env (1)
         run: |
           echo "PREV_GITHUB_RUN_NR=$((${{github.run_number}} - 1))" >> "$GITHUB_ENV"
-          echo "BUILD_CACHE_PREFIX=build-cache3-for-os-${{runner.os}}-elixir-${{steps.setup-beam.outputs.elixir-version}}-on-otp-${{steps.setup-beam.outputs.otp-version}}" >> "$GITHUB_ENV"
+          echo "BUILD_CACHE_PREFIX=build-cache4-for-os-${{runner.os}}-elixir-${{steps.setup-beam.outputs.elixir-version}}-on-otp-${{steps.setup-beam.outputs.otp-version}}" >> "$GITHUB_ENV"
 
       - name: Set dynamic env (2)
         run: |

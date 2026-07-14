@@ -60,7 +60,6 @@ defmodule ExFPE.MixProject do
 
   defp deps do
     List.flatten([
-      {:benchee, "~> 1.0", only: :dev, runtime: false},
       {:ex_doc, "~> 0.40", only: :dev, runtime: false},
       {:recon, "~> 2.5", only: [:dev, :test], runtime: false},
       maybe_credo_dep(),
