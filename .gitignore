@@ -24,3 +24,6 @@ ff3_1-*.tar
 
 # Temporary files, for example, from tests.
 /tmp/
+
+# Claude local settings
+/.claude/settings.local.json
