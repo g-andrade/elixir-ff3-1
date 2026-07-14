@@ -7,7 +7,7 @@ defmodule ExFPE do
   number in a field that only accepts credit-card-shaped values, and other
   suchlike applications.
 
-  `ExfPE` is the entry point. It wraps a concrete FPE mode behind a single API:
+  `ExFPE` is the entry point. It wraps a concrete FPE mode behind a single API:
   `new!/2`, `encrypt!/3`, `decrypt!/3`, and error-returning variants.
 
 
