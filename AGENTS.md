@@ -159,6 +159,4 @@ that in mind before shortening any doctest input.
 - **Large-alphabet test fixtures** (`test/data/alphabet_*.txt`) are generated, not hand-edited:
   `mix run test/data/generate_alphabet.exs <count> <output_path>`. The generator gates each
   candidate through `Custom.new/1`, so fixtures can't drift from the codec's acceptance rules.
-- **`new!/1` and `encrypt!`/`decrypt!` raise with a TODO placeholder exception** (`raise "TODO
-  proper exception: ..."`) in `lib/ex_fpe.ex` — proper exception types are not yet defined.
 - Git workflow here is commit-directly-to-`main` (solo library); commit only when asked.

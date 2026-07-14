@@ -7,15 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.0] - 2026-07-14
+
 ### Added
 
-- implementation of [FF3-1
-  algorithm](https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-38Gr1-draft.pdf)
-- test coverage
-- docs
+- `ExFPE` facade over the FFX family, with `new/2,3`, `encrypt/3`, `decrypt/3`
+  and raising `!` variants.
+- **FF1** mode ([SP 800-38Gr1
+  2pd](https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-38Gr1.2pd.pdf)),
+  the default and only NIST-approved mode. Variable-length tweak; verified
+  against the official NIST sample vectors.
+- **FF3-1** mode ([SP 800-38G Rev. 1 first
+  draft](https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-38Gr1-draft.pdf)),
+  fixed 7-byte tweak. Provided for interoperability only — NIST removed the FF3
+  family and it is not approved.
+- Alphabets: a built-in radix 2–36 codec (`0-9a-z`, case-insensitive), custom
+  Unicode alphabets up to radix 65535 (`ExFPE.Codec.Custom`), and a
+  symbol-less integer codec (`ExFPE.Codec.NoSymbols`).
+- `use ExFPE` for keeping a context under a supervision tree, backed by
+  `ExFPE.Agent`.
+- Structured `{:error, reason}` tuples and an exception hierarchy
+  (`ExFPE.ArgumentError`, `ExFPE.InputError`, `ExFPE.NotStartedError`).
 
-<!---
-[unreleased]: https://github.com/olivierlacan/keep-a-changelog/compare/v1.1.1...HEAD
-[0.0.2]: https://github.com/olivierlacan/keep-a-changelog/compare/v0.0.1...v0.0.2
-[0.0.1]: https://github.com/olivierlacan/keep-a-changelog/releases/tag/v0.0.1
--->
+[Unreleased]: https://github.com/g-andrade/ex_fpe/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/g-andrade/ex_fpe/releases/tag/v0.1.0

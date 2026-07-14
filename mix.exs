@@ -1,17 +1,24 @@
 defmodule ExFPE.MixProject do
   use Mix.Project
 
+  @version "0.1.0"
+  @source_url "https://github.com/g-andrade/ex_fpe"
+
   def project do
     [
       app: :ex_fpe,
-      version: "0.1.0",
+      version: @version,
       elixir: "~> 1.14",
       start_permanent: Mix.env() == :prod,
+      description: description(),
+      package: package(),
+      source_url: @source_url,
       deps: deps(),
       elixirc_paths: elixirc_paths(Mix.env()),
       elixirc_options: elixirc_options(Mix.env()),
       docs: [
         main: "readme",
+        source_ref: "v#{@version}",
         extras: [
           "README.md": [title: "ExFPE"],
           "CHANGELOG.md": [],
@@ -25,6 +32,22 @@ defmodule ExFPE.MixProject do
           threshold: 85.71
         ]
       ]
+    ]
+  end
+
+  defp description do
+    "Format-preserving encryption (FF1 and FF3-1)."
+  end
+
+  defp package do
+    [
+      licenses: ["MIT"],
+      maintainers: ["Guilherme Andrade"],
+      links: %{
+        "GitHub" => @source_url,
+        "Changelog" => "#{@source_url}/blob/main/CHANGELOG.md"
+      },
+      files: ~w(lib mix.exs README.md CHANGELOG.md LICENSE .formatter.exs)
     ]
   end
 
