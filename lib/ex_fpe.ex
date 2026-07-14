@@ -7,10 +7,6 @@ defmodule ExFPE do
   number in a field that only accepts credit-card-shaped values, and other
   suchlike applications.
 
-  `ExFPE` is the entry point. It wraps a concrete FPE mode behind a single API:
-  `new!/2`, `encrypt!/3`, `decrypt!/3`, and error-returning variants.
-
-
   By default it uses **FF1** (`ExFPE.FF1`), the only mode approved by NIST in
   [SP 800-38Gr1 2pd](https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-38Gr1.2pd.pdf).
   To pick a mode explicitly, pass it as the **second argument** to `new/3`:
@@ -22,8 +18,10 @@ defmodule ExFPE do
   > #### Mode-specific rules {: .info}
   >
   > The **tweak size** and the **length constraints** on inputs depend on the
-  > mode. FF1 accepts a variable-length tweak (it may even be empty); see
-  > `ExFPE.FF1`. FF3-1 uses a fixed 7-byte (56-bit) tweak; see `ExFPE.FF3_1`.
+  > mode.
+  > * FF1 accepts a variable-length tweak (it may even be empty); see
+  > `ExFPE.FF1`.
+  > * FF3-1 uses a fixed 7-byte (56-bit) tweak; see `ExFPE.FF3_1`.
 
   ## Guide
 

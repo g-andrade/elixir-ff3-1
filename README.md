@@ -11,21 +11,11 @@ same alphabet**. This is useful to e.g. store an encrypted credit card number
 in a field that only accepts credit-card-shaped values, and other suchlike
 applications.
 
-`ExFPE` is the entry point. It wraps a concrete FPE mode behind a single API:
-`new!/2`, `encrypt!/3`, `decrypt!/3`, and error-returning variants.
-
 By default it uses **FF1** (`ExFPE.FF1`), the only mode approved by NIST in [SP
 800-38Gr1 2pd](https://csrc.nist.gov/pubs/sp/800/38/g/r1/2pd). The examples
 below all use the default. The other mode is FF3-1 (`ExFPE.FF3_1`), which NIST
 no longer recommends; reach for it only to interoperate with data that was
 already encrypted with FF3-1.
-
-> **Mode-specific rules**
->
-> The **tweak size** and the **length constraints** on inputs depend on the
-> mode. FF1 (the default) accepts a variable-length tweak (it may even be
-> empty); FF3-1 uses a fixed 7-byte (56-bit) tweak. See `ExFPE.FF1` and
-> `ExFPE.FF3_1`.
 
 ## Installation
 
@@ -72,9 +62,9 @@ We're going to `encrypt!/3` our `plaintext` numerical string, in base 10,
 and get another of equal length, `ciphertext`, which we can `decrypt!/3`
 to get the `plaintext` back.
 
-A `tweak` is required, which we'll handwave for now. Its size depends on the
-mode: FF1 (the default) accepts a variable-length byte string, so the 7-byte
-tweak below is just one valid choice.
+A `tweak` is required; explanation further below. Its size depends on the mode:
+FF1 (the default) accepts a variable-length byte string, so the 7-byte tweak
+below is just one valid choice.
 
 ```elixir
 iex> key = :crypto.strong_rand_bytes(32)
@@ -93,7 +83,7 @@ of equal length to their respective plaintexts, and vice-versa.
 ```elixir
 iex> key = :crypto.strong_rand_bytes(32)
 iex> ctx = ExFPE.new!(key, _radix = 10)
-iex> tweak = <<0::56>>
+iex> tweak = "dev.env"
 iex> plaintext1 =   "34436524"
 iex> plaintext2 = "0034436524"
 iex> ciphertext1 = ExFPE.encrypt!(ctx, tweak, plaintext1)
@@ -135,7 +125,7 @@ Both `plaintext` and `ciphertext` will be encoded in the chosen base.
 ```elixir
 iex> key = :crypto.strong_rand_bytes(32)
 iex> ctx = ExFPE.new!(key, _radix = 8)
-iex> tweak = <<0::56>>
+iex> tweak = "staging.env"
 iex> plaintext = "34436524"
 iex> ciphertext = ExFPE.encrypt!(ctx, tweak, plaintext)
 iex> ^plaintext = ExFPE.decrypt!(ctx, tweak, ciphertext)
@@ -146,7 +136,7 @@ iex> ^plaintext = ExFPE.decrypt!(ctx, tweak, ciphertext)
 ```elixir
 iex> key = :crypto.strong_rand_bytes(32)
 iex> ctx = ExFPE.new!(key, _radix = 16)
-iex> tweak = <<0::56>>
+iex> tweak = "test.env"
 iex> plaintext = "AFD093902C"
 iex> ciphertext = ExFPE.encrypt!(ctx, tweak, plaintext)
 iex> ^plaintext = ExFPE.decrypt!(ctx, tweak, ciphertext)
@@ -157,7 +147,7 @@ iex> ^plaintext = ExFPE.decrypt!(ctx, tweak, ciphertext)
 ```elixir
 iex> key = :crypto.strong_rand_bytes(32)
 iex> ctx = ExFPE.new!(key, _radix = 36)
-iex> tweak = <<0::56>>
+iex> tweak = "main-deploy"
 iex> plaintext = "ZZZAFD093902CBZDE"
 iex> ciphertext = ExFPE.encrypt!(ctx, tweak, plaintext)
 iex> ^plaintext = ExFPE.decrypt!(ctx, tweak, ciphertext)
@@ -166,13 +156,13 @@ iex> ^plaintext = ExFPE.decrypt!(ctx, tweak, ciphertext)
 #### Case insensitivity to input
 
 Even though the output of either `encrypt!/3` or `decrypt!/3` is
-upper case, any case is accepted as input.
+upper case, `ExFPE.Codec.Builtin` accepts inputs in any case.
 
 ```elixir
 iex> key = :crypto.strong_rand_bytes(32)
 iex> radix = 16
 iex> ctx = ExFPE.new!(key, radix)
-iex> tweak = <<0::56>>
+iex> tweak = "tweak23"
 iex> input = "aBcDDFF01234eeEee"
 iex> _ciphertext = ExFPE.encrypt!(ctx, tweak, input)
 iex> _plaintext = ExFPE.decrypt!(ctx, tweak, input)
@@ -180,14 +170,14 @@ iex> _plaintext = ExFPE.decrypt!(ctx, tweak, input)
 
 #### Lower case output
 
-If you want to use the built-in alphabet but desire lower case outputs, you
-can do it by declaring the alphabet when creating `ctx`.
+If you want to use `ExFPE.Codec.Builtin` but desire lower case outputs, you can
+do it by declaring the alphabet when creating `ctx`.
 
 ```elixir
 iex> key = :crypto.strong_rand_bytes(32)
 iex> alphabet = "0123456789abcdef" # radix 16
 iex> ctx = ExFPE.new!(key, alphabet)
-iex> tweak = <<0::56>>
+iex> tweak = "dev.env"
 iex> input = "aBcDDFF01234eeEee"
 iex> ciphertext = ExFPE.encrypt!(ctx, tweak, input)
 iex> plaintext = ExFPE.decrypt!(ctx, tweak, input)
@@ -214,7 +204,7 @@ visual unit; alphabets are validated at construction. See
 iex> key = :crypto.strong_rand_bytes(32)
 iex> alphabet = "abcdefghij0123456789"
 iex> ctx = ExFPE.new!(key, alphabet)
-iex> tweak = <<0::56>>
+iex> tweak = "testing"
 iex> plaintext = "34534abcd32235"
 iex> ciphertext = ExFPE.encrypt!(ctx, tweak, plaintext)
 iex> ^plaintext = ExFPE.decrypt!(ctx, tweak, ciphertext)
@@ -226,7 +216,7 @@ iex> ^plaintext = ExFPE.decrypt!(ctx, tweak, ciphertext)
 iex> key = :crypto.strong_rand_bytes(32)
 iex> alphabet = "0123456789abcdefghijklmnopqrstuvwxyz@#/*"
 iex> ctx = ExFPE.new!(key, alphabet)
-iex> tweak = <<0::56>>
+iex> tweak = "testing"
 iex> plaintext = "34534ab@@@@@/cd32235"
 iex> ciphertext = ExFPE.encrypt!(ctx, tweak, plaintext)
 iex> ^plaintext = ExFPE.decrypt!(ctx, tweak, ciphertext)
@@ -238,7 +228,7 @@ iex> ^plaintext = ExFPE.decrypt!(ctx, tweak, ciphertext)
 iex> key = :crypto.strong_rand_bytes(32)
 iex> alphabet = "🌕🌖🌗🌘🌑🌒🌓🌔"
 iex> ctx = ExFPE.new!(key, alphabet)
-iex> tweak = <<0::56>>
+iex> tweak = "example"
 iex> plaintext = "🌖🌕🌘🌑🌓🌗🌔🌒🌒🌒🌒"
 iex> ciphertext = ExFPE.encrypt!(ctx, tweak, plaintext)
 iex> ^plaintext = ExFPE.decrypt!(ctx, tweak, ciphertext)
@@ -248,9 +238,9 @@ iex> ^plaintext = ExFPE.decrypt!(ctx, tweak, ciphertext)
 
 If you wish to handle translation of integers into and from symbols yourself,
 build the context with `{:raw_only, radix}` and use `ExFPE.raw_encrypt!/4` and
-`ExFPE.raw_decrypt!/4`. They receive, and return, an integer value; you pass its
-length (symbol count) separately, because leading zeroes are significant in FPE
-and can't be recovered from the value alone.
+`ExFPE.raw_decrypt!/4`. They receive, and return, an integer value; you pass
+its length (symbol count) separately, because **leading zeroes are
+significant** in FPE and can't be recovered from the value alone.
 
 Encryption and decryption act on the value as if it were encoded in that radix,
 most significant symbol first.
@@ -260,7 +250,7 @@ most significant symbol first.
 ```elixir
 iex> key = :crypto.strong_rand_bytes(32)
 iex> ctx = ExFPE.new!(key, {:raw_only, _radix = 10})
-iex> tweak = <<0::56>>
+iex> tweak = "example"
 iex> plainval = 1234567
 iex> length = 10
 iex>
@@ -273,7 +263,7 @@ iex> ^plainval = ExFPE.raw_decrypt!(ctx, tweak, cipherval, length)
 ```elixir
 iex> key = :crypto.strong_rand_bytes(32)
 iex> ctx = ExFPE.new!(key, {:raw_only, _radix = 500})
-iex> tweak = <<0::56>>
+iex> tweak = "foobar"
 iex> plainval = 1234567
 iex> length = 10
 iex>
@@ -286,7 +276,7 @@ iex> ^plainval = ExFPE.raw_decrypt!(ctx, tweak, cipherval, length)
 ```elixir
 iex> key = :crypto.strong_rand_bytes(32)
 iex> ctx = ExFPE.new!(key, {:raw_only, _radix = 65535})
-iex> tweak = <<0::56>>
+iex> tweak = "tweak55"
 iex> plainval = 1234567
 iex> length = 10
 iex>
@@ -305,7 +295,7 @@ fixed 7-byte tweak.
 ```elixir
 iex> key = :crypto.strong_rand_bytes(32)
 iex> ctx = ExFPE.new!(key, :ff3_1, _radix = 10)
-iex> tweak = <<0::56>>
+iex> tweak = "dev.env"
 iex> plaintext = "34436524"
 iex> ciphertext = ExFPE.encrypt!(ctx, tweak, plaintext)
 iex> ^plaintext = ExFPE.decrypt!(ctx, tweak, ciphertext)
