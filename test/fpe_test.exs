@@ -3,7 +3,7 @@ defmodule ExFPE_Test do
   use ExUnit.Case, async: true
 
   doctest ExFPE
-  doctest ExFPE.Codec.NoSymbols
+  doctest ExFPE.Codec.Raw
 end
 
 # The usage guide (with its runnable examples) lives in the README; doctest it

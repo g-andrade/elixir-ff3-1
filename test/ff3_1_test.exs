@@ -1354,7 +1354,7 @@ defmodule FF3_1_Test do
   end
 
   test "no symbols" do
-    alias ExFPE.Codec.NoSymbols
+    alias ExFPE.Codec.Raw
 
     key = :crypto.strong_rand_bytes(32)
     tweak = :crypto.strong_rand_bytes(7)
@@ -1367,7 +1367,7 @@ defmodule FF3_1_Test do
         Enum.each(
           1..100,
           fn _ ->
-            {:ok, codec} = NoSymbols.new(radix)
+            {:ok, codec} = Raw.new(radix)
             {:ok, ctx} = ExFPE.new(key, :ff3_1, codec)
             %{min_length: min_length, max_length: max_length} = ExFPE.FF3_1.constraints(ctx.algorithm)
 
@@ -1376,7 +1376,7 @@ defmodule FF3_1_Test do
             input_low = :rand.uniform(input_high) - 1
             input = input_high + input_low
 
-            input_num_string = %NoSymbols.Numeral{value: input, length: input_length}
+            input_num_string = %Raw.Numeral{value: input, length: input_length}
             ciphertext = ExFPE.encrypt!(ctx, tweak, input_num_string)
             assert ciphertext.length == input_num_string.length
 

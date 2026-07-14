@@ -177,14 +177,14 @@ defmodule FF1_Test do
   end
 
   test "radix upper bound is 2**16" do
-    alias ExFPE.Codec.NoSymbols
+    alias ExFPE.Codec.Raw
 
     key = hex("2B7E151628AED2A6ABF7158809CF4F3C")
 
-    {:ok, codec} = NoSymbols.new(0x10000)
+    {:ok, codec} = Raw.new(0x10000)
     assert {:ok, _fpe} = ExFPE.new(key, :ff1, codec)
 
-    {:ok, too_big} = NoSymbols.new(0x10001)
+    {:ok, too_big} = Raw.new(0x10001)
 
     assert {:error, {:bad_radix, {0x10001, :more_than_maximum, 0x10000}}} =
              ExFPE.new(key, :ff1, too_big)

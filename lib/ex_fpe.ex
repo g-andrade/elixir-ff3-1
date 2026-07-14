@@ -93,7 +93,7 @@ defmodule ExFPE do
   A value to encrypt or decrypt.
 
   Usually the numeral `String.t()` over the context's alphabet, but a codec may
-  use its own representation (e.g. `ExFPE.Codec.NoSymbols` uses tagged
+  use its own representation (e.g. `ExFPE.Codec.Raw` uses tagged
   integers). Ciphertext and plaintext share this type and the same length.
   """
   @type numerical_string :: FFX.numerical_string()

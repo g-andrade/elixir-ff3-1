@@ -2,7 +2,7 @@
 defmodule ExFPE.ExceptionsTest do
   use ExUnit.Case, async: true
 
-  alias ExFPE.Codec.NoSymbols
+  alias ExFPE.Codec.Raw
 
   @key :crypto.strong_rand_bytes(32)
 
@@ -40,8 +40,8 @@ defmodule ExFPE.ExceptionsTest do
       assert_raise ExFPE.ArgumentError, ~r/below the minimum/, fn -> ExFPE.new!(@key, "0") end
     end
 
-    test "radix is above the maximum (NoSymbols codec)" do
-      codec = NoSymbols.new!(0x10001)
+    test "radix is above the maximum (Raw codec)" do
+      codec = Raw.new!(0x10001)
       assert_raise ExFPE.ArgumentError, ~r/above the maximum/, fn -> ExFPE.new!(@key, :ff1, codec) end
     end
 
@@ -76,9 +76,9 @@ defmodule ExFPE.ExceptionsTest do
     end
   end
 
-  describe "NoSymbols.new! raises ExFPE.ArgumentError" do
+  describe "Raw.new! raises ExFPE.ArgumentError" do
     test "radix is not a valid radix" do
-      assert_raise ExFPE.ArgumentError, ~r/must be an integer >= 2/, fn -> NoSymbols.new!(1) end
+      assert_raise ExFPE.ArgumentError, ~r/must be an integer >= 2/, fn -> Raw.new!(1) end
     end
   end
 
@@ -127,15 +127,15 @@ defmodule ExFPE.ExceptionsTest do
       end
     end
 
-    test "NoSymbols value is negative" do
-      ctx = ExFPE.new!(@key, :ff1, NoSymbols.new!(10))
-      input = %NoSymbols.Numeral{value: -1, length: 10}
+    test "Raw value is negative" do
+      ctx = ExFPE.new!(@key, :ff1, Raw.new!(10))
+      input = %Raw.Numeral{value: -1, length: 10}
       assert_raise ExFPE.InputError, ~r/value must be non-negative/, fn -> ExFPE.encrypt!(ctx, "", input) end
     end
 
-    test "NoSymbols value does not fit its declared length" do
-      ctx = ExFPE.new!(@key, :ff1, NoSymbols.new!(10))
-      input = %NoSymbols.Numeral{value: 9_999_999, length: 6}
+    test "Raw value does not fit its declared length" do
+      ctx = ExFPE.new!(@key, :ff1, Raw.new!(10))
+      input = %Raw.Numeral{value: 9_999_999, length: 6}
       assert_raise ExFPE.InputError, ~r/does not fit in its declared length/, fn -> ExFPE.encrypt!(ctx, "", input) end
     end
   end

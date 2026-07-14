@@ -246,7 +246,7 @@ iex> ^plaintext = ExFPE.decrypt!(ctx, tweak, ciphertext)
 ### No alphabet
 
 If you wish to handle translation of integers into and from symbols yourself,
-you can use `ExFPE.Codec.NoSymbols`. Encryption and decryption functions
+you can use `ExFPE.Codec.Raw`. Encryption and decryption functions
 will receive, and return, integer values with a length tag.
 
 Encryption and decryption will act on inputs as if the integer value was
@@ -255,54 +255,54 @@ encoded in that radix.
 #### Radix 10
 
 ```elixir
-iex> alias ExFPE.Codec.NoSymbols
+iex> alias ExFPE.Codec.Raw
 iex> key = :crypto.strong_rand_bytes(32)
 iex> radix = 10
-iex> codec = NoSymbols.new!(radix)
+iex> codec = Raw.new!(radix)
 iex> ctx = ExFPE.new!(key, codec)
 iex> tweak = <<0::56>>
 iex> input = 1234567
 iex> input_length = 10
 iex>
-iex> plaintext = %NoSymbols.Numeral{value: input, length: input_length}
+iex> plaintext = %Raw.Numeral{value: input, length: input_length}
 iex> ciphertext = ExFPE.encrypt!(ctx, tweak, plaintext)
-iex> %NoSymbols.Numeral{length: ^input_length} = ciphertext
+iex> %Raw.Numeral{length: ^input_length} = ciphertext
 iex> ^plaintext = ExFPE.decrypt!(ctx, tweak, ciphertext)
 ```
 
 #### Radix 500
 
 ```elixir
-iex> alias ExFPE.Codec.NoSymbols
+iex> alias ExFPE.Codec.Raw
 iex> key = :crypto.strong_rand_bytes(32)
 iex> radix = 500
-iex> codec = NoSymbols.new!(radix)
+iex> codec = Raw.new!(radix)
 iex> ctx = ExFPE.new!(key, codec)
 iex> tweak = <<0::56>>
 iex> input = 1234567
 iex> input_length = 10
 iex>
-iex> plaintext = %NoSymbols.Numeral{value: input, length: input_length}
+iex> plaintext = %Raw.Numeral{value: input, length: input_length}
 iex> ciphertext = ExFPE.encrypt!(ctx, tweak, plaintext)
-iex> %NoSymbols.Numeral{length: ^input_length} = ciphertext
+iex> %Raw.Numeral{length: ^input_length} = ciphertext
 iex> ^plaintext = ExFPE.decrypt!(ctx, tweak, ciphertext)
 ```
 
 #### Radix 65535
 
 ```elixir
-iex> alias ExFPE.Codec.NoSymbols
+iex> alias ExFPE.Codec.Raw
 iex> key = :crypto.strong_rand_bytes(32)
 iex> radix = 65535
-iex> codec = NoSymbols.new!(radix)
+iex> codec = Raw.new!(radix)
 iex> ctx = ExFPE.new!(key, codec)
 iex> tweak = <<0::56>>
 iex> input = 1234567
 iex> input_length = 10
 iex>
-iex> plaintext = %NoSymbols.Numeral{value: input, length: input_length}
+iex> plaintext = %Raw.Numeral{value: input, length: input_length}
 iex> ciphertext = ExFPE.encrypt!(ctx, tweak, plaintext)
-iex> %NoSymbols.Numeral{length: ^input_length} = ciphertext
+iex> %Raw.Numeral{length: ^input_length} = ciphertext
 iex> ^plaintext = ExFPE.decrypt!(ctx, tweak, ciphertext)
 ```
 

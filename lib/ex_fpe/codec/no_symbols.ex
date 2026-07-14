@@ -1,5 +1,5 @@
 # credo:disable-for-this-file Credo.Check.Readability.ModuleNames
-defmodule ExFPE.Codec.NoSymbols do
+defmodule ExFPE.Codec.Raw do
   @moduledoc """
   An implementation of `ExFPE.Codec` that skips the symbol alphabet entirely:
   you hand it integers and it hands integers back, leaving the mapping between
@@ -7,7 +7,7 @@ defmodule ExFPE.Codec.NoSymbols do
 
   Other codecs (`ExFPE.Codec.Builtin`, `ExFPE.Codec.Custom`) exist to translate
   a *string* of symbols into the integer FFX actually permutes, and back.
-  `NoSymbols` is for when you'd rather own that translation — because your
+  `Raw` is for when you'd rather own that translation — because your
   symbols aren't a single Unicode scalar each (so `Custom` can't accept them),
   because the value already lives as an integer in your system, or because you
   want to avoid string encoding on a hot path.
@@ -25,7 +25,7 @@ defmodule ExFPE.Codec.NoSymbols do
   differently. So each numerical string pairs a non-negative `value` with the
   `length` (symbol count) it's meant to occupy:
 
-      %ExFPE.Codec.NoSymbols.Numeral{value: 1234567, length: 10}
+      %ExFPE.Codec.Raw.Numeral{value: 1234567, length: 10}
 
   The value is interpreted as `length` digits in the codec's radix, most
   significant first. It must fit — that is, `0 <= value < radix ** length` —
@@ -36,16 +36,16 @@ defmodule ExFPE.Codec.NoSymbols do
 
   ## Example
 
-      iex> alias ExFPE.Codec.NoSymbols
+      iex> alias ExFPE.Codec.Raw
       iex> key = :crypto.strong_rand_bytes(32)
-      iex> codec = NoSymbols.new!(_radix = 10)
+      iex> codec = Raw.new!(_radix = 10)
       iex> ctx = ExFPE.new!(key, codec)
       iex> tweak = <<0::56>>
-      iex> plaintext = %NoSymbols.Numeral{value: 1234567, length: 10}
+      iex> plaintext = %Raw.Numeral{value: 1234567, length: 10}
       iex> ciphertext = ExFPE.encrypt!(ctx, tweak, plaintext)
-      iex> %NoSymbols.Numeral{length: 10} = ciphertext
+      iex> %Raw.Numeral{length: 10} = ciphertext
       iex> ^plaintext = ExFPE.decrypt!(ctx, tweak, ciphertext)
-      %NoSymbols.Numeral{value: 1234567, length: 10}
+      %Raw.Numeral{value: 1234567, length: 10}
 
   See the `ExFPE` guide's "No alphabet" section for more examples across radixes.
   """
@@ -63,7 +63,7 @@ defmodule ExFPE.Codec.NoSymbols do
 
   defmodule Numeral do
     @moduledoc """
-    A numerical string for `ExFPE.Codec.NoSymbols`, encoded as an integer
+    A numerical string for `ExFPE.Codec.Raw`, encoded as an integer
     `value` interpreted as `length` symbols (most significant first) in the
     codec's radix.
 

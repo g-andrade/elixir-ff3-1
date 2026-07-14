@@ -21,7 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   not approved.
 - Alphabets: a built-in radix 2–36 codec (`0-9a-z`, case-insensitive), custom
   Unicode alphabets up to radix 65535 (`ExFPE.Codec.Custom`), and a symbol-less
-  integer codec (`ExFPE.Codec.NoSymbols`).
+  integer codec (`ExFPE.Codec.Raw`).
 - `use ExFPE` for keeping a context under a supervision tree
 - Structured `{:error, reason}` tuples and an exception hierarchy
   (`ExFPE.ArgumentError`, `ExFPE.InputError`, `ExFPE.NotStartedError`).

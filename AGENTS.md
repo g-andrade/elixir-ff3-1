@@ -71,7 +71,7 @@ Facade → algorithm → per-alphabet codec:
     through to `Custom`).
   - `Custom` — arbitrary alphabets, **one Unicode scalar per symbol**, heavily validated.
     Numerical string = NFC codepoint list. Most recent work lives here.
-  - `NoSymbols` — integers tagged with a length (`%Numeral{}`), no string alphabet;
+  - `Raw` — integers tagged with a length (`%Numeral{}`), no string alphabet;
     radix up to 65535.
 - **`ExFPE.FFX.IntermediateForm`** (private) — record with radix/mask/bits-per-symbol for
   FF3-1's arithmetic.
