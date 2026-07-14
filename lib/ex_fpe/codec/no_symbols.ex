@@ -1,8 +1,53 @@
 # credo:disable-for-this-file Credo.Check.Readability.ModuleNames
 defmodule ExFPE.Codec.NoSymbols do
   @moduledoc """
-  An implementation of `ExFPE.Codec` that handles tagged integers, the tag
-  being the value length.
+  An implementation of `ExFPE.Codec` that skips the symbol alphabet entirely:
+  you hand it integers and it hands integers back, leaving the mapping between
+  those integers and whatever symbols they stand for up to you.
+
+  Every other codec (`ExFPE.Codec.Builtin`, `ExFPE.Codec.Custom`) exists to
+  translate a *string* of symbols into the integer FFX actually permutes, and
+  back. `NoSymbols` is for when you'd rather own that translation — because your
+  symbols aren't a single Unicode scalar each (so `Custom` can't accept them),
+  because the value already lives as an integer in your system, or because you
+  simply want to avoid string encoding on a hot path.
+
+  Because there's no alphabet, the radix isn't tied to any set of symbols. This
+  codec accepts any radix `>= 2`; the usable ceiling is set by the FFX mode, not
+  by this codec (FF1 allows up to 65536 — see `ExFPE.FF1` and `ExFPE.FF3_1`).
+
+  ## Numerical strings are `NumString` structs
+
+  Inputs and outputs are `#{inspect(__MODULE__)}.NumString` structs rather than
+  binaries. A plain integer isn't enough, because **length is significant** in
+  FPE (a leading zero is a real symbol): the value `1234567` could be a 7-symbol
+  string or a 10-symbol one padded with leading zeroes, and those encrypt
+  differently. So each numerical string pairs a non-negative `value` with the
+  `length` (symbol count) it's meant to occupy:
+
+      %ExFPE.Codec.NoSymbols.NumString{value: 1234567, length: 10}
+
+  The value is interpreted as `length` digits in the codec's radix, most
+  significant first. It must fit — that is, `0 <= value < radix ** length` —
+  otherwise `normalize_input/2` returns `{:error, {:negative_value, value}}` or
+  `{:error, {:value_is_larger_than_declared_length}}`. Encryption preserves the
+  `length`, so a ciphertext `NumString` always carries the same `length` as its
+  plaintext.
+
+  ## Example
+
+      iex> alias ExFPE.Codec.NoSymbols
+      iex> key = :crypto.strong_rand_bytes(32)
+      iex> codec = NoSymbols.new!(_radix = 10)
+      iex> ctx = ExFPE.new!(key, codec)
+      iex> tweak = <<0::56>>
+      iex> plaintext = %NoSymbols.NumString{value: 1234567, length: 10}
+      iex> ciphertext = ExFPE.encrypt!(ctx, tweak, plaintext)
+      iex> %NoSymbols.NumString{length: 10} = ciphertext
+      iex> ^plaintext = ExFPE.decrypt!(ctx, tweak, ciphertext)
+      %NoSymbols.NumString{value: 1234567, length: 10}
+
+  See the `ExFPE` guide's "No alphabet" section for more examples across radixes.
   """
 
   alias ExFPE.Codec
@@ -17,7 +62,17 @@ defmodule ExFPE.Codec.NoSymbols do
   @type radix :: FFX.radix()
 
   defmodule NumString do
-    @moduledoc "A numerical string encoded as an integer"
+    @moduledoc """
+    A numerical string for `ExFPE.Codec.NoSymbols`, encoded as an integer
+    `value` interpreted as `length` symbols (most significant first) in the
+    codec's radix.
+
+    `length` is carried explicitly because it can't be recovered from `value`
+    alone: FPE treats leading zeroes as real symbols, so `value: 42, length: 2`
+    ("42") and `value: 42, length: 5` ("00042") are different numerical strings.
+
+    Valid values satisfy `0 <= value < radix ** length`.
+    """
     @enforce_keys [:value, :length]
     defstruct [:value, :length]
 
