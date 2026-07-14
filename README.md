@@ -62,8 +62,9 @@ Keys can be:
 * 24 bytes long for AES-192
 * 16 bytes long for AES-128
 
-Radix is an integer between 2 and 36. For larger radixes up to 65535, a
-custom alphabet is needed - more on that later.
+Radix is an integer between 2 and 36. For larger radixes up to 65535, you'll
+need either a custom alphabet or the alphabet-free raw mode - more on both
+later.
 
 ### Encryption and decryption
 
