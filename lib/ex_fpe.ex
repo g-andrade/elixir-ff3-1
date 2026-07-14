@@ -7,8 +7,9 @@ defmodule ExFPE do
   number in a field that only accepts credit-card-shaped values, and other
   suchlike applications.
 
-  `ExFPE` is the entry point. It wraps a concrete FPE mode behind a single API —
-  `new/2` (or `new/3`), `encrypt!/3`, `decrypt!/3`.
+  `ExfPE` is the entry point. It wraps a concrete FPE mode behind a single API:
+  `new!/2`, `encrypt!/3`, `decrypt!/3`, and error-returning variants.
+
 
   By default it uses **FF1** (`ExFPE.FF1`), the only mode approved by NIST in
   [SP 800-38Gr1 2pd](https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-38Gr1.2pd.pdf).
@@ -70,8 +71,8 @@ defmodule ExFPE do
   @typedoc """
   The ordered symbols of a custom alphabet, given as a string.
 
-  Each symbol is a single Unicode codepoint, and the amount of symbols is the
-  radix (**not** graphemes). `ExFPE.Codec.Custom` for the exact rules.
+  Each symbol is a single Unicode codepoint, and the radix is amount of symbols
+  (**not** graphemes). See `ExFPE.Codec.Custom` for the exact rules.
   """
   @type alphabet :: String.t()
 
@@ -103,7 +104,7 @@ defmodule ExFPE do
   Like `new/3`, but returns the context directly and raises `ExFPE.ArgumentError`
   on failure.
   """
-  @spec new!(key, mode, radix | alphabet | codec) :: t
+  @spec new!(key, mode, radix | alphabet | codec) :: ctx :: t
   def new!(key, mode \\ @default_mode, radix_or_alphabet_or_codec) do
     case new(key, mode, radix_or_alphabet_or_codec) do
       {:ok, ex_fpe} ->
@@ -116,12 +117,12 @@ defmodule ExFPE do
 
   @doc """
   Creates a context for both encryption and decryption from a `key`, an optional
-  `mode` (`:ff1` by default), and either a `radix`, an `alphabet`, or a
+  `mode` (`:ff1` by default), and either a `radix`, an `alphabet`, or an
   `ExFPE.Codec`.
 
   Returns `{:error, reason}` if any argument is invalid.
   """
-  @spec new(key, mode, radix | alphabet | codec) :: {:ok, t} | {:error, term}
+  @spec new(key, mode, radix | alphabet | codec) :: {:ok, ctx :: t} | {:error, term}
   def new(key, mode \\ @default_mode, radix_or_alphabet_or_codec) do
     with {:ok, codec} <- init_codec(radix_or_alphabet_or_codec),
          {:ok, algorithm} <- init_algorithm(mode, key, codec) do
@@ -142,8 +143,8 @@ defmodule ExFPE do
   `ExFPE.InputError` on failure.
   """
   @spec encrypt!(t, tweak, numerical_string) :: numerical_string
-  def encrypt!(ex_fpe, tweak, plaintext) do
-    case encrypt(ex_fpe, tweak, plaintext) do
+  def encrypt!(ctx, tweak, plaintext) do
+    case encrypt(ctx, tweak, plaintext) do
       {:ok, ciphertext} ->
         ciphertext
 
@@ -159,7 +160,7 @@ defmodule ExFPE do
   Returns `{:error, reason}` if the tweak or input is invalid.
   """
   @spec encrypt(t, tweak, numerical_string) :: {:ok, numerical_string} | {:error, term}
-  def encrypt(%__MODULE__{algorithm: algorithm}, tweak, plaintext) do
+  def encrypt(%__MODULE__{algorithm: algorithm} = _ctx, tweak, plaintext) do
     Algorithm.do_encrypt_or_decrypt(algorithm, tweak, plaintext, true)
   end
 
@@ -168,8 +169,8 @@ defmodule ExFPE do
   `ExFPE.InputError` on failure.
   """
   @spec decrypt!(t, tweak, numerical_string) :: numerical_string
-  def decrypt!(ex_fpe, tweak, ciphertext) do
-    case decrypt(ex_fpe, tweak, ciphertext) do
+  def decrypt!(ctx, tweak, ciphertext) do
+    case decrypt(ctx, tweak, ciphertext) do
       {:ok, plaintext} ->
         plaintext
 
@@ -184,7 +185,7 @@ defmodule ExFPE do
   Returns `{:error, reason}` if the tweak or input is invalid.
   """
   @spec decrypt(t, tweak, numerical_string) :: {:ok, numerical_string} | {:error, term}
-  def decrypt(%__MODULE__{algorithm: algorithm}, tweak, ciphertext) do
+  def decrypt(%__MODULE__{algorithm: algorithm} = _ctx, tweak, ciphertext) do
     Algorithm.do_encrypt_or_decrypt(algorithm, tweak, ciphertext, false)
   end
 
@@ -192,7 +193,7 @@ defmodule ExFPE do
   Returns a `ctx`'s mode-specific length constraints (`min_length`/`max_length`).
   """
   @spec constraints(t) :: constraints
-  def constraints(%__MODULE__{algorithm: algorithm}) do
+  def constraints(%__MODULE__{algorithm: algorithm} = _ctx) do
     algorithm.__struct__.constraints(algorithm)
   end
 
@@ -201,7 +202,7 @@ defmodule ExFPE do
   prepare encryption and decryption inputs or outputs.
   """
   @spec codec(t) :: Codec.t()
-  def codec(%__MODULE__{codec: codec}), do: codec
+  def codec(%__MODULE__{codec: codec} = _ctx), do: codec
 
   ## Convenience: `use ExFPE`
 
@@ -217,7 +218,7 @@ defmodule ExFPE do
   Places an `ExFPE` context under your supervision tree so that you can encrypt
   and decrypt without threading the context through every call.
 
-  A module that `use ExFPE` gets:
+  A module that declares `use ExFPE` gets:
 
     * a `child_spec/2` / `child_spec/3` builder and a `start_link/3`, backed by
       a uniquely named process holding the context in a `:persistent_term`;

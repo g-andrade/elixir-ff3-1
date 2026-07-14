@@ -5,12 +5,12 @@ defmodule ExFPE.Codec.NoSymbols do
   you hand it integers and it hands integers back, leaving the mapping between
   those integers and whatever symbols they stand for up to you.
 
-  Every other codec (`ExFPE.Codec.Builtin`, `ExFPE.Codec.Custom`) exists to
-  translate a *string* of symbols into the integer FFX actually permutes, and
-  back. `NoSymbols` is for when you'd rather own that translation — because your
+  Other codecs (`ExFPE.Codec.Builtin`, `ExFPE.Codec.Custom`) exist to translate
+  a *string* of symbols into the integer FFX actually permutes, and back.
+  `NoSymbols` is for when you'd rather own that translation — because your
   symbols aren't a single Unicode scalar each (so `Custom` can't accept them),
   because the value already lives as an integer in your system, or because you
-  simply want to avoid string encoding on a hot path.
+  want to avoid string encoding on a hot path.
 
   Because there's no alphabet, the radix isn't tied to any set of symbols. This
   codec accepts any radix `>= 2`; the usable ceiling is set by the FFX mode, not

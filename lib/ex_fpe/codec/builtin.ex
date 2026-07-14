@@ -5,13 +5,14 @@ defmodule ExFPE.Codec.Builtin do
   0 to 9 and letters a to z, in that order, with all letters of equal casing,
   encompassing radixes from 2 and up to 36.
 
-  In other words: whatever `String.to_integer/2` can handle (except mixed
-  case), this module will be a wrap of.
+  In other words: whatever `String.to_integer/2` can handle (or
+  `String.to_integer/2` + `String.downcase/1`), this module will be a wrapper
+  of.
 
   If you specify a radix, the output will be upper case. If you'd like lower
   case outputs, you'll need to specify the corresponding alphabet.
 
-  Inputs are case insensitive, unlike `ExFPE.Codec.Custom`.
+  Inputs are **case insensitive**, unlike `ExFPE.Codec.Custom`.
   """
 
   alias ExFPE.Codec
@@ -36,8 +37,8 @@ defmodule ExFPE.Codec.Builtin do
 
   Returns `{:ok, t()}` if `term` is either:
   * a valid radix;
-  * an upper case alphabet matching that of `Integer.to_string/1`;
-  * a lower case alphabet matching that of `Integer.to_string/1` + `String.downcase/1`.
+  * an upper case alphabet matching that of `Integer.to_string/2`;
+  * a lower case alphabet matching that of `Integer.to_string/2` + `String.downcase/1`.
 
   Returns `nil` otherwise.
   """

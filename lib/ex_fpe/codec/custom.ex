@@ -16,29 +16,35 @@ defmodule ExFPE.Codec.Custom do
   ...) are rejected too — not because they'd break the grapheme invariant (a
   space stands alone just fine), but on practical grounds: since encryption
   permutes over the whole domain, a separator can surface anywhere in the
-  ciphertext, including as an invisible leading or trailing symbol (and length
-  is significant). Whitespace is exactly what the storage and transport layers
-  ciphertext must survive tend to mangle — trimming, collapsing, CRLF/line
-  normalization — so admitting it would quietly undermine round-tripping
-  outside this codec's control.
+  ciphertext, including as an invisible leading or trailing symbol.
 
   This buys two guarantees of different strength:
 
   * **Round-tripping** is ensured for any accepted alphabet, forever. Input is
-    tokenized by codepoint and matched after NFC normalization, and NFC is
-    frozen for assigned characters by the Unicode stability policy — so
+    tokenized by codepoint and matched after NFC normalization. Per the
+    [Unicode Normalization Stability Policy](https://www.unicode.org/policies/stability_policy.html)
+    and [UAX #15](https://www.unicode.org/reports/tr15/), once a string
+    contains only characters assigned in a given Unicode version, its NFC
+    form is guaranteed to stay the same in all later versions — so
     ciphertext stays decryptable across Unicode/OTP upgrades.
   * **Visual-unit preservation** (visual units out = visual units in) holds
-    under any given Unicode version, because every symbol occupies exactly one
-    grapheme cluster. Unlike normalization, grapheme segmentation has no formal
-    stability policy; a future Unicode version could in principle re-segment an
-    exotic symbol. If that ever happened the data would still decrypt (the
-    round-trip guarantee is independent of segmentation) — only the visual
-    count could drift. Restrict to ASCII for a formally frozen visual guarantee.
+    under any given Unicode version, because every symbol occupies exactly
+    one grapheme cluster. Unlike normalization, grapheme-cluster segmentation
+    ([UAX #29](https://www.unicode.org/reports/tr29/)) has no comparable
+    stability guarantee in the
+    [Unicode Character Encoding Stability Policies](https://www.unicode.org/policies/stability_policy.html);
+    segmentation rules have changed between versions before (e.g. a
+    [boundary fix for several Brahmic scripts](https://www.unicode.org/L2/L2023/23140-graphemes-expectations.pdf)
+    landed in Unicode 15.1), so a future version could in principle
+    re-segment an exotic symbol. If that ever happened the data would still
+    decrypt (the round-trip guarantee is independent of segmentation) — only
+    the visual count could drift.
 
-  It's **case sensitive** (unlike `ExFPE.Codec.Builtin`), but [norm
-  insensitive](https://hexdocs.pm/elixir/1.20/String.html#normalize/2). This is
-  because:
+  ### Case sensitivity
+
+  This codec is [norm
+  insensitive](https://hexdocs.pm/elixir/1.20/String.html#normalize/2), but
+  **case sensitive** (unlike `ExFPE.Codec.Builtin`). This is because:
   * There are
   [multiple](https://hexdocs.pm/elixir/1.20/String.html#downcase/2),
   [ways](https://www.erlang.org/doc/man/string#casefold-1) of making a string
@@ -46,25 +52,19 @@ defmodule ExFPE.Codec.Custom do
   * Case sensitivity makes sense in some cases (think base64) but not in
   others;
   * What if an alphabet has multiple casings of the same symbol but single
-  casings of others? Things can get real weird, real fast.
-
-  At the same time, it's hard to imagine different Unicode norms of the same
-  symbol within the same alphabet ever being a real use case.
+  casings of others?
 
   If you wish to handle case agnostically, you'll need to pick what best fits
-  your use case, and handle it before invoking `ExFPE` encryption and
-  decryption functions.
+  your use case, and either pass your own `ExFPE.Codec`, or handle it before
+  invoking `ExFPE` encryption and decryption functions.
 
-  ## Why alphabets must already be in NFC, while inputs need not be
+  ## Why alphabets must be in NFC, but not inputs
 
   Encryption and decryption inputs are normalized *toward* the alphabet: an
   input symbol is NFC-normalized and then looked up among the alphabet's
-  symbols. That lookup only works if the alphabet is itself in NFC, so
-  requiring it isn't an arbitrary parallel to the input rule — it's the
-  precondition that makes forgiving input normalization possible in the first
-  place.
+  symbols. That lookup only works if the alphabet is itself in NFC.
 
-  We *reject* a non-NFC alphabet rather than normalizing it, because
+  `ExFPE` rejects a non-NFC alphabet rather than normalizing it, because
   normalizing a symbol can silently change either its cardinality or its
   identity, breaking invariants this codec depends on:
 
@@ -76,17 +76,11 @@ defmodule ExFPE.Codec.Custom do
     symbol breaks splitting, length, and round-tripping.
   * **One codepoint can become a different one** — a Unicode *singleton*.
     `U+212B` (Å, the Ångström sign — itself a starter) normalizes to
-    `U+00C5` (Å, latin capital letter A with ring above). Normalizing would
-    substitute a symbol the caller never declared, and if `U+00C5` is already
-    in the alphabet the two entries collapse into one, corrupting the radix
-    and the symbol/amount mapping.
+    `U+00C5` (Å, latin capital letter A with ring above).
 
-  Inputs are safe to normalize because there it's only a lookup: the raw input
-  form is never stored or emitted (output is always built from the alphabet's
-  own symbols), so a normalized input either resolves to an existing symbol or
-  is rejected as unknown — no invariant can break. The alphabet, being the
-  source of truth for the radix, symbol ordering, and symbol/amount bijection,
-  is rejected loudly instead, so the caller declares a clean one.
+  Inputs are safe to normalize because there it's only a lookup. The alphabet,
+  being the source of truth for the radix, symbol ordering, and symbol/amount
+  bijection, is rejected loudly instead, so the caller declares a clean one.
   """
 
   alias ExFPE.Codec

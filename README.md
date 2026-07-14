@@ -1,18 +1,24 @@
 # ExFPE: Format-preserving encryption for Elixir
 
+[![Hex downloads](https://img.shields.io/hexpm/dt/ex_fpe.svg)](https://hex.pm/packages/ex_fpe)
+[![License](https://img.shields.io/hexpm/l/ex_fpe.svg)](https://github.com/g-andrade/ex_fpe/blob/main/LICENSE)
+[![Elixir Versions](https://img.shields.io/badge/Elixir-1.14%20to%201.20-blue)](https://elixir-lang.org/)
+[![Erlang Versions](https://img.shields.io/badge/Erlang%2FOTP-26%20to%2028-blue)](https://www.erlang.org)
+[![CI status](https://github.com/g-andrade/ex_fpe/actions/workflows/ci.yml/badge.svg)](https://github.com/g-andrade/ex_fpe/actions/workflows/ci.yml)
+
 ExFPE encrypts a numerical string into another of the **same length over the
 same alphabet**. This is useful to e.g. store an encrypted credit card number
 in a field that only accepts credit-card-shaped values, and other suchlike
 applications.
 
-`ExFPE` is the entry point. It wraps a concrete FPE mode behind a single API —
+`ExfPE` is the entry point. It wraps a concrete FPE mode behind a single API:
 `new!/2`, `encrypt!/3`, `decrypt!/3`, and error-returning variants.
 
-By default it uses **FF1** (`ExFPE.FF1`), the only mode approved by NIST in
-[SP 800-38Gr1 2pd](https://csrc.nist.gov/pubs/sp/800/38/g/r1/2pd).
-The examples below all use the default. The other mode is FF3-1
-(`ExFPE.FF3_1`), which NIST removed — reach for it only to interoperate with
-data that was already encrypted with FF3-1.
+By default it uses **FF1** (`ExFPE.FF1`), the only mode approved by NIST in [SP
+800-38Gr1 2pd](https://csrc.nist.gov/pubs/sp/800/38/g/r1/2pd). The examples
+below all use the default. The other mode is FF3-1 (`ExFPE.FF3_1`), which NIST
+no longer recommends; reach for it only to interoperate with data that was
+already encrypted with FF3-1.
 
 > **Mode-specific rules**
 >
@@ -22,6 +28,10 @@ data that was already encrypted with FF3-1.
 > `ExFPE.FF3_1`.
 
 ## Installation
+
+[![Latest version](https://img.shields.io/hexpm/v/ex_fpe.svg?style=flat)](https://hex.pm/packages/ex_fpe)
+[![API reference](https://img.shields.io/badge/hex-docs-lightgreen.svg)](https://hexdocs.pm/ex_fpe/)
+[![Last commit](https://img.shields.io/github/last-commit/g-andrade/ex_fpe.svg)](https://github.com/g-andrade/ex_fpe/commits/main)
 
 Add `ex_fpe` to your list of dependencies in `mix.exs`:
 
@@ -322,27 +332,38 @@ the context transparently, storing it in a uniquely named
 process placed under your supervision tree. See `ExFPE` for details.
 
 ```elixir
-defmodule MyApp.CardCipher do
-  use ExFPE
-
-  @impl true
-  def child_spec do
-    child_spec(fetch_key(), _radix = 10)
-  end
-
-  defp fetch_key, do: Application.fetch_env!(:my_app, :fpe_key)
-end
-
-# in your application's supervision tree:
-children = [
-  MyApp.CardCipher.child_spec(),
-  # ...
-]
-
-# then, anywhere:
-plaintext = "34436524"
-ciphertext = MyApp.CardCipher.encrypt!(tweak, plaintext)
-^plaintext = MyApp.CardCipher.decrypt!(tweak, ciphertext)
+iex> defmodule MyApp.CardCipher do
+iex>   use ExFPE
+iex>
+iex>   @impl true
+iex>   def child_spec() do
+iex>     child_spec(fetch_key(), _radix = 10)
+iex>   end
+iex>
+iex>   defp fetch_key(), do: Application.fetch_env!(:my_app, :fpe_key)
+iex> end
+iex>
+iex>
+iex> defmodule MyApp.Application do
+iex>   def start(_type, _args) do
+iex>      children = [
+iex>        MyApp.CardCipher.child_spec(),
+iex>      ]
+iex>
+iex>      opts = [strategy: :one_for_one, name: MyApp.Supervisor]
+iex>      Supervisor.start_link(children, opts)
+iex>   end
+iex> end
+iex>
+iex>
+iex> Application.put_env(:my_app, :fpe_key, :crypto.strong_rand_bytes(32))
+iex> {:ok, _} = MyApp.Application.start(:normal, [])
+iex>
+iex>
+iex> tweak = "test.env"
+iex> plaintext = "34436524"
+iex> ciphertext = MyApp.CardCipher.encrypt!(tweak, plaintext)
+iex> ^plaintext = MyApp.CardCipher.decrypt!(tweak, ciphertext)
 ```
 
 ## License

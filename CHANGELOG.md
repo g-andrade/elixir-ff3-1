@@ -14,16 +14,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `ExFPE` facade over the FFX family, with `new/2,3`, `encrypt/3`, `decrypt/3`
   and raising `!` variants.
 - **FF1** mode ([SP 800-38Gr1
-  2pd](https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-38Gr1.2pd.pdf)),
-  the default and only NIST-approved mode. Variable-length tweak; verified
-  against the official NIST sample vectors.
+  2pd](https://csrc.nist.gov/pubs/sp/800/38/g/r1/2pd)), the default and only
+  NIST-approved mode. Variable-length tweak; verified against the official NIST
+  sample vectors.
 - **FF3-1** mode ([SP 800-38G Rev. 1 first
-  draft](https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-38Gr1-draft.pdf)),
-  fixed 7-byte tweak. Provided for interoperability only — NIST removed the FF3
-  family and it is not approved.
+  draft](https://csrc.nist.gov/pubs/sp/800/38/g/r1/ipd)), fixed 7-byte tweak.
+  Provided for interoperability only — NIST removed the FF3 family and it is
+  not approved.
 - Alphabets: a built-in radix 2–36 codec (`0-9a-z`, case-insensitive), custom
-  Unicode alphabets up to radix 65535 (`ExFPE.Codec.Custom`), and a
-  symbol-less integer codec (`ExFPE.Codec.NoSymbols`).
+  Unicode alphabets up to radix 65535 (`ExFPE.Codec.Custom`), and a symbol-less
+  integer codec (`ExFPE.Codec.NoSymbols`).
 - `use ExFPE` for keeping a context under a supervision tree
 - Structured `{:error, reason}` tuples and an exception hierarchy
   (`ExFPE.ArgumentError`, `ExFPE.InputError`, `ExFPE.NotStartedError`).
