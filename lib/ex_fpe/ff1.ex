@@ -5,7 +5,7 @@ defmodule ExFPE.FF1 do
   The FF1 format-preserving encryption mode.
 
   FF1 is the **only FPE mode approved by NIST** as of
-  [SP 800-38Gr1 2pd](https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-38Gr1.2pd.pdf)
+  [SP 800-38Gr1 2pd](https://csrc.nist.gov/pubs/sp/800/38/g/r1/2pd)
   (Second Public Draft, February 2025), and this library's **default** mode.
 
   Use it through the `ExFPE` facade: since FF1 is the default, `ExFPE.new(key,
@@ -38,10 +38,6 @@ defmodule ExFPE.FF1 do
   FF1 accepts a **variable-length** tweak: any byte string, from the empty
   string up to the maximum tweak length. See `ExFPE` for the general role of
   tweaks, and the reference document below for the specifics.
-
-  This implementation conforms, as best as possible, to
-  [SP 800-38Gr1 2pd](https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-38Gr1.2pd.pdf)
-  as published by NIST in their Cryptographic Standards.
   """
 
   import Bitwise

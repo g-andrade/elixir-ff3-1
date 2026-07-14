@@ -7,7 +7,7 @@ defmodule ExFPE.FF3_1 do
   > #### No longer NIST-approved {: .warning}
   >
   > NIST **removed the entire FF3 family (FF3 and FF3-1)** in
-  > [SP 800-38Gr1 2pd](https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-38Gr1.2pd.pdf)
+  > [SP 800-38Gr1 2pd](https://csrc.nist.gov/pubs/sp/800/38/g/r1/2pd)
   > (Second Public Draft, February 2025): Beyne's linear cryptanalysis
   > ([CRYPTO 2021](https://doi.org/10.1007/978-3-030-84242-0_3)) found a weakness
   > in the tweak schedule that affects both FF3 and FF3-1 but **not** FF1. FF1 is
@@ -22,7 +22,7 @@ defmodule ExFPE.FF3_1 do
   to FF3-1: its fixed **7-byte tweak** and its **length constraints**.
 
   This implementation conforms, as best as possible, to
-  [Draft SP 800-38G Rev. 1](https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-38Gr1-draft.pdf)
+  [Draft SP 800-38G Rev. 1](https://csrc.nist.gov/pubs/sp/800/38/g/r1/ipd)
   (the first draft, in which FF3-1 was still specified), as published by NIST in
   their Cryptographic Standards.
 

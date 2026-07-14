@@ -71,8 +71,11 @@ defmodule ExFPE do
   @typedoc """
   The ordered symbols of a custom alphabet, given as a string.
 
-  Each symbol is a single Unicode codepoint, and the radix is amount of symbols
-  (**not** graphemes). See `ExFPE.Codec.Custom` for the exact rules.
+  Each symbol is a single Unicode codepoint, and the radix is the amount of
+  symbols (**not** graphemes).
+
+  For any alphabet not covered by `ExFPE.Codec.Builtin`, see
+  `ExFPE.Codec.Custom` for the exact rules.
   """
   @type alphabet :: String.t()
 
