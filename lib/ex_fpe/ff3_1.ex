@@ -188,39 +188,39 @@ defmodule ExFPE.FF3_1 do
   end
 
   defimpl Algorithm, for: __MODULE__ do
+    alias ExFPE.FF3_1
+    alias FFX.IntermediateForm
+
+    require Record
+
+    @total_rounds 8
+
+    Record.defrecordp(:aux, [
+      :key,
+      :codec,
+      :iform_ctx,
+      :radix
+    ])
+
+    @typep aux ::
+             record(:aux,
+               key: FFX.key(),
+               codec: Codec.t(),
+               iform_ctx: IntermediateForm.ctx(),
+               radix: FF3_1.radix()
+             )
+
     def do_encrypt_or_decrypt(ctx, t, codec, vX, enc) do
       with {:ok, vX_length, vX} <- validate_enc_or_dec_input(ctx, codec, vX),
            :ok <- validate_tweak(t),
-           %ExFPE.FF3_1{key: key, iform_ctx: iform_ctx} = ctx,
-           {:ok, even_m, odd_m, vA, vB, even_vW, odd_vW} <-
-             setup_encrypt_or_decrypt_vars(codec, t, vX, vX_length) do
+           %FF3_1{key: key, iform_ctx: iform_ctx} = ctx,
+           {:ok, aux, even_m, odd_m, a, b, even_w, odd_w} <-
+             setup_encdec_vars(key, codec, iform_ctx, t, vX, vX_length) do
         vY =
           if enc do
-            do_encrypt_rounds!(
-              _i = 0,
-              key,
-              codec,
-              iform_ctx,
-              even_m,
-              odd_m,
-              vA,
-              vB,
-              even_vW,
-              odd_vW
-            )
+            do_encrypt_rounds!(aux, 0, even_m, odd_m, a, b, even_w, odd_w)
           else
-            do_decrypt_rounds!(
-              _i = 7,
-              key,
-              codec,
-              iform_ctx,
-              odd_m,
-              even_m,
-              vA,
-              vB,
-              odd_vW,
-              even_vW
-            )
+            do_decrypt_rounds!(aux, @total_rounds - 1, odd_m, even_m, a, b, odd_w, even_w)
           end
 
         {:ok, vY}
@@ -231,7 +231,7 @@ defmodule ExFPE.FF3_1 do
     end
 
     defp validate_enc_or_dec_input(ctx, codec, vX) do
-      %ExFPE.FF3_1{min_length: min_length, max_length: max_length} = ctx
+      %FF3_1{min_length: min_length, max_length: max_length} = ctx
 
       case Codec.normalize_input(codec, vX) do
         {:ok, valid_length, normalized_vX} when valid_length in min_length..max_length//1 ->
@@ -258,9 +258,7 @@ defmodule ExFPE.FF3_1 do
       end
     end
 
-    defp setup_encrypt_or_decrypt_vars(codec, t, vX, vX_length) do
-      alias FFX.IntermediateForm
-
+    defp setup_encdec_vars(key, codec, iform_ctx, t, vX, vX_length) do
       n = vX_length
 
       # 1. Let u = ceil(n/2); v = n - u
@@ -268,142 +266,141 @@ defmodule ExFPE.FF3_1 do
       v = n - u
 
       # 2. Let A = X[1..u]; B = X[u + 1..n]
-      {vA_str, vB_str} = Codec.split_numerical_string_at(codec, vX, u)
+      {a_str, b_str} = Codec.split_numerical_string_at(codec, vX, u)
 
-      with {:ok, vA} <- Codec.numerical_string_to_int(codec, vA_str),
-           {:ok, vB} <- Codec.numerical_string_to_int(codec, vB_str) do
+      with {:ok, a} <- Codec.numerical_string_to_int(codec, a_str),
+           {:ok, b} <- Codec.numerical_string_to_int(codec, b_str) do
         # 3. Let T_L = T[0..27] || O⁴ and T_R = T[32..55] || T[28..31] || O⁴
         <<t_left::bits-size(28), t_middle::bits-size(4), t_right::bits-size(24)>> = t
-        <<vT_L::bytes>> = <<t_left::bits, 0::4>>
-        <<vT_R::bytes>> = <<t_right::bits, t_middle::bits, 0::4>>
+        <<t_l::bytes>> = <<t_left::bits, 0::4>>
+        <<t_r::bytes>> = <<t_right::bits, t_middle::bits, 0::4>>
+
+        aux =
+          aux(
+            key: key,
+            codec: codec,
+            iform_ctx: iform_ctx,
+            radix: Codec.radix(codec)
+          )
 
         # 4.i. If i is even, let m = u and W = T_R, else let m = v and W = T_L
         even_m = u
         odd_m = v
-        even_vW = vT_R
-        odd_vW = vT_L
-        {:ok, even_m, odd_m, vA, vB, even_vW, odd_vW}
+        even_w = t_r
+        odd_w = t_l
+        {:ok, aux, even_m, odd_m, a, b, even_w, odd_w}
       else
         {:error, reason} ->
           {:error, {:invalid_input, reason}}
       end
     end
 
-    # credo:disable-for-next-line Credo.Check.Refactor.FunctionArity
-    defp do_encrypt_rounds!(i, key, codec, iform_ctx, m, other_m, vA, vB, vW, other_vW) when i < 8 do
-      alias FFX.IntermediateForm
+    #####################
 
-      radix = Codec.radix(codec)
+    @spec do_encrypt_rounds!(
+            aux,
+            non_neg_integer,
+            pos_integer,
+            pos_integer,
+            non_neg_integer,
+            non_neg_integer,
+            binary,
+            binary
+          ) :: term
+
+    defp do_encrypt_rounds!(aux, i, m, other_m, a, b, w, other_w) when i < @total_rounds do
+      aux(key: key, iform_ctx: iform_ctx, radix: radix) = aux
 
       # 4.ii. Let P = W ⊕ [i]⁴ || [NUM_radix(REV(B))]¹²
-      vP_W_xor_i = :crypto.exor(vW, <<i::unsigned-size(4)-unit(8)>>)
-      vP_num_radix_rev_B = IntermediateForm.left_pad_and_revert(iform_ctx, vB, other_m)
-      vP = <<vP_W_xor_i::bytes, vP_num_radix_rev_B::unsigned-size(12)-unit(8)>>
+      p_w_xor_i = :crypto.exor(w, <<i::unsigned-size(4)-unit(8)>>)
+      p_num_radix_rev_b = IntermediateForm.left_pad_and_revert(iform_ctx, b, other_m)
+      p = <<p_w_xor_i::bytes, p_num_radix_rev_b::unsigned-size(12)-unit(8)>>
 
       ## 4.iii. Let S = REVB(CIPH_REVB(K)(REVB(P)))
-      vS_revb_P = FFX.revb(vP)
-      vS_revb_K = FFX.revb(key)
-      vS_ciph_etc = ciph(vS_revb_K, vS_revb_P)
-      vS = FFX.revb(vS_ciph_etc)
+      s_revb_p = FFX.revb(p)
+      s_revb_k = FFX.revb(key)
+      s_ciph_etc = ciph(s_revb_k, s_revb_p)
+      s = FFX.revb(s_ciph_etc)
 
       ## 4.iv. Let y = NUM(S)
-      y = FFX.num(vS)
+      y = FFX.num(s)
 
       ## 4.v. Let c = (NUM_radix(REV(A)) + y) mod (radix**m)
-      c_num_radix_rev_A = IntermediateForm.left_pad_and_revert(iform_ctx, vA, m)
-      c_num_radix_rev_A_plus_y = c_num_radix_rev_A + y
-      c = rem(c_num_radix_rev_A_plus_y, Integer.pow(radix, m))
+      c_num_radix_rev_a = IntermediateForm.left_pad_and_revert(iform_ctx, a, m)
+      small_c = rem(c_num_radix_rev_a + y, Integer.pow(radix, m))
 
       ## 4.vi. Let C = REV(STR_m_radix(c))
-      vC = IntermediateForm.left_pad_and_revert(iform_ctx, c, m)
+      c = IntermediateForm.left_pad_and_revert(iform_ctx, small_c, m)
 
-      ## 4.vii. Let A = B
-      vA = vB
+      ## 4.vii. Let A = B; 4.viii. let B = C
+      a = b
+      b = c
 
-      ## 4.viii. let B = C
-      vB = vC
-
-      do_encrypt_rounds!(
-        i + 1,
-        key,
-        codec,
-        iform_ctx,
-        # swap odd with even
-        _m = other_m,
-        _other_m = m,
-        vA,
-        vB,
-        # swap odd with even
-        _vW = other_vW,
-        _other_vW = vW
-      )
+      # swap odd with even
+      do_encrypt_rounds!(aux, i + 1, other_m, m, a, b, other_w, w)
     end
 
-    # credo:disable-for-next-line Credo.Check.Refactor.FunctionArity
-    defp do_encrypt_rounds!(8 = _i, _key, codec, _iform_ctx, m, other_m, vA, vB, _vW, _other_vW) do
-      alias FFX.IntermediateForm
+    defp do_encrypt_rounds!(aux, i, m, other_m, a, b, _w, _other_w) when i === @total_rounds do
+      aux(codec: codec) = aux
+
       ## 5. Return A || B
-      vA_str = Codec.int_to_padded_numerical_string(codec, vA, m)
-      vB_str = Codec.int_to_padded_numerical_string(codec, vB, other_m)
-      Codec.concat_numerical_strings(codec, vA_str, vB_str)
+      a_str = Codec.int_to_padded_numerical_string(codec, a, m)
+      b_str = Codec.int_to_padded_numerical_string(codec, b, other_m)
+      Codec.concat_numerical_strings(codec, a_str, b_str)
     end
 
-    # credo:disable-for-next-line Credo.Check.Refactor.FunctionArity
-    defp do_decrypt_rounds!(i, key, codec, iform_ctx, m, other_m, vA, vB, vW, other_vW) when i >= 0 do
-      alias FFX.IntermediateForm
+    #################
 
-      radix = Codec.radix(codec)
+    @spec do_decrypt_rounds!(
+            aux,
+            -1 | non_neg_integer,
+            pos_integer,
+            pos_integer,
+            non_neg_integer,
+            non_neg_integer,
+            binary,
+            binary
+          ) :: term
+
+    defp do_decrypt_rounds!(aux, i, m, other_m, a, b, w, other_w) when i >= 0 do
+      aux(key: key, iform_ctx: iform_ctx, radix: radix) = aux
 
       ## 4.ii. Let P = W ⊕ [i]⁴ || [NUM_radix(REV(A))]¹²
-      vP_W_xor_i = :crypto.exor(vW, <<i::unsigned-size(4)-unit(8)>>)
-      vP_num_radix_rev_A = IntermediateForm.left_pad_and_revert(iform_ctx, vA, other_m)
-      vP = <<vP_W_xor_i::bytes, vP_num_radix_rev_A::unsigned-size(12)-unit(8)>>
+      p_w_xor_i = :crypto.exor(w, <<i::unsigned-size(4)-unit(8)>>)
+      p_num_radix_rev_a = IntermediateForm.left_pad_and_revert(iform_ctx, a, other_m)
+      p = <<p_w_xor_i::bytes, p_num_radix_rev_a::unsigned-size(12)-unit(8)>>
 
       ## 4.iii. Let S = REVB(CIPH_REVB(K)(REVB(P)))
-      vS_revb_P = FFX.revb(vP)
-      vS_revb_K = FFX.revb(key)
-      vS_ciph_etc = ciph(vS_revb_K, vS_revb_P)
-      vS = FFX.revb(vS_ciph_etc)
+      s_revb_p = FFX.revb(p)
+      s_revb_k = FFX.revb(key)
+      s_ciph_etc = ciph(s_revb_k, s_revb_p)
+      s = FFX.revb(s_ciph_etc)
 
       ## 4.iv. Let y = NUM(S)
-      y = FFX.num(vS)
+      y = FFX.num(s)
 
       ## 4.v. Let c = (NUM_radix(REV(B)) - y) mod (radix**m)
-      c_num_radix_rev_B = IntermediateForm.left_pad_and_revert(iform_ctx, vB, m)
-      c_num_radix_rev_B_minus_y = c_num_radix_rev_B - y
-      c = Integer.mod(c_num_radix_rev_B_minus_y, Integer.pow(radix, m))
+      c_num_radix_rev_b = IntermediateForm.left_pad_and_revert(iform_ctx, b, m)
+      small_c = Integer.mod(c_num_radix_rev_b - y, Integer.pow(radix, m))
 
       ## 4.vi. Let C = REV(STR_m_radix(c))
-      vC = IntermediateForm.left_pad_and_revert(iform_ctx, c, m)
+      c = IntermediateForm.left_pad_and_revert(iform_ctx, small_c, m)
 
-      ## 4.vii. Let B = A
-      vB = vA
+      ## 4.vii. Let B = A; 4.viii. Let A = C
+      b = a
+      a = c
 
-      ## 4.viii. Let A = C
-      vA = vC
-
-      do_decrypt_rounds!(
-        i - 1,
-        key,
-        codec,
-        iform_ctx,
-        # swap odd with even
-        _m = other_m,
-        _other_m = m,
-        vA,
-        vB,
-        # swap odd with even
-        _vW = other_vW,
-        _other_vW = vW
-      )
+      # swap odd with even
+      do_decrypt_rounds!(aux, i - 1, other_m, m, a, b, other_w, w)
     end
 
-    # credo:disable-for-next-line Credo.Check.Refactor.FunctionArity
-    defp do_decrypt_rounds!(-1 = _i, _key, codec, _iform_ctx, m, other_m, vA, vB, _vW, _other_vW) do
+    defp do_decrypt_rounds!(aux, i, m, other_m, a, b, _w, _other_w) when i === -1 do
+      aux(codec: codec) = aux
+
       ## 5. Return A || B
-      vA_str = Codec.int_to_padded_numerical_string(codec, vA, other_m)
-      vB_str = Codec.int_to_padded_numerical_string(codec, vB, m)
-      Codec.concat_numerical_strings(codec, vA_str, vB_str)
+      a_str = Codec.int_to_padded_numerical_string(codec, a, other_m)
+      b_str = Codec.int_to_padded_numerical_string(codec, b, m)
+      Codec.concat_numerical_strings(codec, a_str, b_str)
     end
 
     defp ciph(key, input) do

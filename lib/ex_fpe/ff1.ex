@@ -169,42 +169,49 @@ defmodule ExFPE.FF1 do
   end
 
   defimpl Algorithm, for: __MODULE__ do
+    alias ExFPE.FF1
+
+    require Record
+
+    @total_rounds 10
+
+    Record.defrecordp(:aux, [
+      :key,
+      :tweak,
+      :codec,
+      :radix,
+      :u,
+      :v,
+      :small_b,
+      :d,
+      :p,
+      :q_zeros
+    ])
+
+    @typep aux ::
+             record(:aux,
+               key: FFX.key(),
+               tweak: FF1.tweak(),
+               codec: Codec.t(),
+               radix: FF1.radix(),
+               u: pos_integer,
+               v: pos_integer,
+               small_b: pos_integer,
+               d: pos_integer,
+               p: binary,
+               q_zeros: binary
+             )
+
     def do_encrypt_or_decrypt(ctx, tweak, codec, vX, enc) do
       with {:ok, vX_length, vX} <- validate_enc_or_dec_input(ctx, codec, vX),
            :ok <- validate_tweak(ctx, tweak),
-           %ExFPE.FF1{key: key} = ctx,
-           {:ok, u, v, vA, vB, b, d, vP} <- setup_encrypt_or_decrypt_vars(codec, tweak, vX, vX_length) do
+           %FF1{key: key} = ctx,
+           {:ok, aux, a, b} <- setup_encdec_vars(key, codec, tweak, vX, vX_length) do
         vY =
           if enc do
-            do_encrypt_rounds!(
-              _i = 0,
-              key,
-              codec,
-              tweak,
-              #
-              u,
-              v,
-              vA,
-              vB,
-              b,
-              d,
-              vP
-            )
+            do_encrypt_rounds!(aux, 0, @total_rounds, a, b)
           else
-            do_decrypt_rounds!(
-              _i = 9,
-              key,
-              codec,
-              tweak,
-              #
-              u,
-              v,
-              vA,
-              vB,
-              b,
-              d,
-              vP
-            )
+            do_decrypt_rounds!(aux, @total_rounds - 1, a, b)
           end
 
         {:ok, vY}
@@ -215,7 +222,7 @@ defmodule ExFPE.FF1 do
     end
 
     defp validate_enc_or_dec_input(ctx, codec, vX) do
-      %ExFPE.FF1{min_length: min_length, max_length: max_length} = ctx
+      %FF1{min_length: min_length, max_length: max_length} = ctx
 
       case Codec.normalize_input(codec, vX) do
         {:ok, valid_length, normalized_vX} when valid_length in min_length..max_length//1 ->
@@ -229,7 +236,7 @@ defmodule ExFPE.FF1 do
       end
     end
 
-    defp validate_tweak(%ExFPE.FF1{max_length: max_length}, tweak) do
+    defp validate_tweak(%FF1{max_length: max_length}, tweak) do
       case tweak do
         _ when byte_size(tweak) <= max_length ->
           :ok
@@ -242,7 +249,7 @@ defmodule ExFPE.FF1 do
       end
     end
 
-    defp setup_encrypt_or_decrypt_vars(codec, tweak, vX, vX_length) do
+    defp setup_encdec_vars(key, codec, tweak, vX, vX_length) do
       n = vX_length
       t = byte_size(tweak)
 
@@ -251,10 +258,10 @@ defmodule ExFPE.FF1 do
       v = n - u
 
       # 2. Let A = X[1..u]; B = X[u + 1..n]
-      {vA_str, vB_str} = Codec.split_numerical_string_at(codec, vX, u)
+      {a_str, b_str} = Codec.split_numerical_string_at(codec, vX, u)
 
-      with {:ok, vA} <- Codec.numerical_string_to_int(codec, vA_str),
-           {:ok, vB} <- Codec.numerical_string_to_int(codec, vB_str) do
+      with {:ok, a} <- Codec.numerical_string_to_int(codec, a_str),
+           {:ok, b} <- Codec.numerical_string_to_int(codec, b_str) do
         # 3. Let b = ⎡BITLEN(radix**v − 1)/8⎤.
         #
         # BITLEN(radix**v − 1) is the number of bits needed to represent it, so
@@ -262,13 +269,13 @@ defmodule ExFPE.FF1 do
         # big-endian encoding. Computed without floating point, as the 2pd (§5)
         # requires (the first version defined b via ⎡v·LOG2(radix)⎤).
         radix = Codec.radix(codec)
-        b = byte_size(:binary.encode_unsigned(Integer.pow(radix, v) - 1))
+        small_b = byte_size(:binary.encode_unsigned(Integer.pow(radix, v) - 1))
 
         # 4. Let d = 4 ⎡b/4⎤ + 4.
-        d = 4 * div(b + 3, 4) + 4
+        d = 4 * div(small_b + 3, 4) + 4
 
         # 5. Let P = [1]1 || [2]1 || [1]1 || [radix]3 || [10]1 || [u mod 256]1 || [n]4 || [t]4.
-        vP = <<
+        p = <<
           1,
           2,
           1,
@@ -279,39 +286,69 @@ defmodule ExFPE.FF1 do
           t::32
         >>
 
-        {:ok, u, v, vA, vB, b, d, vP}
+        q_zeros_size = Integer.mod(-t - small_b - 1, 16)
+        q_zeros = <<0::unsigned-size(q_zeros_size)-unit(8)>>
+
+        aux =
+          aux(
+            key: key,
+            tweak: tweak,
+            codec: codec,
+            radix: radix,
+            u: u,
+            v: v,
+            small_b: small_b,
+            d: d,
+            p: p,
+            q_zeros: q_zeros
+          )
+
+        {:ok, aux, a, b}
       else
         {:error, reason} ->
           {:error, {:invalid_input, reason}}
       end
     end
 
-    # credo:disable-for-next-line Credo.Check.Refactor.FunctionArity
-    defp do_encrypt_rounds!(i, key, codec, tweak, u, v, vA, vB, b, d, vP) when i < 10 do
-      radix = Codec.radix(codec)
-      t = byte_size(tweak)
+    #####################
 
-      # i. Let Q = T || [0](−t−b−1) mod 16 || [i]1 || [NUMradix(B)]b
-      vQ_zeros_size = Integer.mod(-t - b - 1, 16)
+    @spec do_encrypt_rounds!(aux, non_neg_integer, pos_integer, non_neg_integer, non_neg_integer) :: term
 
-      vQ = <<
-        tweak::bytes,
-        0::unsigned-size(vQ_zeros_size)-unit(8),
+    defp do_encrypt_rounds!(aux, i, total_rounds, a, b) when i < total_rounds do
+      aux(
+        key: key,
+        tweak: tweak,
+        radix: radix,
+        u: u,
+        v: v,
+        small_b: small_b,
+        d: d,
+        p: p,
+        q_zeros: q_zeros
+      ) = aux
+
+      ###
+
+      p_and_q = [
+        p,
+        # i. Let Q = T || [0](−t−b−1) mod 16 || [i]1 || [NUMradix(B)]
+        tweak,
+        q_zeros,
         i,
-        vB::unsigned-size(b)-unit(8)
-      >>
+        <<b::unsigned-size(small_b)-unit(8)>>
+      ]
 
       # ii. Let R = PRF(P || Q).
-      vR = prf(key, [vP, vQ])
+      vR = prf(key, p_and_q)
 
       # iii. Let S be the first d bytes of the following string of ⎡d/16⎤ blocks:
       # R || CIPHK (R ⊕ [1]16) || CIPHK (R ⊕ [2]16) … CIPHK (R ⊕ [⎡d/16⎤ – 1]16
       #
-      vS_blocks = compute_vS_blocks(key, d, vR)
-      vS = :binary.part(vS_blocks, 0, d)
+      s_blocks = compute_s_blocks(key, d, vR)
+      s = :binary.part(s_blocks, 0, d)
 
       # iv. Let y = NUM(S).
-      y = FFX.num(vS)
+      y = FFX.num(s)
 
       # v. If i is even, let m = u; else, let m = v
       m =
@@ -322,53 +359,63 @@ defmodule ExFPE.FF1 do
         end
 
       # vi. Let c = (NUMradix(A) + y) mod (radix ** m)
-      c = Integer.mod(vA + y, Integer.pow(radix, m))
+      small_c = Integer.mod(a + y, Integer.pow(radix, m))
 
       # vii. Let C = STR_m_radix(c)
-      vC = c
+      c = small_c
 
-      vA = vB
-      vB = vC
+      a = b
+      b = c
 
-      do_encrypt_rounds!(i + 1, key, codec, tweak, u, v, vA, vB, b, d, vP)
+      do_encrypt_rounds!(aux, i + 1, total_rounds, a, b)
     end
 
-    # credo:disable-for-next-line Credo.Check.Refactor.FunctionArity
-    defp do_encrypt_rounds!(10, _key, codec, _tweak, u, v, vA, vB, _b, _d, _vP) do
+    defp do_encrypt_rounds!(aux, i, total_rounds, a, b) when i === total_rounds do
+      aux(codec: codec, u: u, v: v) = aux
+
       ## 5. Return A || B
-      vA_str = Codec.int_to_padded_numerical_string(codec, vA, u)
-      vB_str = Codec.int_to_padded_numerical_string(codec, vB, v)
-      Codec.concat_numerical_strings(codec, vA_str, vB_str)
+      a_str = Codec.int_to_padded_numerical_string(codec, a, u)
+      b_str = Codec.int_to_padded_numerical_string(codec, b, v)
+      Codec.concat_numerical_strings(codec, a_str, b_str)
     end
 
     #################
 
-    # credo:disable-for-next-line Credo.Check.Refactor.FunctionArity
-    defp do_decrypt_rounds!(i, key, codec, tweak, u, v, vA, vB, b, d, vP) when i >= 0 do
-      radix = Codec.radix(codec)
-      t = byte_size(tweak)
+    @spec do_decrypt_rounds!(aux, -1 | non_neg_integer, non_neg_integer, non_neg_integer) :: term
 
-      # i. Let Q = T || [0](−t−b−1) mod 16 || [i]1 || [NUMradix (A)]b
-      vQ_zeros_size = Integer.mod(-t - b - 1, 16)
+    defp do_decrypt_rounds!(aux, i, a, b) when i >= 0 do
+      aux(
+        key: key,
+        tweak: tweak,
+        radix: radix,
+        u: u,
+        v: v,
+        small_b: small_b,
+        d: d,
+        p: p,
+        q_zeros: q_zeros
+      ) = aux
 
-      vQ = <<
-        tweak::bytes,
-        0::unsigned-size(vQ_zeros_size)-unit(8),
+      p_and_q = [
+        p,
+        # i. Let Q = T || [0](−t−b−1) mod 16 || [i]1 || [NUMradix (A)]b
+        tweak,
+        q_zeros,
         i,
-        vA::unsigned-size(b)-unit(8)
-      >>
+        <<a::unsigned-size(small_b)-unit(8)>>
+      ]
 
       # ii. Let R = PRF(P || Q).
-      vR = prf(key, [vP, vQ])
+      r = prf(key, p_and_q)
 
       # iii. Let S be the first d bytes of the following string of ⎡d/16⎤ blocks:
       # R || CIPHK (R ⊕ [1]16) || CIPHK (R ⊕ [2]16) … CIPHK (R ⊕ [⎡d/16⎤ – 1]16
       #
-      vS_blocks = compute_vS_blocks(key, d, vR)
-      vS = :binary.part(vS_blocks, 0, d)
+      s_blocks = compute_s_blocks(key, d, r)
+      s = :binary.part(s_blocks, 0, d)
 
       # iv. Let y = NUM(S).
-      y = FFX.num(vS)
+      y = FFX.num(s)
 
       # v. If i is even, let m = u; else, let m = v
       m =
@@ -379,33 +426,34 @@ defmodule ExFPE.FF1 do
         end
 
       # vi. Let c = (NUMradix(B) - y) mod (radix ** m)
-      c = Integer.mod(vB - y, Integer.pow(radix, m))
+      small_c = Integer.mod(b - y, Integer.pow(radix, m))
 
       # vii. Let C = STR_m_radix(c)
-      vC = c
+      c = small_c
 
-      vB = vA
-      vA = vC
+      b = a
+      a = c
 
-      do_decrypt_rounds!(i - 1, key, codec, tweak, u, v, vA, vB, b, d, vP)
+      do_decrypt_rounds!(aux, i - 1, a, b)
     end
 
-    # credo:disable-for-next-line Credo.Check.Refactor.FunctionArity
-    defp do_decrypt_rounds!(-1, _key, codec, _tweak, u, v, vA, vB, _b, _d, _vP) do
+    defp do_decrypt_rounds!(aux, i, a, b) when i === -1 do
+      aux(codec: codec, u: u, v: v) = aux
+
       ## 5. Return A || B
-      vA_str = Codec.int_to_padded_numerical_string(codec, vA, u)
-      vB_str = Codec.int_to_padded_numerical_string(codec, vB, v)
-      Codec.concat_numerical_strings(codec, vA_str, vB_str)
+      a_str = Codec.int_to_padded_numerical_string(codec, a, u)
+      b_str = Codec.int_to_padded_numerical_string(codec, b, v)
+      Codec.concat_numerical_strings(codec, a_str, b_str)
     end
 
     ###########
 
     # credo:disable-for-next-line Credo.Check.Readability.FunctionNames
-    defp compute_vS_blocks(key, d, vR) do
+    defp compute_s_blocks(key, d, vR) do
       # ⎡d/16⎤ blocks, computed without floating point (2pd §5).
       last_index = div(d + 15, 16) - 1
       acc_size = byte_size(vR)
-      IO.iodata_to_binary([vR | compute_vS_blocks_recur(key, d, vR, acc_size, 1, last_index)])
+      IO.iodata_to_binary([vR | compute_s_blocks_recur(key, d, vR, acc_size, 1, last_index)])
       # <<
       #  vR::bytes,
       #  #
@@ -416,15 +464,15 @@ defmodule ExFPE.FF1 do
     end
 
     # credo:disable-for-next-line Credo.Check.Readability.FunctionNames
-    defp compute_vS_blocks_recur(key, d, vR, acc_size, index, last_index) when index <= last_index and acc_size < d do
+    defp compute_s_blocks_recur(key, d, vR, acc_size, index, last_index) when index <= last_index and acc_size < d do
       [
         ciph(key, :crypto.exor(vR, <<index::unsigned-size(16)-unit(8)>>))
-        | compute_vS_blocks_recur(key, d, vR, acc_size + 16, index + 1, last_index)
+        | compute_s_blocks_recur(key, d, vR, acc_size + 16, index + 1, last_index)
       ]
     end
 
     # credo:disable-for-next-line Credo.Check.Readability.FunctionNames
-    defp compute_vS_blocks_recur(_key, _d, _vR, _acc_size, _index, _last_index) do
+    defp compute_s_blocks_recur(_key, _d, _vR, _acc_size, _index, _last_index) do
       []
     end
 
