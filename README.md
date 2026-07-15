@@ -3,7 +3,7 @@
 [![Hex downloads](https://img.shields.io/hexpm/dt/ex_fpe.svg)](https://hex.pm/packages/ex_fpe)
 [![License](https://img.shields.io/hexpm/l/ex_fpe.svg)](https://github.com/g-andrade/ex_fpe/blob/main/LICENSE)
 [![Elixir Versions](https://img.shields.io/badge/Elixir-1.14%20to%201.20-blue)](https://elixir-lang.org/)
-[![Erlang Versions](https://img.shields.io/badge/Erlang%2FOTP-26%20to%2028-blue)](https://www.erlang.org)
+[![Erlang Versions](https://img.shields.io/badge/Erlang%2FOTP-26%20to%2029-blue)](https://www.erlang.org)
 [![CI status](https://github.com/g-andrade/ex_fpe/actions/workflows/ci.yml/badge.svg)](https://github.com/g-andrade/ex_fpe/actions/workflows/ci.yml)
 
 ExFPE encrypts a numerical string into another of the **same length over the
